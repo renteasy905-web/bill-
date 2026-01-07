@@ -2,20 +2,20 @@ import React, { useState } from "react";
 import api from "../utils/api";
 
 const CreateProducts = () => {
-  const [Name, setname] = useState("");
-  const [Descaiption, setDescription] = useState("");
-  const [Mrp, setMrp] = useState("");
-  const [Quantity, setquntity] = useState("");
-  const [expiry, setexpiry] = useState("");
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [mrp, setMrp] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [expiry, setExpiry] = useState("");
 
-  const submit = async (g) => {
-    g.preventDefault();
+  const submit = async (e) => {
+    e.preventDefault();
 
     const payload = {
-      Name,
-      Description: Descaiption,
-      Mrp,
-      Quantity,
+      Name: name,
+      Description: description,
+      Mrp: Number(mrp),
+      Quantity: Number(quantity),
       Expiry: expiry,
     };
 
@@ -23,12 +23,12 @@ const CreateProducts = () => {
       await api.post("/products", payload);
       alert("Product created successfully");
 
-      // optional reset
-      setname("");
+      // Reset form
+      setName("");
       setDescription("");
       setMrp("");
-      setquntity("");
-      setexpiry("");
+      setQuantity("");
+      setExpiry("");
     } catch (error) {
       console.error(error);
       alert(
@@ -55,8 +55,8 @@ const CreateProducts = () => {
 
         <input
           required
-          value={Name}
-          onChange={(r) => setname(r.target.value)}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
           type="text"
           placeholder="Name of product"
           className="w-full bg-slate-700 text-white rounded-lg px-3 py-2"
@@ -66,8 +66,8 @@ const CreateProducts = () => {
           required
           type="text"
           placeholder="Description"
-          value={Descaiption}
-          onChange={(r) => setDescription(r.target.value)}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
           className="w-full bg-slate-700 text-white rounded-lg px-3 py-2"
         />
 
@@ -76,16 +76,16 @@ const CreateProducts = () => {
             required
             type="number"
             placeholder="MRP"
-            value={Mrp}
-            onChange={(r) => setMrp(r.target.value)}
+            value={mrp}
+            onChange={(e) => setMrp(e.target.value)}
             className="bg-slate-700 text-white rounded-lg px-3 py-2"
           />
 
           <input
             required
             type="number"
-            value={Quantity}
-            onChange={(r) => setquntity(r.target.value)}
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
             placeholder="Quantity"
             className="bg-slate-700 text-white rounded-lg px-3 py-2"
           />
@@ -95,13 +95,13 @@ const CreateProducts = () => {
           type="date"
           required
           value={expiry}
-          onChange={(r) => setexpiry(r.target.value)}
+          onChange={(e) => setExpiry(e.target.value)}
           className="w-full bg-slate-700 text-white rounded-lg px-3 py-2"
         />
 
         <button
           type="submit"
-          className="w-full bg-indigo-600 text-white py-2 rounded-lg"
+          className="w-full bg-indigo-600 hover:bg-indigo-700 transition text-white py-2 rounded-lg font-medium"
         >
           Create Product
         </button>

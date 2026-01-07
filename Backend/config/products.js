@@ -1,49 +1,54 @@
-const products = require('../models/products');
-
+const products = require("../models/products");
 const sales = require("../models/sales");
-const customer = require('../models/customer');
+const customer = require("../models/customer");
 
+const Createproducts = async (req, res) => {
+  try {
+    const { Name, Description, Mrp, Quantity, Expiry } = req.body;
 
-const Createproducts = async (req , res)=>{
+    if (!Name || !Description || !Mrp || !Quantity || !Expiry) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
 
-   try {
-     const {Name , Description , Mrp , Quantity , Expiry } = req.body;
-     if(!Name || !Description || !Mrp || !Quantity || !Expiry){
-        return res.status(201).json({message : 'enter properly and not getting data '})
-     };
+    const Product = await products.create({
+      Name,
+      Description,
+      Mrp,
+      Quantity,
+      Expiry,
+    });
 
-     const Product = await products.create({
-        Name , Description , Mrp , Quantity , Expiry
-     });
-
-     return res.status(200).json({message : 'products creaeted' , Product});
-
-   } catch (error) {
-    console.log(error)
-   }
-   
-}
-
-const fetch  = async (req,res)=>{
-   try {
-      const t = await products.find().sort({name:1});
-
-   return res.status(200).json({message : "all prodcutsc here " , t})
-   } catch (error) {
-      console.log(error) 
-   }
+    return res.status(201).json({ message: "Product created successfully", Product });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
 };
 
-const edit = async (req , res)=>{
-   try {
-      const Items = await products.findByIdAndUpdate(req.params.id, req.body , {new : true});
-
-      return res.status(200).json({Items});
-   } catch (error) {
-      console.log(error)
-   }
+const fetch = async (req, res) => {
+  try {
+    const t = await products.find().sort({ Name: 1 });
+    return res.status(200).json({ message: "All products fetched", t });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error" });
+  }
 };
 
+const edit = async (req, res) => {
+  try {
+    const Items = await products.findByIdAndUpdate(req.params.id, req.body, { new: true });
+
+    if (!Items) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    return res.status(200).json({ Items });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
 
 const Createcustomer = async (req, res)=>{
 
@@ -160,12 +165,5 @@ const updateSaleById = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
-
-
-
-
-
-
-
 
 module.exports = {Createproducts, fetch , edit , Createcustomer , createSale , fetchCustomers , allproducts , getAllSales , getSaleById , updateSaleById};
