@@ -1,16 +1,33 @@
-const mongoose = require('mongoose');
-const Productschema = new mongoose.Schema({
-    Name : {
-        type: String ,
-        required : true
-    }, 
-    Description : {
-        type : String ,
-        required : true
-    },
-    Mrp : Number ,
-    Quantity : Number ,
-    Expiry : String
-});
+const mongoose = require("mongoose");
 
-module.exports = mongoose.model('product' ,  Productschema);
+const ProductSchema = new mongoose.Schema(
+  {
+    Name: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    Description: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    Mrp: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    Quantity: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    Expiry: {
+      type: Date, // ✅ VERY IMPORTANT
+      required: true
+    }
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model("product", ProductSchema);

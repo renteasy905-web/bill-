@@ -1,31 +1,29 @@
-const dotenv = require('dotenv');
-const express = require('express');
-const cors = require('cors');
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+require("dotenv").config();
 
-dotenv.config();
+const routes = require("./routes");
 
 const app = express();
-const ConnectDB = require('./db/db');
-const routes = require('./routes');
 
-const PORT = process.env.PORT || 3000;
-
-/* -------------------- MIDDLEWARE -------------------- */
-app.use(cors());
+app.use(cors({ origin: "*" }));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-/* -------------------- DATABASE -------------------- */
-ConnectDB();
+// API routes
+app.use("/api", routes);
 
-/* -------------------- ROUTES -------------------- */
-app.use('/api', routes);
-
-app.get('/', (req, res) => {
-  res.send('guru');
+// test route
+app.get("/", (req, res) => {
+  res.send("Backend running");
 });
 
-/* -------------------- SERVER -------------------- */
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.error("Mongo error:", err));
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log("Server running on port", PORT);
 });

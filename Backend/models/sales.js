@@ -4,7 +4,7 @@ const saleSchema = new mongoose.Schema(
   {
     customer: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Customer"
+      ref: "customer" // ✅ FIXED (must match model name)
     },
     items: [
       {
@@ -36,4 +36,4 @@ const saleSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Sale", saleSchema);
+module.exports = mongoose.model("sales", saleSchema);
