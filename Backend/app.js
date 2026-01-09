@@ -1,41 +1,39 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-const multer = require("multer");
-require("dotenv").config();
-const routes = require("./routes"); // Existing routes
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
-// Temporarily disabled because routes/extract.js file is missing
-// const extractRoute = require("./routes/extract");
+// Your existing imports
+import First from './Pages/First';
+import Allproducts from './Pages/Allproducts';
+import CreateProducts from './Pages/CreateProducts';
+import Cart from './Pages/Cart';
+import CreateCustomer from './Pages/CreateCustomer';
+import Sales from './Pages/Sales';
+import ListofSales from './Pages/ListofSales';
+import Editsales from './Pages/Editsales';
 
-const app = express();
+// ADD THIS IMPORT
+import Notifications from './Pages/Notifications';
 
-// Middleware
-app.use(cors({ origin: "*" }));
-app.use(express.json());
-// Multer setup (for file uploads if needed later)
-app.use(multer().none());
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<First />} />
+        <Route path="/allproducts" element={<Allproducts />} />
+        <Route path="/createProducts" element={<CreateProducts />} />
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/createCustomer" element={<CreateCustomer />} />
+        <Route path="/sales" element={<Sales />} />
+        <Route path="/allsales" element={<ListofSales />} />
+        <Route path="/editsales/:id" element={<Editsales />} />
 
-// Routes
-app.use("/api", routes);
-// app.use("/api", extractRoute); // ← Commented out to prevent crash
+        {/* ADD THIS NEW ROUTE */}
+        <Route path="/notifications" element={<Notifications />} />
 
-// Test route to confirm backend is alive
-app.get("/", (req, res) => {
-  res.send("Backend running – Vishwas Medical Inventory API is live!");
-});
+        {/* Optional - catch all 404 */}
+        <Route path="*" element={<div className="pt-20 text-white text-center text-3xl p-8">404 - Page Not Found</div>} />
+      </Routes>
+    </Router>
+  );
+}
 
-// MongoDB Connection
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected ✅"))
-  .catch((err) => {
-    console.error("MongoDB error ❌:", err.message);
-    process.exit(1);
-  });
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT} 🚀`);
-  console.log(`Visit: https://bill-inventory-backend.onrender.com`);
-});
+export default App;
