@@ -28,7 +28,7 @@ const CreateProducts = () => {
 
     setProducts([]);
     setLoading(true);
-    setStatusMessage("Reading bill... (30-60 sec first time)");
+    setStatusMessage("Reading bill...");
 
     let worker;
     try {
@@ -38,12 +38,11 @@ const CreateProducts = () => {
 
       console.log("Raw Text:\n", text);
 
-      const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 20 && l.match(/\d+/));
+      const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 20);
 
       const extracted = [];
 
       for (let line of lines) {
-        // Skip junk
         if (
           line.toLowerCase().includes("kalburgi") ||
           line.toLowerCase().includes("gst invoice") ||
@@ -53,12 +52,14 @@ const CreateProducts = () => {
           line.toLowerCase().includes("cgst") ||
           line.toLowerCase().includes("authorised") ||
           line.includes("S.No") ||
-          line.includes("Class")
+          line.includes("Class") ||
+          line.includes("Terms")
         ) {
           continue;
         }
 
-        // Super flexible regex - | optional, extra spaces, distorted text handle
+        // Regex for space-separated KALBURGI format
+        // S.No Qty Mfr Pack ProductName Batch Exp HSN M.R.P Rate ...
         const regex = /(\d+)\s+(\d+)\s+([A-Z]+)\s+([0-9A-Z']+)\s+([A-Z0-9\s'&()-]+?)\s+([A-Z0-9]+)\s+(\d{2}\/\d{2})\s+\d+\s+([\d.]+)\s+([\d.]+)/i;
         const match = line.match(regex);
 
@@ -68,7 +69,7 @@ const CreateProducts = () => {
           const pack = match[4].trim();
           const name = match[5].trim();
           const batch = match[6].trim();
-          const expMMYY = match[7].trim();
+          const expMMYY = match[7];
           const mrp = parseFloat(match[8]);
 
           const [month, year] = expMMYY.split("/");
@@ -86,11 +87,11 @@ const CreateProducts = () => {
 
       setProducts(extracted);
       setStatusMessage("");
-      alert(`✅ Extracted ${extracted.length} products! Edit if needed → Create All`);
+      alert(`✅ Extracted ${extracted.length} products! Edit if needed and click Create All`);
     } catch (err) {
       console.error(err);
       setStatusMessage("");
-      alert("Failed. Crop the product table only in screenshot for best results.");
+      alert("Failed. Crop the product table in screenshot.");
     } finally {
       if (worker) await worker.terminate();
       setLoading(false);
@@ -124,7 +125,7 @@ const CreateProducts = () => {
       }
     }
 
-    alert(success === products.length ? `✅ All ${success} saved!` : `✅ ${success} saved, ${failed.length} failed`);
+    alert(success === products.length ? `All ${success} saved!` : `${success} saved, ${failed.length} failed`);
     setProducts([]);
     setLoading(false);
   };
