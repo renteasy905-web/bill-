@@ -16,21 +16,27 @@ const {
 
 const router = express.Router();
 
-// Product Routes
+// ====================
+// PRODUCT ROUTES
+// ====================
 router.post("/products", Createproducts);
-router.get("/fetch", fetch);
-router.put("/fetch/:id", edit);
-router.get("/allproducts", allproducts);
+router.get("/fetch", fetch);                    // Get all products (sorted by name)
+router.put("/fetch/:id", edit);                 // Update product by ID
+router.get("/allproducts", allproducts);        // Get all products (sorted by expiry)
 
-// Customer Routes
-router.post("/create", Createcustomer);
-router.get("/getcustomers", fetchCustomers);
+// ====================
+// CUSTOMER ROUTES
+// ====================
+router.post("/create", Createcustomer);         // Create new customer
+router.get("/getcustomers", fetchCustomers);    // Get all customers
 
-// Sale Routes
-router.post("/sale", createSale);
-router.get("/allsales", getAllSales);
-router.get("/sales/:id", getSaleById);
-router.put("/sales/:id", updateSaleById);
-router.delete("/sales/:id", deleteSale); // New DELETE route
+// ====================
+// SALE ROUTES (Billing & History)
+// ====================
+router.post("/sale", createSale);               // Create new sale (billing)
+router.get("/allsales", getAllSales);           // Get all sales records
+router.get("/sales/:id", getSaleById);          // Get single sale by ID
+router.put("/sales/:id", updateSaleById);       // Update sale (e.g. items, quantity)
+router.delete("/sales/:id", deleteSale);        // Delete sale & restore stock
 
 module.exports = router;
