@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Plus, Users, Package, ShoppingCart, Receipt, BarChart3, Pill } from "lucide-react";
+import { Menu, X, Plus, Users, Package, ShoppingCart, Receipt, BarChart3, Pill, Bell } from "lucide-react";
 
 const First = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -44,14 +44,29 @@ const First = () => {
               </Link>
             </nav>
 
-            {/* Prominent Create Customer Button in Navbar */}
-            <Link
-              to="/createCustomer"
-              className="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg transition transform hover:scale-105 flex items-center gap-2"
-            >
-              <Users size={20} />
-              Create Customer
-            </Link>
+            {/* Right side: Notification Bell + Create Customer Button */}
+            <div className="flex items-center space-x-4">
+              {/* Bell Icon with Notification Badge */}
+              <Link
+                to="/notifications"
+                className="relative text-slate-300 hover:text-white hover:bg-slate-800 p-2 rounded-lg transition"
+              >
+                <Bell size={24} />
+                {/* Example badge - you can make this dynamic later */}
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  3
+                </span>
+              </Link>
+
+              {/* Prominent Create Customer Button */}
+              <Link
+                to="/createCustomer"
+                className="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg transition transform hover:scale-105 flex items-center gap-2"
+              >
+                <Users size={20} />
+                Create Customer
+              </Link>
+            </div>
           </div>
         </div>
       </header>
@@ -67,6 +82,9 @@ const First = () => {
           </Link>
           <Link to="/cart" onClick={() => setSidebarOpen(false)} className="block bg-sky-600 hover:bg-sky-700 text-white py-3 px-4 rounded-xl font-medium flex items-center gap-3">
             <ShoppingCart size={20} /> Billing Cart
+          </Link>
+          <Link to="/notifications" onClick={() => setSidebarOpen(false)} className="block bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-xl font-medium flex items-center gap-3">
+            <Bell size={20} /> Notifications
           </Link>
           <Link to="/createCustomer" onClick={() => setSidebarOpen(false)} className="block bg-amber-500 hover:bg-amber-600 text-white py-3 px-4 rounded-xl font-medium flex items-center gap-3">
             <Users size={20} /> Create Customer
@@ -113,7 +131,7 @@ const First = () => {
         </div>
       </main>
 
-      {/* Floating Create Customer Button (Visible on all pages if you use layout) */}
+      {/* Floating Create Customer Button */}
       <Link
         to="/createCustomer"
         className="fixed bottom-8 right-8 z-40 bg-amber-500 hover:bg-amber-600 text-white rounded-full p-5 shadow-2xl transition transform hover:scale-110 hover:shadow-amber-500/50 flex items-center gap-3 text-lg font-bold"
