@@ -19,30 +19,19 @@ const CreateProducts = () => {
     }
 
     setLoading(true);
-    setProducts([]); // Clear old
+    setProducts([]);
 
     const formData = new FormData();
     formData.append("billImage", image);
 
     try {
-      const response = await api.post("/extract-bill", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        timeout: 120000, // 2 minutes
-      });
-
-      const extractedProducts = response.data.products || [];
-      setProducts(extractedProducts);
-
-      if (extractedProducts.length === 0) {
-        alert("No products detected. Try a clearer screenshot of the product table only.");
-      } else {
-        alert(`✅ Successfully extracted ${extractedProducts.length} products!\nEdit if needed and click Create All`);
-      }
+      const response = await api.post("/extract-bill", formData);
+      const extracted = response.data.products || [];
+      setProducts(extracted);
+      alert(`Extracted ${extracted.length} products! Edit if needed and click Create All`);
     } catch (err) {
       console.error(err);
-      alert("Extraction failed. Check image quality or backend logs.");
+      alert("Failed. Try a clearer cropped screenshot of the product table.");
     } finally {
       setLoading(false);
       setImage(null);
@@ -56,7 +45,7 @@ const CreateProducts = () => {
   };
 
   const createAllProducts = async () => {
-    if (products.length === 0) return alert("No products to save!");
+    if (products.length === 0) return alert("No products!");
 
     setLoading(true);
     let success = 0;
@@ -75,114 +64,108 @@ const CreateProducts = () => {
       }
     }
 
-    alert(success === products.length
-      ? `✅ All ${success} products saved successfully!`
-      : `✅ ${success} saved | Failed: ${failed.length} (${failed.join(", ")})`
-    );
-
+    alert(success === products.length ? `All ${success} saved!` : `${success} saved, ${failed.length} failed`);
     setProducts([]);
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center px-4 py-8">
-      <h1 className="text-4xl font-bold text-indigo-400 mb-8 tracking-wide">
-        Vishwas Medical
-      </h1>
+    <div className="min-h-screen bg-slate-900 text-white p-8">
+      <h1 className="text-4xl font-bold text-indigo-400 text-center mb-10">Vishwas Medical</h1>
 
-      <div className="w-full max-w-4xl bg-slate-800 rounded-2xl shadow-2xl p-8 space-y-8">
-        <h2 className="text-3xl font-bold text-gray-100 text-center">
-          AI Bill Extraction (Free OCR.space)
-        </h2>
+      <div className="max-w-4xl mx-auto bg-slate-800 rounded-2xl p-10 shadow-2xl">
+        <h2 className="text-3xl font-bold text-center mb-8">AI Bill Extraction</h2>
 
-        <div className="border border-indigo-500 rounded-xl p-6">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-            className="w-full bg-slate-700 text-white rounded-lg px-4 py-3 mb-4"
-          />
-          <button
-            onClick={extractBill}
-            disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-70 text-white py-4 rounded-xl font-bold text-xl"
-          >
-            {loading ? "Extracting products..." : "Extract Products from Bill"}
-          </button>
-        </div>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleImageChange}
+          className="block w-full text-lg mb-8 file:mr-6 file:py-3 file:px-8 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-indigo-600 file:text-white hover:file:bg-indigo-700"
+        />
 
-        {products.length > 0 && (
-          <div className="overflow-x-auto rounded-xl">
-            <h3 className="text-2xl text-green-400 mb-6 text-center">
-              Extracted {products.length} Products - Edit & Save
-            </h3>
-            <table className="w-full text-white border-collapse">
+        <button
+          onClick={extractBill}
+          disabled={loading}
+          className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-70 py-5 rounded-xl font-bold text-2xl"
+        >
+          {loading ? "Extracting..." : "Extract Products from Bill"}
+        </button>
+      </div>
+
+      {products.length > 0 && (
+        <div className="max-w-6xl mx-auto bg-slate-800 rounded-2xl p-10 shadow-2xl mt-12">
+          <h3 className="text-3xl text-green-400 text-center mb-8">
+            Extracted {products.length} Products
+          </h3>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
               <thead className="bg-slate-700">
                 <tr>
-                  <th className="px-6 py-4 text-left">Product Name</th>
-                  <th className="px-6 py-4 text-left">Description</th>
-                  <th className="px-6 py-4 text-left">MRP</th>
-                  <th className="px-6 py-4 text-left">Quantity</th>
-                  <th className="px-6 py-4 text-left">Expiry</th>
+                  <th className="px-6 py-4">Product Name</th>
+                  <th className="px-6 py-4">Description</th>
+                  <th className="px-6 py-4">MRP</th>
+                  <th className="px-6 py-4">Quantity</th>
+                  <th className="px-6 py-4">Expiry</th>
                 </tr>
               </thead>
               <tbody>
                 {products.map((p, i) => (
                   <tr key={i} className="bg-slate-600 border-b border-slate-700">
-                    <td className="px-4 py-3">
+                    <td className="px-6 py-4">
                       <input
                         value={p.Name}
                         onChange={(e) => handleProductChange(i, "Name", e.target.value)}
-                        className="w-full bg-slate-500 rounded px-3 py-2"
+                        className="w-full bg-slate-500 rounded px-4 py-2"
                       />
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-6 py-4">
                       <input
                         value={p.Description}
                         onChange={(e) => handleProductChange(i, "Description", e.target.value)}
-                        className="w-full bg-slate-500 rounded px-3 py-2"
+                        className="w-full bg-slate-500 rounded px-4 py-2"
                       />
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-6 py-4">
                       <input
                         type="number"
                         step="0.01"
                         value={p.Mrp}
                         onChange={(e) => handleProductChange(i, "Mrp", e.target.value)}
-                        className="w-full bg-slate-500 rounded px-3 py-2"
+                        className="w-full bg-slate-500 rounded px-4 py-2"
                       />
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-6 py-4">
                       <input
                         type="number"
                         value={p.Quantity}
                         onChange={(e) => handleProductChange(i, "Quantity", e.target.value)}
-                        className="w-full bg-slate-500 rounded px-3 py-2"
+                        className="w-full bg-slate-500 rounded px-4 py-2"
                       />
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-6 py-4">
                       <input
                         type="date"
                         value={p.Expiry}
                         onChange={(e) => handleProductChange(i, "Expiry", e.target.value)}
-                        className="w-full bg-slate-500 rounded px-3 py-2"
+                        className="w-full bg-slate-500 rounded px-4 py-2"
                       />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-
-            <button
-              onClick={createAllProducts}
-              disabled={loading}
-              className="w-full mt-8 bg-green-600 hover:bg-green-700 disabled:opacity-70 text-white py-4 rounded-xl font-bold text-2xl"
-            >
-              {loading ? "Saving..." : `Create All ${products.length} Products`}
-            </button>
           </div>
-        )}
-      </div>
+
+          <button
+            onClick={createAllProducts}
+            disabled={loading}
+            className="w-full mt-12 bg-green-600 hover:bg-green-700 py-6 rounded-xl font-bold text-3xl"
+          >
+            {loading ? "Saving..." : `Create All ${products.length} Products`}
+          </button>
+        </div>
+      )}
     </div>
   );
 };
