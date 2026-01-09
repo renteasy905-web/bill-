@@ -1,39 +1,41 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const multer = require("multer");
+require("dotenv").config();
+const routes = require("./routes");
 
-// Your existing imports
-import First from './Pages/First';
-import Allproducts from './Pages/Allproducts';
-import CreateProducts from './Pages/CreateProducts';
-import Cart from './Pages/Cart';
-import CreateCustomer from './Pages/CreateCustomer';
-import Sales from './Pages/Sales';
-import ListofSales from './Pages/ListofSales';
-import Editsales from './Pages/Editsales';
+// Temporarily disabled because routes/extract.js file is missing
+// const extractRoute = require("./routes/extract");
 
-// ADD THIS IMPORT
-import Notifications from './Pages/Notifications';
+const app = express();
 
-function App() {
-  return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<First />} />
-        <Route path="/allproducts" element={<Allproducts />} />
-        <Route path="/createProducts" element={<CreateProducts />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/createCustomer" element={<CreateCustomer />} />
-        <Route path="/sales" element={<Sales />} />
-        <Route path="/allsales" element={<ListofSales />} />
-        <Route path="/editsales/:id" element={<Editsales />} />
+// Middleware
+app.use(cors({ origin: "*" }));
+app.use(express.json());
+// Multer setup (for file uploads if needed later)
+app.use(multer().none());
 
-        {/* ADD THIS NEW ROUTE */}
-        <Route path="/notifications" element={<Notifications />} />
+// Routes
+app.use("/api", routes);
+// app.use("/api", extractRoute); // ← Commented out to prevent crash
 
-        {/* Optional - catch all 404 */}
-        <Route path="*" element={<div className="pt-20 text-white text-center text-3xl p-8">404 - Page Not Found</div>} />
-      </Routes>
-    </Router>
-  );
-}
+// Test route to confirm backend is alive
+app.get("/", (req, res) => {
+  res.send("Backend running – Vishwas Medical Inventory API is live!");
+});
 
-export default App;
+// MongoDB Connection
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected ✅"))
+  .catch((err) => {
+    console.error("MongoDB error ❌:", err.message);
+    process.exit(1);
+  });
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT} 🚀`);
+  console.log(`Visit: https://bill-inventory-backend.onrender.com`);
+});
