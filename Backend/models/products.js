@@ -23,11 +23,12 @@ const ProductSchema = new mongoose.Schema(
       min: 0
     },
     Expiry: {
-      type: Date, // ✅ VERY IMPORTANT
+      type: Date,
       required: true
     }
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("product", ProductSchema);
+// IMPORTANT: Use capital "Product" here
+module.exports = mongoose.model("Product", ProductSchema);
