@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import api from "../utils/api";
-import { AlertCircle, Package, ShoppingBag, CalendarDays } from "lucide-react";
+import { AlertCircle, Package, ShoppingBag, CalendarDays, Download } from "lucide-react";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 
 const Notifications = () => {
   const [stockAlerts, setStockAlerts] = useState([]);
@@ -10,17 +12,23 @@ const Notifications = () => {
 
   const today = new Date(); // January 09, 2026
 
+  // Pharmacy details (customize)
+  const pharmacy = {
+    name: "Vishwas Medical",
+    address: "Church Street, Bengaluru - 560001",
+    phone: "+91-80-XXXXXXX",
+  };
+
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // 1. Get all products → filter low stock & near expiry on frontend
+        // 1. Get all products → filter low stock & near expiry
         const productsRes = await api.get("allproducts");
         const allProducts = productsRes.data.allproducts || [];
 
-        // Calculate alerts
         const alerts = allProducts
           .map((product) => {
             const expiryDate = new Date(product.Expiry);
@@ -43,9 +51,9 @@ const Notifications = () => {
 
         setStockAlerts(alerts);
 
-        // 2. Get all sales → filter purchases ~25 to 35 days ago
+        // 2. Get all sales → filter ~25-35 days ago reminders
         const salesRes = await api.get("/allsales");
-        const allSales = salesRes.data.sales || []; // Adjusted for your updated response structure
+        const allSales = salesRes.data.sales || [];
 
         const oneMonthAgoStart = new Date(today);
         oneMonthAgoStart.setDate(today.getDate() - 35);
@@ -67,6 +75,7 @@ const Notifications = () => {
               customer: sale.customer,
               product: item.product,
               quantity: item.quantity,
+              price: item.price,
               type: "reminder",
               reason: "purchase_reminder",
             }));
@@ -83,6 +92,99 @@ const Notifications = () => {
 
     fetchNotifications();
   }, []);
+
+  // Generate PDF for a single reminder (sale item)
+  const downloadReminderPDF = (reminder) => {
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
+
+    const purple = "#6b21a8";
+    const lightPurple = "#e9d5ff";
+    const darkText = "#111827";
+
+    // Header
+    doc.setFillColor(purple);
+    doc.rect(0, 0, 210, 30, "F");
+    doc.setTextColor(255);
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("TAX INVOICE", 105, 18, { align: "center" });
+
+    doc.setTextColor(lightPurple);
+    doc.setFontSize(24);
+    doc.text("MEDICAL INVOICE", 105, 38, { align: "center" });
+
+    // Pharmacy
+    doc.setTextColor(darkText);
+    doc.setFontSize(11);
+    doc.text(pharmacy.name, 20, 55);
+    doc.text(pharmacy.address, 20, 62);
+    doc.text(`Phone: ${pharmacy.phone}`, 20, 69);
+
+    // Patient
+    doc.setFillColor(lightPurple);
+    doc.rect(10, 85, 190, 12, "F");
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Patient's Name", 15, 93);
+
+    doc.setFont("helvetica", "normal");
+    doc.text(`Name: ${reminder.customer?.name || "Walk-in Patient"}`, 15, 103);
+    doc.text(`Phone: ${reminder.customer?.phone || "—"}`, 15, 110);
+
+    // Table (single item)
+    const tableColumn = ["S.No", "Items", "HSN", "BATCH", "RATE", "MRP", "TAX", "Amount"];
+    const tableRows = [
+      [
+        1,
+        reminder.product?.Name || "Item",
+        "—",
+        "—",
+        reminder.price?.toFixed(2) || "0.00",
+        `₹${reminder.product?.Mrp?.toFixed(2) || "0.00"}`,
+        "—",
+        `₹${(reminder.price * reminder.quantity).toFixed(2)}`,
+      ],
+    ];
+
+    doc.autoTable({
+      startY: 120,
+      head: [tableColumn],
+      body: tableRows,
+      theme: "grid",
+      headStyles: { fillColor: purple, textColor: [255, 255, 255], fontStyle: "bold" },
+      styles: { fontSize: 10, cellPadding: 3 },
+    });
+
+    // Total
+    const finalY = doc.lastAutoTable.finalY + 10;
+    doc.setFillColor(purple);
+    doc.rect(130, finalY, 70, 10, "F");
+    doc.setTextColor(255);
+    doc.text("Total Amount", 135, finalY + 7);
+    doc.setTextColor(darkText);
+    doc.text(`₹${(reminder.price * reminder.quantity).toFixed(2)}`, 175, finalY + 7, { align: "right" });
+
+    // Amount in words (placeholder)
+    doc.setFontSize(10);
+    doc.text("Amount in words: Rupees One Hundred Only", 20, finalY + 25);
+
+    // Terms & Conditions
+    doc.text("Terms & Conditions:", 20, finalY + 45);
+    doc.setFontSize(9);
+    doc.text("1. Goods once sold will not be taken back or exchanged.", 25, finalY + 52);
+    doc.text("2. All disputes subject to Bengaluru jurisdiction only.", 25, finalY + 59);
+    doc.text("3. Medicines should be taken only on doctor's advice.", 25, finalY + 66);
+
+    // Seal & Signature
+    doc.setFontSize(11);
+    doc.text("Seal & Signature", 150, finalY + 85, { align: "right" });
+
+    doc.save(`Reminder_${reminder.saleId.slice(-8)}.pdf`);
+  };
 
   const getTagStyleAndText = (item) => {
     if (item.reason === "low_quantity") {
@@ -223,6 +325,15 @@ const Notifications = () => {
                         </span>
                       </div>
                     </div>
+
+                    {/* Download PDF Button for this reminder */}
+                    <button
+                      onClick={() => downloadReminderPDF(rem)}
+                      className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition"
+                    >
+                      <Download size={18} />
+                      Download Invoice PDF
+                    </button>
                   </div>
                 );
               })}
@@ -232,6 +343,99 @@ const Notifications = () => {
       </div>
     </main>
   );
+};
+
+// PDF Generation Function
+const downloadReminderPDF = (reminder) => {
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+  });
+
+  const purple = "#6b21a8";
+  const lightPurple = "#e9d5ff";
+  const darkText = "#111827";
+
+  // Header
+  doc.setFillColor(purple);
+  doc.rect(0, 0, 210, 30, "F");
+  doc.setTextColor(255);
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.text("TAX INVOICE", 105, 18, { align: "center" });
+
+  doc.setTextColor(lightPurple);
+  doc.setFontSize(24);
+  doc.text("MEDICAL INVOICE", 105, 38, { align: "center" });
+
+  // Pharmacy
+  doc.setTextColor(darkText);
+  doc.setFontSize(11);
+  doc.text("Vishwas Medical", 20, 55);
+  doc.text("Church Street, Bengaluru - 560001", 20, 62);
+  doc.text("Phone: +91-80-XXXXXXX", 20, 69);
+
+  // Patient
+  doc.setFillColor(lightPurple);
+  doc.rect(10, 85, 190, 12, "F");
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text("Patient's Name", 15, 93);
+
+  doc.setFont("helvetica", "normal");
+  doc.text(`Name: ${reminder.customer?.name || "Walk-in Patient"}`, 15, 103);
+  doc.text(`Phone: ${reminder.customer?.phone || "—"}`, 15, 110);
+
+  // Table (single item)
+  const tableColumn = ["S.No", "Items", "HSN", "BATCH", "RATE", "MRP", "TAX", "Amount"];
+  const tableRows = [
+    [
+      1,
+      reminder.product?.Name || "Item",
+      "—",
+      "—",
+      reminder.price?.toFixed(2) || "0.00",
+      `₹${reminder.product?.Mrp?.toFixed(2) || "0.00"}`,
+      "—",
+      `₹${(reminder.price * reminder.quantity).toFixed(2)}`,
+    ],
+  ];
+
+  doc.autoTable({
+    startY: 120,
+    head: [tableColumn],
+    body: tableRows,
+    theme: "grid",
+    headStyles: { fillColor: purple, textColor: [255, 255, 255], fontStyle: "bold" },
+    styles: { fontSize: 10, cellPadding: 3 },
+  });
+
+  // Total
+  const finalY = doc.lastAutoTable.finalY + 10;
+  doc.setFillColor(purple);
+  doc.rect(130, finalY, 70, 10, "F");
+  doc.setTextColor(255);
+  doc.text("Total Amount", 135, finalY + 7);
+  doc.setTextColor(darkText);
+  doc.text(`₹${(reminder.price * reminder.quantity).toFixed(2)}`, 175, finalY + 7, { align: "right" });
+
+  // Amount in words
+  doc.setFontSize(10);
+  doc.text("Amount in words: Rupees One Hundred Only", 20, finalY + 25);
+
+  // Terms & Conditions
+  doc.text("Terms & Conditions:", 20, finalY + 45);
+  doc.setFontSize(9);
+  doc.text("1. Goods once sold will not be taken back or exchanged.", 25, finalY + 52);
+  doc.text("2. All disputes subject to Bengaluru jurisdiction only.", 25, finalY + 59);
+  doc.text("3. Medicines should be taken only on doctor's advice.", 25, finalY + 66);
+
+  // Seal & Signature
+  doc.setFontSize(11);
+  doc.text("Seal & Signature", 150, finalY + 85, { align: "right" });
+
+  doc.save(`Reminder_${reminder.saleId.slice(-8)}.pdf`);
 };
 
 export default Notifications;
