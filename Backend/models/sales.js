@@ -4,22 +4,24 @@ const saleSchema = new mongoose.Schema(
   {
     customer: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "customer" // ✅ FIXED (must match model name)
+      ref: "Customer",           // ← Change to capital "C" (assuming customer model uses "Customer")
     },
     items: [
       {
         product: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "product",
+          ref: "Product",        // ← Change to capital "P" — must match above
           required: true
         },
         quantity: {
           type: Number,
-          required: true
+          required: true,
+          min: 1
         },
         price: {
           type: Number,
-          required: true
+          required: true,
+          min: 0
         }
       }
     ],
@@ -31,9 +33,15 @@ const saleSchema = new mongoose.Schema(
       type: String,
       enum: ["Cash", "UPI", "Card"],
       default: "Cash"
+    },
+    // Very important for reminders (1 month ago logic)
+    date: {
+      type: Date,
+      default: Date.now
     }
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("sales", saleSchema);
+// IMPORTANT: Use capital "Sale" (singular) — standard convention
+module.exports = mongoose.model("Sale", saleSchema);
