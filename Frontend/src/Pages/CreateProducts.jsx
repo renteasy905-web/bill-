@@ -1,122 +1,36 @@
 import React, { useState } from "react";
-import { createWorker } from "tesseract.js";
 import api from "../utils/api";
 
 const CreateProducts = () => {
-  const [manualName, setManualName] = useState("");
-  const [manualDescription, setManualDescription] = useState("");
-  const [manualMrp, setManualMrp] = useState("");
-  const [manualQuantity, setManualQuantity] = useState("");
-  const [manualExpiry, setManualExpiry] = useState("");
+  const [products, setProducts] = useState([
+    { Name: "", Description: "", Mrp: "", Quantity: "", Expiry: "" },
+  ]);
 
-  const [products, setProducts] = useState([]);
-  const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [statusMessage, setStatusMessage] = useState("");
 
-  const handleImageChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setImage(e.target.files[0]);
-    }
+  const addRow = () => {
+    setProducts([...products, { Name: "", Description: "", Mrp: "", Quantity: "", Expiry: "" }]);
   };
 
-  const extractWithTesseract = async () => {
-    if (!image) {
-      alert("Please select a bill screenshot!");
-      return;
-    }
-
-    setProducts([]);
-    setLoading(true);
-    setStatusMessage("Reading bill...");
-
-    let worker;
-    try {
-      worker = await createWorker("eng");
-
-      const { data: { text } } = await worker.recognize(image);
-
-      console.log("Raw Text:\n", text);
-
-      const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 20);
-
-      const extracted = [];
-
-      for (let line of lines) {
-        if (
-          line.toLowerCase().includes("kalburgi") ||
-          line.toLowerCase().includes("gst invoice") ||
-          line.toLowerCase().includes("total") ||
-          line.toLowerCase().includes("grand total") ||
-          line.toLowerCase().includes("sgst") ||
-          line.toLowerCase().includes("cgst") ||
-          line.toLowerCase().includes("authorised") ||
-          line.includes("S.No") ||
-          line.includes("Class") ||
-          line.includes("Terms")
-        ) {
-          continue;
-        }
-
-        // Regex for space-separated KALBURGI format
-        // S.No Qty Mfr Pack ProductName Batch Exp HSN M.R.P Rate ...
-        const regex = /(\d+)\s+(\d+)\s+([A-Z]+)\s+([0-9A-Z']+)\s+([A-Z0-9\s'&()-]+?)\s+([A-Z0-9]+)\s+(\d{2}\/\d{2})\s+\d+\s+([\d.]+)\s+([\d.]+)/i;
-        const match = line.match(regex);
-
-        if (match) {
-          const qty = parseInt(match[2]);
-          const mfr = match[3].trim();
-          const pack = match[4].trim();
-          const name = match[5].trim();
-          const batch = match[6].trim();
-          const expMMYY = match[7];
-          const mrp = parseFloat(match[8]);
-
-          const [month, year] = expMMYY.split("/");
-          const expiry = `20${year.padStart(2, "0")}-${month.padStart(2, "0")}-31`;
-
-          extracted.push({
-            Name: name,
-            Description: `${mfr} ${pack}`,
-            Mrp: mrp,
-            Quantity: qty,
-            Expiry: expiry,
-          });
-        }
-      }
-
-      setProducts(extracted);
-      setStatusMessage("");
-      alert(`✅ Extracted ${extracted.length} products! Edit if needed and click Create All`);
-    } catch (err) {
-      console.error(err);
-      setStatusMessage("");
-      alert("Failed. Crop the product table in screenshot.");
-    } finally {
-      if (worker) await worker.terminate();
-      setLoading(false);
-      setImage(null);
-    }
-  };
-
-  const handleProductChange = (index, field, value) => {
+  const handleChange = (index, field, value) => {
     const updated = [...products];
-    updated[index][field] = field === "Mrp" || field === "Quantity" ? Number(value) || 0 : value;
+    updated[index][field] = field === "Mrp" || field === "Quantity" ? Number(value) || "" : value;
     setProducts(updated);
   };
 
-  const createAllProducts = async () => {
-    if (products.length === 0) return alert("No products!");
+  const createAll = async () => {
+    const validProducts = products.filter(p => p.Name && p.Description && p.Mrp > 0 && p.Quantity > 0 && p.Expiry);
+
+    if (validProducts.length === 0) {
+      alert("Add at least one complete product!");
+      return;
+    }
 
     setLoading(true);
     let success = 0;
     let failed = [];
 
-    for (const p of products) {
-      if (!p.Name || p.Mrp <= 0 || p.Quantity <= 0 || !p.Expiry) {
-        failed.push(p.Name);
-        continue;
-      }
+    for (const p of validProducts) {
       try {
         await api.post("/products", p);
         success++;
@@ -125,91 +39,51 @@ const CreateProducts = () => {
       }
     }
 
-    alert(success === products.length ? `All ${success} saved!` : `${success} saved, ${failed.length} failed`);
-    setProducts([]);
+    alert(success === validProducts.length ? `✅ All ${success} products created!` : `✅ ${success} created, Failed: ${failed.length}`);
+
+    setProducts([{ Name: "", Description: "", Mrp: "", Quantity: "", Expiry: "" }]);
     setLoading(false);
-  };
-
-  const createManual = async (e) => {
-    e.preventDefault();
-    if (!manualName || !manualDescription || !manualMrp || !manualQuantity || !manualExpiry) return alert("Fill all!");
-
-    try {
-      await api.post("/products", {
-        Name: manualName,
-        Description: manualDescription,
-        Mrp: Number(manualMrp),
-        Quantity: Number(manualQuantity),
-        Expiry: manualExpiry,
-      });
-      alert("Created!");
-      setManualName("");
-      setManualDescription("");
-      setManualMrp("");
-      setManualQuantity("");
-      setManualExpiry("");
-    } catch (err) {
-      alert("Failed");
-    }
   };
 
   return (
     <div className="min-h-screen bg-slate-900 text-white p-6">
-      <h1 className="text-4xl font-bold text-indigo-400 text-center mb-8">Vishwas Medical</h1>
+      <h1 className="text-4xl font-bold text-indigo-400 text-center mb-8">Vishwas Medical - Add Products</h1>
 
-      <div className="max-w-4xl mx-auto bg-slate-800 rounded-2xl p-8 shadow-xl mb-8">
-        <h2 className="text-3xl font-bold text-center mb-6">AI Bill Upload</h2>
-        <input type="file" accept="image/*" onChange={handleImageChange} className="block w-full mb-4" />
-        <button onClick={extractWithTesseract} disabled={loading} className="w-full bg-indigo-600 py-4 rounded-xl font-bold text-xl">
-          {loading ? "Processing..." : "Extract Products"}
-        </button>
-      </div>
+      <div className="max-w-5xl mx-auto bg-slate-800 rounded-2xl p-8 shadow-xl">
+        <h2 className="text-3xl font-bold text-center mb-6">Add Multiple Products</h2>
 
-      {products.length > 0 && (
-        <div className="max-w-5xl mx-auto bg-slate-800 rounded-2xl p-8 shadow-xl mb-8">
-          <h3 className="text-2xl text-green-400 text-center mb-6">Extracted {products.length} Products</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-700">
-                <tr>
-                  <th className="px-4 py-3">Name</th>
-                  <th className="px-4 py-3">Description</th>
-                  <th className="px-4 py-3">MRP</th>
-                  <th className="px-4 py-3">Quantity</th>
-                  <th className="px-4 py-3">Expiry</th>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-slate-700">
+              <tr>
+                <th className="px-4 py-3 text-left">Product Name</th>
+                <th className="px-4 py-3 text-left">Description</th>
+                <th className="px-4 py-3 text-left">MRP</th>
+                <th className="px-4 py-3 text-left">Quantity</th>
+                <th className="px-4 py-3 text-left">Expiry</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map((p, i) => (
+                <tr key={i} className="bg-slate-600 border-b border-slate-700">
+                  <td className="px-4 py-2"><input value={p.Name} onChange={e => handleChange(i, "Name", e.target.value)} className="w-full bg-slate-500 rounded px-3 py-2" placeholder="Name" /></td>
+                  <td className="px-4 py-2"><input value={p.Description} onChange={e => handleChange(i, "Description", e.target.value)} className="w-full bg-slate-500 rounded px-3 py-2" placeholder="Description" /></td>
+                  <td className="px-4 py-2"><input type="number" value={p.Mrp} onChange={e => handleChange(i, "Mrp", e.target.value)} className="w-full bg-slate-500 rounded px-3 py-2" placeholder="MRP" /></td>
+                  <td className="px-4 py-2"><input type="number" value={p.Quantity} onChange={e => handleChange(i, "Quantity", e.target.value)} className="w-full bg-slate-500 rounded px-3 py-2" placeholder="Qty" /></td>
+                  <td className="px-4 py-2"><input type="date" value={p.Expiry} onChange={e => handleChange(i, "Expiry", e.target.value)} className="w-full bg-slate-500 rounded px-3 py-2" /></td>
                 </tr>
-              </thead>
-              <tbody>
-                {products.map((p, i) => (
-                  <tr key={i} className="bg-slate-600">
-                    <td className="px-4 py-2"><input value={p.Name} onChange={e => handleProductChange(i, "Name", e.target.value)} className="w-full bg-slate-500 rounded px-3 py-2" /></td>
-                    <td className="px-4 py-2"><input value={p.Description} onChange={e => handleProductChange(i, "Description", e.target.value)} className="w-full bg-slate-500 rounded px-3 py-2" /></td>
-                    <td className="px-4 py-2"><input type="number" value={p.Mrp} onChange={e => handleProductChange(i, "Mrp", e.target.value)} className="w-full bg-slate-500 rounded px-3 py-2" /></td>
-                    <td className="px-4 py-2"><input type="number" value={p.Quantity} onChange={e => handleProductChange(i, "Quantity", e.target.value)} className="w-full bg-slate-500 rounded px-3 py-2" /></td>
-                    <td className="px-4 py-2"><input type="date" value={p.Expiry} onChange={e => handleProductChange(i, "Expiry", e.target.value)} className="w-full bg-slate-500 rounded px-3 py-2" /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <button onClick={createAllProducts} className="w-full mt-6 bg-green-600 py-4 rounded-xl font-bold text-2xl">
-            Create All Products
-          </button>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
 
-      <div className="max-w-4xl mx-auto bg-slate-800 rounded-2xl p-8 shadow-xl">
-        <h2 className="text-3xl font-bold text-center mb-6">Manual Entry</h2>
-        <form onSubmit={createManual}>
-          <input placeholder="Name" value={manualName} onChange={e => setManualName(e.target.value)} required className="w-full mb-4 bg-slate-700 rounded px-4 py-3" />
-          <input placeholder="Description" value={manualDescription} onChange={e => setManualDescription(e.target.value)} required className="w-full mb-4 bg-slate-700 rounded px-4 py-3" />
-          <input type="number" placeholder="MRP" value={manualMrp} onChange={e => setManualMrp(e.target.value)} required className="w-full mb-4 bg-slate-700 rounded px-4 py-3" />
-          <input type="number" placeholder="Quantity" value={manualQuantity} onChange={e => setManualQuantity(e.target.value)} required className="w-full mb-4 bg-slate-700 rounded px-4 py-3" />
-          <input type="date" value={manualExpiry} onChange={e => setManualExpiry(e.target.value)} required className="w-full mb-4 bg-slate-700 rounded px-4 py-3" />
-          <button type="submit" className="w-full bg-indigo-600 py-4 rounded-xl font-bold text-xl">
-            Create Product
-          </button>
-        </form>
+        <button onClick={addRow} className="mt-6 bg-blue-600 hover:bg-blue-700 py-3 px-6 rounded-xl font-bold">
+          + Add New Row
+        </button>
+
+        <button onClick={createAll} disabled={loading} className="ml-4 mt-6 bg-green-600 hover:bg-green-700 py-3 px-6 rounded-xl font-bold text-xl">
+          {loading ? "Saving..." : "Create All Products"}
+        </button>
       </div>
     </div>
   );
