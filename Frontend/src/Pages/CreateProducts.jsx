@@ -28,23 +28,22 @@ const CreateProducts = () => {
 
     setProducts([]);
     setLoading(true);
-    setStatusMessage("Starting OCR... (30-60 sec first time)");
+    setStatusMessage("Reading bill... (30-60 sec first time)");
 
     let worker;
     try {
       worker = await createWorker("eng");
 
-      setStatusMessage("Reading bill...");
-
       const { data: { text } } = await worker.recognize(image);
 
       console.log("Raw Text:\n", text);
 
-      const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 10);
+      const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 20 && l.match(/\d+/));
 
       const extracted = [];
 
       for (let line of lines) {
+        // Skip junk
         if (
           line.toLowerCase().includes("kalburgi") ||
           line.toLowerCase().includes("gst invoice") ||
@@ -54,30 +53,30 @@ const CreateProducts = () => {
           line.toLowerCase().includes("cgst") ||
           line.toLowerCase().includes("authorised") ||
           line.includes("S.No") ||
-          line.includes("Terms")
+          line.includes("Class")
         ) {
           continue;
         }
 
-        // Super flexible regex for noisy OCR
-        const regex = /^[\da.]*\s*(\d+)\s+\|\s*([A-Z]+)\s*\|\s*([0-9A-Z']+)\s*\|\s*([A-Z0-9\s'&()-]+?)\s+\|\s*([A-Z0-9]+)\s+\|\s*(\d{2}\/\d{2})\]?\s*\|\s*\d+\s+([\d.]+)\s+([\d.]+)/i;
+        // Super flexible regex - | optional, extra spaces, distorted text handle
+        const regex = /(\d+)\s+(\d+)\s+([A-Z]+)\s+([0-9A-Z']+)\s+([A-Z0-9\s'&()-]+?)\s+([A-Z0-9]+)\s+(\d{2}\/\d{2})\s+\d+\s+([\d.]+)\s+([\d.]+)/i;
         const match = line.match(regex);
 
         if (match) {
-          const qty = parseInt(match[1]);
-          const mfr = match[2];
-          const pack = match[3];
-          const name = match[4].trim();
-          const batch = match[5];
-          const expMMYY = match[6];
-          const mrp = parseFloat(match[7]);
+          const qty = parseInt(match[2]);
+          const mfr = match[3].trim();
+          const pack = match[4].trim();
+          const name = match[5].trim();
+          const batch = match[6].trim();
+          const expMMYY = match[7].trim();
+          const mrp = parseFloat(match[8]);
 
           const [month, year] = expMMYY.split("/");
           const expiry = `20${year.padStart(2, "0")}-${month.padStart(2, "0")}-31`;
 
           extracted.push({
             Name: name,
-            Description: `${mfr} ${pack}`.trim(),
+            Description: `${mfr} ${pack}`,
             Mrp: mrp,
             Quantity: qty,
             Expiry: expiry,
@@ -87,11 +86,11 @@ const CreateProducts = () => {
 
       setProducts(extracted);
       setStatusMessage("");
-      alert(`✅ Extracted ${extracted.length} products! Edit Quantity/MRP/Expiry if needed, then Create All.`);
+      alert(`✅ Extracted ${extracted.length} products! Edit if needed → Create All`);
     } catch (err) {
       console.error(err);
       setStatusMessage("");
-      alert("OCR failed. Take a clear screenshot of the product table only (crop out header/footer).");
+      alert("Failed. Crop the product table only in screenshot for best results.");
     } finally {
       if (worker) await worker.terminate();
       setLoading(false);
@@ -132,7 +131,7 @@ const CreateProducts = () => {
 
   const createManual = async (e) => {
     e.preventDefault();
-    if (!manualName || !manualDescription || !manualMrp || !manualQuantity || !manualExpiry) return alert("Fill all fields!");
+    if (!manualName || !manualDescription || !manualMrp || !manualQuantity || !manualExpiry) return alert("Fill all!");
 
     try {
       await api.post("/products", {
@@ -142,7 +141,7 @@ const CreateProducts = () => {
         Quantity: Number(manualQuantity),
         Expiry: manualExpiry,
       });
-      alert("Product created!");
+      alert("Created!");
       setManualName("");
       setManualDescription("");
       setManualMrp("");
@@ -157,16 +156,14 @@ const CreateProducts = () => {
     <div className="min-h-screen bg-slate-900 text-white p-6">
       <h1 className="text-4xl font-bold text-indigo-400 text-center mb-8">Vishwas Medical</h1>
 
-      {/* AI Upload */}
       <div className="max-w-4xl mx-auto bg-slate-800 rounded-2xl p-8 shadow-xl mb-8">
-        <h2 className="text-3xl font-bold text-center mb-6">AI Bill Upload (KALBURGI PHARMA)</h2>
+        <h2 className="text-3xl font-bold text-center mb-6">AI Bill Upload</h2>
         <input type="file" accept="image/*" onChange={handleImageChange} className="block w-full mb-4" />
         <button onClick={extractWithTesseract} disabled={loading} className="w-full bg-indigo-600 py-4 rounded-xl font-bold text-xl">
           {loading ? "Processing..." : "Extract Products"}
         </button>
       </div>
 
-      {/* Table */}
       {products.length > 0 && (
         <div className="max-w-5xl mx-auto bg-slate-800 rounded-2xl p-8 shadow-xl mb-8">
           <h3 className="text-2xl text-green-400 text-center mb-6">Extracted {products.length} Products</h3>
@@ -195,12 +192,11 @@ const CreateProducts = () => {
             </table>
           </div>
           <button onClick={createAllProducts} className="w-full mt-6 bg-green-600 py-4 rounded-xl font-bold text-2xl">
-            Create All {products.length} Products
+            Create All Products
           </button>
         </div>
       )}
 
-      {/* Manual */}
       <div className="max-w-4xl mx-auto bg-slate-800 rounded-2xl p-8 shadow-xl">
         <h2 className="text-3xl font-bold text-center mb-6">Manual Entry</h2>
         <form onSubmit={createManual}>
