@@ -10,14 +10,7 @@ const Notifications = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const today = new Date(); // January 09, 2026
-
-  // Pharmacy details (customize)
-  const pharmacy = {
-    name: "Vishwas Medical",
-    address: "Church Street, Bengaluru - 560001",
-    phone: "+91-80-XXXXXXX",
-  };
+  const today = new Date(); // Current date: January 09, 2026
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -25,7 +18,7 @@ const Notifications = () => {
         setLoading(true);
         setError(null);
 
-        // 1. Get all products → filter low stock & near expiry
+        // 1. Low stock & near expiry alerts from products
         const productsRes = await api.get("allproducts");
         const allProducts = productsRes.data.allproducts || [];
 
@@ -51,15 +44,9 @@ const Notifications = () => {
 
         setStockAlerts(alerts);
 
-        // 2. Get all sales → filter ~25-35 days ago reminders
+        // 2. Customer refill reminders (~25–35 days ago)
         const salesRes = await api.get("/allsales");
-        const allSales = salesRes.data.sales || [];
-
-        const oneMonthAgoStart = new Date(today);
-        oneMonthAgoStart.setDate(today.getDate() - 35);
-
-        const oneMonthAgoEnd = new Date(today);
-        oneMonthAgoEnd.setDate(today.getDate() - 25);
+        const allSales = salesRes.data.sales || salesRes.data || [];
 
         const reminders = allSales
           .flatMap((sale) => {
@@ -93,7 +80,7 @@ const Notifications = () => {
     fetchNotifications();
   }, []);
 
-  // Generate PDF for a single reminder (sale item)
+  // Generate & Download PDF for a single reminder (single product invoice)
   const downloadReminderPDF = (reminder) => {
     const doc = new jsPDF({
       orientation: "portrait",
@@ -117,14 +104,14 @@ const Notifications = () => {
     doc.setFontSize(24);
     doc.text("MEDICAL INVOICE", 105, 38, { align: "center" });
 
-    // Pharmacy
+    // Pharmacy details
     doc.setTextColor(darkText);
     doc.setFontSize(11);
-    doc.text(pharmacy.name, 20, 55);
-    doc.text(pharmacy.address, 20, 62);
-    doc.text(`Phone: ${pharmacy.phone}`, 20, 69);
+    doc.text("Vishwas Medical", 20, 55);
+    doc.text("Church Street, Bengaluru - 560001", 20, 62);
+    doc.text("Phone: +91-XXXXXXXXXX", 20, 69);
 
-    // Patient
+    // Patient Details
     doc.setFillColor(lightPurple);
     doc.rect(10, 85, 190, 12, "F");
     doc.setFontSize(12);
@@ -135,12 +122,12 @@ const Notifications = () => {
     doc.text(`Name: ${reminder.customer?.name || "Walk-in Patient"}`, 15, 103);
     doc.text(`Phone: ${reminder.customer?.phone || "—"}`, 15, 110);
 
-    // Table (single item)
+    // Invoice Table (single item)
     const tableColumn = ["S.No", "Items", "HSN", "BATCH", "RATE", "MRP", "TAX", "Amount"];
     const tableRows = [
       [
         1,
-        reminder.product?.Name || "Item",
+        reminder.product?.Name || "Medicine",
         "—",
         "—",
         reminder.price?.toFixed(2) || "0.00",
@@ -159,7 +146,7 @@ const Notifications = () => {
       styles: { fontSize: 10, cellPadding: 3 },
     });
 
-    // Total
+    // Total Amount
     const finalY = doc.lastAutoTable.finalY + 10;
     doc.setFillColor(purple);
     doc.rect(130, finalY, 70, 10, "F");
@@ -168,7 +155,7 @@ const Notifications = () => {
     doc.setTextColor(darkText);
     doc.text(`₹${(reminder.price * reminder.quantity).toFixed(2)}`, 175, finalY + 7, { align: "right" });
 
-    // Amount in words (placeholder)
+    // Amount in words (simple placeholder)
     doc.setFontSize(10);
     doc.text("Amount in words: Rupees One Hundred Only", 20, finalY + 25);
 
@@ -183,7 +170,8 @@ const Notifications = () => {
     doc.setFontSize(11);
     doc.text("Seal & Signature", 150, finalY + 85, { align: "right" });
 
-    doc.save(`Reminder_${reminder.saleId.slice(-8)}.pdf`);
+    // Download the PDF
+    doc.save(`Reminder_Invoice_${reminder.saleId.slice(-8)}.pdf`);
   };
 
   const getTagStyleAndText = (item) => {
@@ -281,7 +269,7 @@ const Notifications = () => {
           )}
         </section>
 
-        {/* Customer Purchase Reminders */}
+        {/* Customer Refill Reminders */}
         <section>
           <h2 className="text-2xl font-semibold text-white mb-6 flex items-center gap-3">
             <ShoppingBag size={28} className="text-amber-400" />
@@ -326,7 +314,7 @@ const Notifications = () => {
                       </div>
                     </div>
 
-                    {/* Download PDF Button for this reminder */}
+                    {/* Download PDF Button */}
                     <button
                       onClick={() => downloadReminderPDF(rem)}
                       className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition"
@@ -345,7 +333,7 @@ const Notifications = () => {
   );
 };
 
-// PDF Generation Function
+// PDF Generation Function for Reminder
 const downloadReminderPDF = (reminder) => {
   const doc = new jsPDF({
     orientation: "portrait",
@@ -369,14 +357,14 @@ const downloadReminderPDF = (reminder) => {
   doc.setFontSize(24);
   doc.text("MEDICAL INVOICE", 105, 38, { align: "center" });
 
-  // Pharmacy
+  // Pharmacy details
   doc.setTextColor(darkText);
   doc.setFontSize(11);
   doc.text("Vishwas Medical", 20, 55);
   doc.text("Church Street, Bengaluru - 560001", 20, 62);
-  doc.text("Phone: +91-80-XXXXXXX", 20, 69);
+  doc.text("Phone: +91-XXXXXXXXXX", 20, 69);
 
-  // Patient
+  // Patient Details
   doc.setFillColor(lightPurple);
   doc.rect(10, 85, 190, 12, "F");
   doc.setFontSize(12);
@@ -387,12 +375,12 @@ const downloadReminderPDF = (reminder) => {
   doc.text(`Name: ${reminder.customer?.name || "Walk-in Patient"}`, 15, 103);
   doc.text(`Phone: ${reminder.customer?.phone || "—"}`, 15, 110);
 
-  // Table (single item)
+  // Invoice Table (single item)
   const tableColumn = ["S.No", "Items", "HSN", "BATCH", "RATE", "MRP", "TAX", "Amount"];
   const tableRows = [
     [
       1,
-      reminder.product?.Name || "Item",
+      reminder.product?.Name || "Medicine",
       "—",
       "—",
       reminder.price?.toFixed(2) || "0.00",
@@ -411,7 +399,7 @@ const downloadReminderPDF = (reminder) => {
     styles: { fontSize: 10, cellPadding: 3 },
   });
 
-  // Total
+  // Total Amount
   const finalY = doc.lastAutoTable.finalY + 10;
   doc.setFillColor(purple);
   doc.rect(130, finalY, 70, 10, "F");
@@ -420,7 +408,7 @@ const downloadReminderPDF = (reminder) => {
   doc.setTextColor(darkText);
   doc.text(`₹${(reminder.price * reminder.quantity).toFixed(2)}`, 175, finalY + 7, { align: "right" });
 
-  // Amount in words
+  // Amount in words (placeholder)
   doc.setFontSize(10);
   doc.text("Amount in words: Rupees One Hundred Only", 20, finalY + 25);
 
@@ -435,7 +423,8 @@ const downloadReminderPDF = (reminder) => {
   doc.setFontSize(11);
   doc.text("Seal & Signature", 150, finalY + 85, { align: "right" });
 
-  doc.save(`Reminder_${reminder.saleId.slice(-8)}.pdf`);
+  // Download the PDF
+  doc.save(`Reminder_Invoice_${reminder.saleId.slice(-8)}.pdf`);
 };
 
 export default Notifications;
