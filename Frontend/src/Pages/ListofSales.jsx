@@ -31,7 +31,7 @@ const ListofSales = () => {
       const res = await api.get("/allsales");
       const salesData = res.data.sales || res.data || [];
       setSales(salesData);
-      setFilteredSales(salesData);
+      setFilteredSales(salesData); // Initial full list
     } catch (err) {
       console.error("Fetch error:", err);
       setError("Failed to load sales records. Please try again.");
@@ -40,17 +40,18 @@ const ListofSales = () => {
     }
   };
 
-  // Real-time search by patient name or phone
+  // Real-time search by name or phone
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredSales(sales);
       return;
     }
 
-    const term = searchTerm.toLowerCase().trim();
+    const term = searchTerm.toLowerCase().trim().replace(/[\s-]/g, ""); // Remove spaces/dashes for phone
+
     const filtered = sales.filter((sale) => {
-      const name = sale.customer?.name?.toLowerCase() || "";
-      const phone = sale.customer?.phone?.toLowerCase() || "";
+      const name = (sale.customer?.name || "").toLowerCase();
+      const phone = (sale.customer?.phone || "").replace(/[\s-]/g, "").toLowerCase();
       return name.includes(term) || phone.includes(term);
     });
 
@@ -99,7 +100,7 @@ const ListofSales = () => {
     }
   };
 
-  // Generate PDF Invoice
+  // PDF generation (unchanged)
   const generateInvoicePDF = (sale) => {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
@@ -142,12 +143,9 @@ const ListofSales = () => {
       return [
         index + 1,
         prod.Name || "Item",
-        "—",
-        "—",
-        item.price.toFixed(2),
+        "—", "—", item.price.toFixed(2),
         `₹${prod.Mrp?.toFixed(2) || item.price.toFixed(2)}`,
-        "—",
-        `₹${amount}`,
+        "—", `₹${amount}`,
       ];
     });
 
@@ -220,7 +218,7 @@ const ListofSales = () => {
   return (
     <main className="pt-20 min-h-screen bg-gradient-to-br from-cream-50 to-cream-100 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header + Search */}
+        {/* Header + Search Bar */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6">
           <h1 className="text-4xl font-extrabold text-rose-800 flex items-center gap-4">
             <Receipt className="text-rose-600" size={40} />
