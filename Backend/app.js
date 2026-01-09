@@ -4,20 +4,23 @@ const cors = require("cors");
 const multer = require("multer");
 require("dotenv").config();
 const routes = require("./routes"); // Existing routes
-// const extractRoute = require("./routes/extract"); // Temporarily disabled - file missing
+
+// Temporarily disabled because routes/extract.js file is missing
+// const extractRoute = require("./routes/extract");
+
 const app = express();
 
 // Middleware
 app.use(cors({ origin: "*" }));
 app.use(express.json());
-// Multer setup (for file uploads)
-app.use(multer().none()); // Allow multipart/form-data
+// Multer setup (for file uploads if needed later)
+app.use(multer().none());
 
 // Routes
 app.use("/api", routes);
-// app.use("/api", extractRoute); // Temporarily disabled - file missing
+// app.use("/api", extractRoute); // ← Commented out to prevent crash
 
-// Test route
+// Test route to confirm backend is alive
 app.get("/", (req, res) => {
   res.send("Backend running – Vishwas Medical Inventory API is live!");
 });
