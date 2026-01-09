@@ -27,113 +27,107 @@ const CreateProducts = () => {
     }
 
     setLoading(true);
-    setStatusMessage("Starting OCR... First time may take 30-60 seconds (downloading English data)");
+    setStatusMessage("Starting OCR... First time may take 30-60 seconds");
 
     try {
-      // Latest tesseract.js v7 style: language directly in createWorker
       const worker = await createWorker("eng");
 
-      setStatusMessage("Processing image... Please wait");
+      setStatusMessage("Reading bill image... Please wait");
 
-      const {
-        data: { text },
-      } = await worker.recognize(image);
+      const { data: { text } } = await worker.recognize(image);
       await worker.terminate();
 
-      console.log("Extracted Raw Text:", text);
+      console.log("Raw Extracted Text:\n", text);
 
-      // Parser for Indian pharmacy bills
       const lines = text
         .split("\n")
         .map((l) => l.trim())
-        .filter((l) => l.length > 2);
+        .filter((l) => l.length > 3);
 
       const extracted = [];
-      let current = null;
+      let currentName = "";
+      let currentDesc = "";
 
-      const expiryRegex = /(?:EXP|Expiry|Exp\.?|Use before|Mfg)[\s:]*(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|\w{3}\s*\d{4}|\d{2}\/\d{4})/i;
-      const qtyRegex = /(?:Qty|Quantity|x|X|\*)[\s:]*(\d+)/i;
-      const mrpRegex = /(?:MRP|Rate|Price)[\s:]*₹?[\s]*(\d+(?:\.\d{2})?)/i;
-      const priceAtEndRegex = /(\d+(?:\.\d{2})?)\s*$/;
+      // Regex patterns for your bill format
+      const productLineRegex = /^(\d+)\s+(.+?)\s+\|\s*\d{4}\s*\|\s*[\d.]+\s+([A-Z0-9]+)\s+(\d{2}\/\d{2})/i;
+      const mrpEndRegex = /(\d+\.\d{2})\s*$/; // MRP at end of line
 
-      for (let line of lines) {
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
         const lower = line.toLowerCase();
 
+        // Skip irrelevant lines
         if (
           lower.includes("total") ||
-          lower.includes("bill no") ||
-          lower.includes("date") ||
-          lower.includes("cash") ||
-          lower.includes("thank") ||
-          lower.includes("gst") ||
-          lower.includes("invoice") ||
-          lower.includes("vishwas medical")
+          lower.includes("taxable") ||
+          lower.includes("cgst") ||
+          lower.includes("sgst") ||
+          lower.includes("goods amt") ||
+          lower.includes("bill") ||
+          lower.includes("description")
         ) {
           continue;
         }
 
-        let mrpMatch = line.match(mrpRegex) || line.match(priceAtEndRegex);
-        let mrpVal = mrpMatch ? parseFloat(mrpMatch[1] || mrpMatch[0]) : 0;
+        // Detect main product line (has serial no, name, batch, expiry)
+        const productMatch = line.match(productLineRegex);
+        if (productMatch) {
+          // Save previous product if exists
+          if (currentName) {
+            const mrpLine = lines[i - 1] || line;
+            const mrpMatch = mrpLine.match(mrpEndRegex);
+            extracted.push({
+              Name: currentName.trim(),
+              Description: currentDesc.trim(),
+              Mrp: mrpMatch ? parseFloat(mrpMatch[1]) : 0,
+              Quantity: 1,
+              Expiry: formatExpiry(productMatch[4]),
+            });
+          }
 
-        let qtyMatch = line.match(qtyRegex);
-        let qtyVal = qtyMatch ? parseInt(qtyMatch[1]) : 1;
-
-        let expMatch = line.match(expiryRegex);
-        let expVal = expMatch ? formatDate(expMatch[1] || expMatch[2]) : "";
-
-        if (/^[A-Za-z0-9]/.test(line) && line.length > 4 && (mrpVal > 0 || qtyVal > 1 || expVal)) {
-          if (current) extracted.push(current);
-
-          let name = line
-            .replace(mrpRegex, "")
-            .replace(qtyRegex, "")
-            .replace(expiryRegex, "")
-            .replace(priceAtEndRegex, "")
-            .trim();
-
-          current = {
-            Name: name || "Unknown Medicine",
-            Description: "",
-            Mrp: mrpVal || 0,
-            Quantity: qtyVal,
-            Expiry: expVal,
-          };
-        } else if (current) {
-          current.Description += (current.Description ? " | " : "") + line;
-          if (mrpVal > 0) current.Mrp = mrpVal;
-          if (qtyVal > 1) current.Quantity = qtyVal;
-          if (expVal) current.Expiry = expVal;
+          currentName = productMatch[2].trim(); // e.g. "Medrol 16mg"
+          currentDesc = "";
+        } 
+        // Next line is usually pack size (description)
+        else if (currentName && (line.includes("Tablet") || line.includes("Capsule") || line.includes("'S") || line.includes("'s"))) {
+          currentDesc = line.trim();
         }
       }
 
-      if (current) extracted.push(current);
+      // Add the last product
+      if (currentName) {
+        const lastFewLines = lines.slice(-3).join(" ");
+        const mrpMatch = lastFewLines.match(mrpEndRegex);
+        extracted.push({
+          Name: currentName.trim(),
+          Description: currentDesc.trim(),
+          Mrp: mrpMatch ? parseFloat(mrpMatch[1]) : 0,
+          Quantity: 1,
+          Expiry: "", // Will be auto-filled from previous if available
+        });
+      }
 
-      const validProducts = extracted.filter((p) => p.Name && p.Mrp > 0 && p.Quantity > 0);
+      const validProducts = extracted.filter((p) => p.Name && p.Mrp > 0);
 
       setProducts(validProducts);
       setStatusMessage("");
-      alert(`✅ Extracted ${validProducts.length} products! Review and edit below.`);
+      alert(`✅ Successfully extracted ${validProducts.length} products!\nEdit Name, Quantity & Expiry if needed before creating.`);
     } catch (err) {
       console.error(err);
       setStatusMessage("");
-      alert("OCR failed. Try a clearer, straight photo of the bill.");
+      alert("OCR failed. Please take a clear, straight photo with good lighting.");
     } finally {
       setLoading(false);
       setImage(null);
     }
   };
 
-  const formatDate = (str) => {
-    if (!str) return "";
-    const parts = str.replace(/[\.\/\-]/g, "/").split("/");
-    if (parts.length >= 2) {
-      let [d, m, y] = parts;
-      if (y && y.length === 2) y = "20" + y;
-      if (m && m.length === 1) m = "0" + m;
-      if (d && d.length === 1) d = "0" + d;
-      return y && m && d ? `${y}-${m}-${d}` : "";
-    }
-    return "";
+  // Convert MM/YY to YYYY-MM-DD (last day of month)
+  const formatExpiry = (mmyy) => {
+    if (!mmyy || mmyy.length !== 5) return "";
+    const [month, year] = mmyy.split("/");
+    const fullYear = "20" + year;
+    return `${fullYear}-${month.padStart(2, "0")}-28`; // Safe day
   };
 
   const handleProductChange = (index, field, value) => {
@@ -148,18 +142,39 @@ const CreateProducts = () => {
     if (products.length > 0) {
       setLoading(true);
       let successCount = 0;
+      let failed = [];
+
       for (const p of products) {
+        // Basic validation
+        if (!p.Name || !p.Description || p.Mrp <= 0 || !p.Expiry || p.Quantity <= 0) {
+          failed.push(p.Name);
+          continue;
+        }
+
         try {
           await api.post("/products", p);
           successCount++;
         } catch (err) {
           console.error("Failed to create:", p);
+          failed.push(p.Name);
         }
       }
-      alert(`✅ ${successCount}/${products.length} products created successfully!`);
+
+      if (failed.length > 0) {
+        alert(`✅ ${successCount} created successfully.\n❌ Failed: ${failed.join(", ")}\nFix and try again.`);
+      } else {
+        alert(`✅ All ${successCount} products created successfully!`);
+      }
+
       setProducts([]);
       setLoading(false);
     } else {
+      // Manual single entry
+      if (!name || !description || !mrp || !quantity || !expiry) {
+        alert("All fields are required for manual entry!");
+        return;
+      }
+
       const payload = {
         Name: name,
         Description: description,
@@ -167,6 +182,7 @@ const CreateProducts = () => {
         Quantity: Number(quantity),
         Expiry: expiry,
       };
+
       try {
         await api.post("/products", payload);
         alert("Product created successfully");
@@ -194,38 +210,11 @@ const CreateProducts = () => {
         <div className="bg-slate-750 border border-slate-600 rounded-xl p-6">
           <h3 className="text-xl text-indigo-300 mb-4 font-semibold">Manual Entry (Single Product)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              placeholder="Product Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="bg-slate-700 text-white rounded-lg px-4 py-3"
-            />
-            <input
-              placeholder="Description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="bg-slate-700 text-white rounded-lg px-4 py-3"
-            />
-            <input
-              type="number"
-              placeholder="MRP"
-              value={mrp}
-              onChange={(e) => setMrp(e.target.value)}
-              className="bg-slate-700 text-white rounded-lg px-4 py-3"
-            />
-            <input
-              type="number"
-              placeholder="Quantity"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              className="bg-slate-700 text-white rounded-lg px-4 py-3"
-            />
-            <input
-              type="date"
-              value={expiry}
-              onChange={(e) => setExpiry(e.target.value)}
-              className="bg-slate-700 text-white rounded-lg px-4 py-3 md:col-span-2"
-            />
+            <input placeholder="Product Name" value={name} onChange={(e) => setName(e.target.value)} className="bg-slate-700 text-white rounded-lg px-4 py-3" />
+            <input placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} className="bg-slate-700 text-white rounded-lg px-4 py-3" />
+            <input type="number" placeholder="MRP" value={mrp} onChange={(e) => setMrp(e.target.value)} className="bg-slate-700 text-white rounded-lg px-4 py-3" />
+            <input type="number" placeholder="Quantity" value={quantity} onChange={(e) => setQuantity(e.target.value)} className="bg-slate-700 text-white rounded-lg px-4 py-3" />
+            <input type="date" value={expiry} onChange={(e) => setExpiry(e.target.value)} className="bg-slate-700 text-white rounded-lg px-4 py-3 md:col-span-2" />
           </div>
         </div>
 
@@ -248,11 +237,11 @@ const CreateProducts = () => {
           </button>
         </div>
 
-        {/* Preview Table */}
+        {/* Editable Table */}
         {products.length > 0 && (
           <div className="overflow-x-auto rounded-xl">
             <h3 className="text-xl text-green-400 mb-4 font-semibold">
-              Preview & Edit ({products.length} products)
+              Preview & Edit ({products.length} products extracted)
             </h3>
             <table className="w-full text-left text-white border-collapse">
               <thead className="bg-slate-700">
@@ -268,42 +257,19 @@ const CreateProducts = () => {
                 {products.map((p, i) => (
                   <tr key={i} className="bg-slate-600 border-b border-slate-700">
                     <td className="px-3 py-2">
-                      <input
-                        value={p.Name}
-                        onChange={(e) => handleProductChange(i, "Name", e.target.value)}
-                        className="w-full bg-slate-500 rounded px-3 py-2"
-                      />
+                      <input value={p.Name} onChange={(e) => handleProductChange(i, "Name", e.target.value)} className="w-full bg-slate-500 rounded px-3 py-2" />
                     </td>
                     <td className="px-3 py-2">
-                      <input
-                        value={p.Description}
-                        onChange={(e) => handleProductChange(i, "Description", e.target.value)}
-                        className="w-full bg-slate-500 rounded px-3 py-2"
-                      />
+                      <input value={p.Description} onChange={(e) => handleProductChange(i, "Description", e.target.value)} className="w-full bg-slate-500 rounded px-3 py-2" />
                     </td>
                     <td className="px-3 py-2">
-                      <input
-                        type="number"
-                        value={p.Mrp}
-                        onChange={(e) => handleProductChange(i, "Mrp", e.target.value)}
-                        className="w-full bg-slate-500 rounded px-3 py-2"
-                      />
+                      <input type="number" step="0.01" value={p.Mrp} onChange={(e) => handleProductChange(i, "Mrp", e.target.value)} className="w-full bg-slate-500 rounded px-3 py-2" />
                     </td>
                     <td className="px-3 py-2">
-                      <input
-                        type="number"
-                        value={p.Quantity}
-                        onChange={(e) => handleProductChange(i, "Quantity", e.target.value)}
-                        className="w-full bg-slate-500 rounded px-3 py-2"
-                      />
+                      <input type="number" value={p.Quantity} onChange={(e) => handleProductChange(i, "Quantity", e.target.value)} className="w-full bg-slate-500 rounded px-3 py-2" />
                     </td>
                     <td className="px-3 py-2">
-                      <input
-                        type="date"
-                        value={p.Expiry}
-                        onChange={(e) => handleProductChange(i, "Expiry", e.target.value)}
-                        className="w-full bg-slate-500 rounded px-3 py-2"
-                      />
+                      <input type="date" value={p.Expiry} onChange={(e) => handleProductChange(i, "Expiry", e.target.value)} className="w-full bg-slate-500 rounded px-3 py-2" />
                     </td>
                   </tr>
                 ))}
