@@ -1,3 +1,4 @@
+// models/customer.js (or whatever the file name is)
 const mongoose = require("mongoose");
 
 const CustomerSchema = new mongoose.Schema(
