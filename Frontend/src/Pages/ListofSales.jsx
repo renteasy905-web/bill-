@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from "react";
 import api from "../utils/api";
-import { Receipt, Loader2, Trash2, Edit, Download, MessageCircle, X, Plus, Minus } from "lucide-react";
+import { Receipt, Loader2, Trash2, Edit, Download, MessageCircle, X, Plus, Minus, Search } from "lucide-react";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 
 const ListofSales = () => {
   const [sales, setSales] = useState([]);
+  const [filteredSales, setFilteredSales] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [editingSale, setEditingSale] = useState(null); // for edit modal
-  const [editedItems, setEditedItems] = useState([]); // temp edited cart
+  const [editingSale, setEditingSale] = useState(null);
+  const [editedItems, setEditedItems] = useState([]);
 
   // Pharmacy details
   const pharmacy = {
@@ -27,14 +29,33 @@ const ListofSales = () => {
       setLoading(true);
       setError(null);
       const res = await api.get("/allsales");
-      setSales(res.data.sales || res.data || []);
+      const salesData = res.data.sales || res.data || [];
+      setSales(salesData);
+      setFilteredSales(salesData);
     } catch (err) {
       console.error("Fetch error:", err);
-      setError("Failed to load sales. Please try again.");
+      setError("Failed to load sales records. Please try again.");
     } finally {
       setLoading(false);
     }
   };
+
+  // Real-time search by name or phone
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredSales(sales);
+      return;
+    }
+
+    const term = searchTerm.toLowerCase().trim();
+    const filtered = sales.filter((sale) => {
+      const name = sale.customer?.name?.toLowerCase() || "";
+      const phone = sale.customer?.phone?.toLowerCase() || "";
+      return name.includes(term) || phone.includes(term);
+    });
+
+    setFilteredSales(filtered);
+  }, [searchTerm, sales]);
 
   // Delete Sale
   const handleDelete = async (saleId) => {
@@ -43,6 +64,7 @@ const ListofSales = () => {
     try {
       await api.delete(`/sales/${saleId}`);
       setSales(sales.filter((s) => s._id !== saleId));
+      setFilteredSales(filteredSales.filter((s) => s._id !== saleId));
       alert("Sale deleted successfully");
     } catch (err) {
       console.error("Delete error:", err);
@@ -53,7 +75,7 @@ const ListofSales = () => {
   // Start editing
   const startEdit = (sale) => {
     setEditingSale(sale);
-    setEditedItems([...sale.items]); // copy items for editing
+    setEditedItems([...sale.items]);
   };
 
   // Save edited sale
@@ -68,8 +90,7 @@ const ListofSales = () => {
         totalAmount: updatedTotal,
       });
 
-      // Refresh list
-      fetchAllSales();
+      fetchAllSales(); // Refresh list
       setEditingSale(null);
       alert("Sale updated successfully");
     } catch (err) {
@@ -78,10 +99,9 @@ const ListofSales = () => {
     }
   };
 
-  // PDF generation (same as before)
+  // PDF generation
   const generateInvoicePDF = (sale) => {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-
     const purple = "#6b21a8";
     const lightPurple = "#e9d5ff";
     const darkText = "#111827";
@@ -177,82 +197,118 @@ const ListofSales = () => {
     alert("WhatsApp opened! Attach the downloaded PDF.");
   };
 
+  // Start editing
+  const startEdit = (sale) => {
+    setEditingSale(sale);
+    setEditedItems([...sale.items]);
+  };
+
+  // Save edited sale
+  const saveEdit = async () => {
+    if (!editingSale) return;
+
+    try {
+      const updatedTotal = editedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+      await api.put(`/sales/${editingSale._id}`, {
+        items: editedItems,
+        totalAmount: updatedTotal,
+      });
+
+      fetchAllSales();
+      setEditingSale(null);
+      alert("Sale updated successfully");
+    } catch (err) {
+      console.error("Update error:", err);
+      alert("Failed to update sale");
+    }
+  };
+
   if (loading) {
     return (
-      <div className="pt-24 min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <Loader2 className="text-indigo-400 animate-spin" size={48} />
+      <div className="pt-24 min-h-screen bg-gradient-to-br from-cream-50 to-cream-100 flex items-center justify-center">
+        <Loader2 className="text-rose-500 animate-spin" size={48} />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="pt-24 min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-red-400 text-center p-8">
+      <div className="pt-24 min-h-screen bg-gradient-to-br from-cream-50 to-cream-100 text-red-600 text-center p-8">
         {error}
       </div>
     );
   }
 
   return (
-    <main className="pt-20 min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pb-16">
+    <main className="pt-20 min-h-screen bg-gradient-to-br from-cream-50 to-cream-100 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-10">
-          <h1 className="text-4xl font-extrabold text-white flex items-center gap-4">
-            <Receipt className="text-rose-400" size={40} />
+        {/* Header & Search */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6">
+          <h1 className="text-4xl font-extrabold text-rose-800 flex items-center gap-4">
+            <Receipt className="text-rose-600" size={40} />
             All Sales Records
           </h1>
-          <span className="bg-rose-600/30 text-rose-300 px-5 py-2 rounded-full text-sm font-medium shadow-sm">
-            {sales.length} Sales
-          </span>
+
+          <div className="relative w-full sm:w-80">
+            <input
+              type="text"
+              placeholder="Search by patient name or phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent text-gray-800"
+            />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+          </div>
         </div>
 
-        {sales.length === 0 ? (
-          <div className="bg-slate-800/60 border border-slate-700 rounded-2xl p-12 text-center">
-            <Receipt className="mx-auto text-slate-500 mb-6" size={80} />
-            <h2 className="text-2xl font-semibold text-slate-300 mb-3">No Sales Recorded</h2>
-            <p className="text-slate-400">Create your first sale from the New Sale page.</p>
+        {/* Sales List */}
+        {filteredSales.length === 0 ? (
+          <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-2xl p-12 text-center shadow-lg">
+            <Receipt className="mx-auto text-gray-400 mb-6" size={80} />
+            <h2 className="text-2xl font-semibold text-gray-700 mb-3">No Sales Found</h2>
+            <p className="text-gray-500">
+              {searchTerm ? "No matching sales. Try a different search." : "Create your first sale from the New Sale page."}
+            </p>
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {sales.map((sale) => (
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {filteredSales.map((sale) => (
               <div
                 key={sale._id}
-                className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-6 shadow-xl hover:shadow-2xl hover:border-rose-500 transition-all duration-300"
+                className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:border-rose-300 transition-all duration-300"
               >
                 {/* Header */}
                 <div className="flex justify-between items-start mb-5">
                   <div>
-                    <h3 className="text-xl font-bold text-white">
+                    <h3 className="text-xl font-bold text-gray-800">
                       Sale #{sale._id.slice(-8)}
                     </h3>
-                    <p className="text-slate-400 text-sm mt-1">
-                      {new Date(sale.date).toLocaleString('en-IN', {
-                        dateStyle: 'medium',
-                        timeStyle: 'short'
-                      })}
+                    <p className="text-gray-500 text-sm mt-1">
+                      {new Date(sale.date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
                     </p>
                   </div>
-                  <span className="bg-rose-600/80 text-white px-4 py-1 rounded-full font-semibold">
+                  <span className="bg-rose-100 text-rose-700 px-4 py-1 rounded-full font-semibold">
                     ₹{sale.totalAmount?.toLocaleString('en-IN') || "0"}
                   </span>
                 </div>
 
                 {/* Customer */}
-                <div className="mb-5 pb-4 border-b border-slate-600">
-                  <p className="text-slate-200 font-semibold">
+                <div className="mb-5 pb-4 border-b border-gray-200">
+                  <p className="text-gray-800 font-semibold">
                     Patient: {sale.customer?.name || "Unknown"}
                   </p>
-                  <p className="text-slate-400 text-sm">
+                  <p className="text-gray-600 text-sm">
                     {sale.customer?.phone ? `+91 ${sale.customer.phone}` : "—"}
                   </p>
                 </div>
 
                 {/* Items */}
                 <div className="mb-5">
-                  <p className="text-slate-200 font-semibold mb-2">Items</p>
-                  <div className="space-y-2 text-sm">
+                  <p className="text-gray-700 font-semibold mb-2">Items</p>
+                  <div className="space-y-2 text-sm text-gray-600">
                     {sale.items?.map((item, idx) => (
-                      <div key={idx} className="flex justify-between text-slate-300">
+                      <div key={idx} className="flex justify-between">
                         <span>{item.product?.Name || "Item"} × {item.quantity}</span>
                         <span>₹{(item.price * item.quantity).toLocaleString('en-IN')}</span>
                       </div>
@@ -260,11 +316,11 @@ const ListofSales = () => {
                   </div>
                 </div>
 
-                {/* Actions */}
+                {/* Action Buttons */}
                 <div className="grid grid-cols-2 gap-3 mt-6">
                   <button
                     onClick={() => handleDownload(sale)}
-                    className="flex items-center justify-center gap-2 bg-blue-600/80 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
+                    className="flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition"
                   >
                     <Download size={18} />
                     PDF
@@ -272,7 +328,7 @@ const ListofSales = () => {
 
                   <button
                     onClick={() => handleWhatsApp(sale)}
-                    className="flex items-center justify-center gap-2 bg-green-600/80 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition"
+                    className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
                   >
                     <MessageCircle size={18} />
                     WhatsApp
@@ -280,7 +336,7 @@ const ListofSales = () => {
 
                   <button
                     onClick={() => startEdit(sale)}
-                    className="flex items-center justify-center gap-2 bg-amber-600/80 hover:bg-amber-700 text-white px-4 py-2 rounded-lg transition col-span-2"
+                    className="flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg transition col-span-2"
                   >
                     <Edit size={18} />
                     Edit Sale
@@ -288,7 +344,7 @@ const ListofSales = () => {
 
                   <button
                     onClick={() => handleDelete(sale._id)}
-                    className="flex items-center justify-center gap-2 bg-red-600/80 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition col-span-2"
+                    className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition col-span-2"
                   >
                     <Trash2 size={18} />
                     Delete Sale
@@ -296,7 +352,7 @@ const ListofSales = () => {
                 </div>
 
                 {/* Payment */}
-                <div className="mt-4 text-right text-sm text-slate-400">
+                <div className="mt-4 text-right text-sm text-gray-500">
                   Payment: {sale.paymentMode || "Cash"}
                 </div>
               </div>
@@ -306,11 +362,11 @@ const ListofSales = () => {
 
         {/* Edit Modal */}
         {editingSale && (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="bg-slate-900 border border-slate-700 rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-white">Edit Sale #{editingSale._id.slice(-8)}</h2>
-                <button onClick={() => setEditingSale(null)} className="text-slate-400 hover:text-white">
+                <h2 className="text-2xl font-bold text-gray-800">Edit Sale #{editingSale._id.slice(-8)}</h2>
+                <button onClick={() => setEditingSale(null)} className="text-gray-500 hover:text-gray-700">
                   <X size={28} />
                 </button>
               </div>
@@ -318,10 +374,10 @@ const ListofSales = () => {
               {/* Editable Items */}
               <div className="space-y-4 mb-8">
                 {editedItems.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-4 bg-slate-800 p-4 rounded-lg">
+                  <div key={idx} className="flex items-center gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
                     <div className="flex-1">
-                      <p className="text-white font-medium">{item.product?.Name || "Item"}</p>
-                      <p className="text-slate-400 text-sm">₹{item.price} each</p>
+                      <p className="text-gray-800 font-medium">{item.product?.Name || "Item"}</p>
+                      <p className="text-gray-600 text-sm">₹{item.price} each</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <button
@@ -330,25 +386,25 @@ const ListofSales = () => {
                           if (newItems[idx].quantity > 1) newItems[idx].quantity--;
                           setEditedItems(newItems);
                         }}
-                        className="p-2 bg-slate-700 rounded hover:bg-slate-600"
+                        className="p-2 bg-gray-200 rounded hover:bg-gray-300"
                       >
                         <Minus size={16} />
                       </button>
-                      <span className="w-12 text-center font-medium">{item.quantity}</span>
+                      <span className="w-12 text-center font-medium text-gray-800">{item.quantity}</span>
                       <button
                         onClick={() => {
                           const newItems = [...editedItems];
                           newItems[idx].quantity++;
                           setEditedItems(newItems);
                         }}
-                        className="p-2 bg-slate-700 rounded hover:bg-slate-600"
+                        className="p-2 bg-gray-200 rounded hover:bg-gray-300"
                       >
                         <Plus size={16} />
                       </button>
                     </div>
                     <button
                       onClick={() => setEditedItems(editedItems.filter((_, i) => i !== idx))}
-                      className="text-red-400 hover:text-red-300"
+                      className="text-red-500 hover:text-red-700"
                     >
                       <Trash2 size={18} />
                     </button>
@@ -360,7 +416,7 @@ const ListofSales = () => {
               <div className="flex justify-end gap-4">
                 <button
                   onClick={() => setEditingSale(null)}
-                  className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg"
+                  className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg"
                 >
                   Cancel
                 </button>
