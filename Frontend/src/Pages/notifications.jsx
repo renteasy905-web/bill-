@@ -44,10 +44,8 @@ const Notifications = () => {
         setStockAlerts(alerts);
 
         // 2. Get all sales → filter purchases ~25 to 35 days ago
-        // IMPORTANT: You need an endpoint that returns ALL sales with customer details
-        // If you don't have it yet → create /api/allsales
-        const salesRes = await api.get("/allsales"); // ← create this endpoint!
-        const allSales = salesRes.data || [];
+        const salesRes = await api.get("/allsales");
+        const allSales = salesRes.data.sales || []; // Adjusted for your updated response structure
 
         const oneMonthAgoStart = new Date(today);
         oneMonthAgoStart.setDate(today.getDate() - 35);
@@ -62,8 +60,6 @@ const Notifications = () => {
 
             if (daysAgo < 25 || daysAgo > 35) return [];
 
-            // Assuming sale structure: 
-            // { date, customer: { name, phone }, items: [{ product: {...}, quantity }] }
             return sale.items.map((item) => ({
               saleId: sale._id,
               date: sale.date,
@@ -77,7 +73,6 @@ const Notifications = () => {
           });
 
         setPurchaseReminders(reminders);
-
       } catch (err) {
         console.error("Notifications fetch error:", err);
         setError("Failed to load notifications. Please try again.");
@@ -146,7 +141,6 @@ const Notifications = () => {
             <Package size={28} className="text-emerald-400" />
             Stock & Expiry Alerts
           </h2>
-
           {stockAlerts.length === 0 ? (
             <p className="text-slate-400 text-center py-8">No urgent stock or expiry issues right now.</p>
           ) : (
@@ -158,13 +152,10 @@ const Notifications = () => {
                     key={item._id}
                     className="relative bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-xl p-6 shadow-lg hover:border-slate-500 transition-all"
                   >
-                    {/* Top-right tag */}
                     <div className={`absolute -top-3 right-4 px-4 py-1.5 rounded-full text-xs font-medium border ${color}`}>
                       {text}
                     </div>
-
                     <h3 className="text-lg font-semibold text-white mb-4 pr-28">{item.Name}</h3>
-
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-slate-400">Quantity:</span>
@@ -194,7 +185,6 @@ const Notifications = () => {
             <ShoppingBag size={28} className="text-amber-400" />
             Customer Refill Reminders (~1 month ago)
           </h2>
-
           {purchaseReminders.length === 0 ? (
             <p className="text-slate-400 text-center py-8">No customer refill reminders for this period.</p>
           ) : (
@@ -206,16 +196,13 @@ const Notifications = () => {
                     key={rem.saleId + rem.product._id}
                     className="relative bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-xl p-6 shadow-lg hover:border-slate-500 transition-all"
                   >
-                    {/* Top-right tag */}
                     <div className={`absolute -top-3 right-4 px-4 py-1.5 rounded-full text-xs font-medium border flex items-center gap-1.5 ${color}`}>
                       <CalendarDays size={14} />
                       {text}
                     </div>
-
                     <h3 className="text-lg font-semibold text-white mb-4 pr-40">
                       {rem.customer?.name || "Unknown Customer"}
                     </h3>
-
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-slate-400">Phone:</span>
