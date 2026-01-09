@@ -1,4 +1,5 @@
 const express = require("express");
+
 const {
   Createproducts,
   fetch,
@@ -10,22 +11,26 @@ const {
   getAllSales,
   getSaleById,
   updateSaleById,
+  deleteSale, // Added for delete functionality
 } = require("./config/products");
 
-const route = express.Router();
+const router = express.Router();
 
-route.post("/products", Createproducts);
-route.get("/fetch", fetch);
-route.put("/fetch/:id", edit);
+// Product Routes
+router.post("/products", Createproducts);
+router.get("/fetch", fetch);
+router.put("/fetch/:id", edit);
+router.get("/allproducts", allproducts);
 
-route.post("/create", Createcustomer);
-route.post("/sale", createSale);
+// Customer Routes
+router.post("/create", Createcustomer);
+router.get("/getcustomers", fetchCustomers);
 
-route.get("/getcustomers", fetchCustomers);
-route.get("/allproducts", allproducts);
+// Sale Routes
+router.post("/sale", createSale);
+router.get("/allsales", getAllSales);
+router.get("/sales/:id", getSaleById);
+router.put("/sales/:id", updateSaleById);
+router.delete("/sales/:id", deleteSale); // New DELETE route
 
-route.get("/allsales", getAllSales);
-route.get("/sales/:id", getSaleById);
-route.put("/sales/:id", updateSaleById);
-
-module.exports = route;
+module.exports = router;
