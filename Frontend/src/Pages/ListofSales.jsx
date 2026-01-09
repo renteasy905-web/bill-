@@ -40,7 +40,7 @@ const ListofSales = () => {
     }
   };
 
-  // Real-time search by name or phone
+  // Real-time search by patient name or phone
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredSales(sales);
@@ -90,7 +90,7 @@ const ListofSales = () => {
         totalAmount: updatedTotal,
       });
 
-      fetchAllSales(); // Refresh list
+      fetchAllSales();
       setEditingSale(null);
       alert("Sale updated successfully");
     } catch (err) {
@@ -99,9 +99,10 @@ const ListofSales = () => {
     }
   };
 
-  // PDF generation
+  // Generate PDF Invoice
   const generateInvoicePDF = (sale) => {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
     const purple = "#6b21a8";
     const lightPurple = "#e9d5ff";
     const darkText = "#111827";
@@ -141,9 +142,12 @@ const ListofSales = () => {
       return [
         index + 1,
         prod.Name || "Item",
-        "—", "—", item.price.toFixed(2),
+        "—",
+        "—",
+        item.price.toFixed(2),
         `₹${prod.Mrp?.toFixed(2) || item.price.toFixed(2)}`,
-        "—", `₹${amount}`,
+        "—",
+        `₹${amount}`,
       ];
     });
 
@@ -197,33 +201,6 @@ const ListofSales = () => {
     alert("WhatsApp opened! Attach the downloaded PDF.");
   };
 
-  // Start editing
-  const startEdit = (sale) => {
-    setEditingSale(sale);
-    setEditedItems([...sale.items]);
-  };
-
-  // Save edited sale
-  const saveEdit = async () => {
-    if (!editingSale) return;
-
-    try {
-      const updatedTotal = editedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-      await api.put(`/sales/${editingSale._id}`, {
-        items: editedItems,
-        totalAmount: updatedTotal,
-      });
-
-      fetchAllSales();
-      setEditingSale(null);
-      alert("Sale updated successfully");
-    } catch (err) {
-      console.error("Update error:", err);
-      alert("Failed to update sale");
-    }
-  };
-
   if (loading) {
     return (
       <div className="pt-24 min-h-screen bg-gradient-to-br from-cream-50 to-cream-100 flex items-center justify-center">
@@ -243,32 +220,34 @@ const ListofSales = () => {
   return (
     <main className="pt-20 min-h-screen bg-gradient-to-br from-cream-50 to-cream-100 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header & Search */}
+        {/* Header + Search */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6">
           <h1 className="text-4xl font-extrabold text-rose-800 flex items-center gap-4">
             <Receipt className="text-rose-600" size={40} />
             All Sales Records
           </h1>
 
-          <div className="relative w-full sm:w-80">
+          <div className="relative w-full sm:w-96">
             <input
               type="text"
               placeholder="Search by patient name or phone..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent text-gray-800"
+              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-300 rounded-full shadow focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent text-gray-800 placeholder-gray-500"
             />
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           </div>
         </div>
 
-        {/* Sales List */}
+        {/* Sales Grid */}
         {filteredSales.length === 0 ? (
           <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-2xl p-12 text-center shadow-lg">
             <Receipt className="mx-auto text-gray-400 mb-6" size={80} />
-            <h2 className="text-2xl font-semibold text-gray-700 mb-3">No Sales Found</h2>
+            <h2 className="text-2xl font-semibold text-gray-700 mb-3">
+              {searchTerm ? "No matching sales found" : "No Sales Recorded Yet"}
+            </h2>
             <p className="text-gray-500">
-              {searchTerm ? "No matching sales. Try a different search." : "Create your first sale from the New Sale page."}
+              {searchTerm ? "Try a different name or phone number." : "Create your first sale from the New Sale page."}
             </p>
           </div>
         ) : (
@@ -276,7 +255,7 @@ const ListofSales = () => {
             {filteredSales.map((sale) => (
               <div
                 key={sale._id}
-                className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:border-rose-300 transition-all duration-300"
+                className="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:border-rose-300 transition-all duration-300"
               >
                 {/* Header */}
                 <div className="flex justify-between items-start mb-5">
@@ -285,10 +264,13 @@ const ListofSales = () => {
                       Sale #{sale._id.slice(-8)}
                     </h3>
                     <p className="text-gray-500 text-sm mt-1">
-                      {new Date(sale.date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                      {new Date(sale.date).toLocaleString('en-IN', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short'
+                      })}
                     </p>
                   </div>
-                  <span className="bg-rose-100 text-rose-700 px-4 py-1 rounded-full font-semibold">
+                  <span className="bg-rose-100 text-rose-700 px-4 py-1.5 rounded-full font-semibold">
                     ₹{sale.totalAmount?.toLocaleString('en-IN') || "0"}
                   </span>
                 </div>
@@ -371,7 +353,6 @@ const ListofSales = () => {
                 </button>
               </div>
 
-              {/* Editable Items */}
               <div className="space-y-4 mb-8">
                 {editedItems.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
@@ -412,7 +393,6 @@ const ListofSales = () => {
                 ))}
               </div>
 
-              {/* Buttons */}
               <div className="flex justify-end gap-4">
                 <button
                   onClick={() => setEditingSale(null)}
