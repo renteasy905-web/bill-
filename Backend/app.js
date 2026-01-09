@@ -1,24 +1,21 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const multer = require("multer"); // Add this
+const multer = require("multer");
 require("dotenv").config();
-
 const routes = require("./routes"); // Existing routes
-const extractRoute = require("./routes/extract"); // New extract route
-
+// const extractRoute = require("./routes/extract"); // Temporarily disabled - file missing
 const app = express();
 
 // Middleware
 app.use(cors({ origin: "*" }));
 app.use(express.json());
-
 // Multer setup (for file uploads)
 app.use(multer().none()); // Allow multipart/form-data
 
 // Routes
 app.use("/api", routes);
-app.use("/api", extractRoute); // Add new extract route
+// app.use("/api", extractRoute); // Temporarily disabled - file missing
 
 // Test route
 app.get("/", (req, res) => {
