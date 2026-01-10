@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "Vishwas Medical Inventory & Billing Backend",
   "main": "app.js",
-  "type": "commonjs",                    // ← Important! Use this or REMOVE "type": "module"
+  "type": "commonjs",
   "scripts": {
     "start": "node app.js",
-    "dev": "nodemon app.js"              // optional - if you use nodemon locally
+    "dev": "nodemon app.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -16,7 +16,7 @@
     "multer": "^1.4.5-lts.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.7"                  // optional - for auto-restart during development
+    "nodemon": "^3.1.7"
   },
   "engines": {
     "node": ">=18.0.0"
