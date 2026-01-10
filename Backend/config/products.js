@@ -1,9 +1,7 @@
-// config/products.js
-
 const mongoose = require("mongoose");
 
 // ====================
-// PRODUCT SCHEMA
+// PRODUCT MODEL
 // ====================
 const productSchema = new mongoose.Schema(
   {
@@ -11,7 +9,7 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: [true, "Item name is required"],
       trim: true,
-      unique: true, // optional: prevent duplicate names
+      unique: true,
     },
     salePrice: {
       type: Number,
@@ -44,11 +42,11 @@ const productSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // adds createdAt and updatedAt automatically
+    timestamps: true,
   }
 );
 
-// Auto-update latestUpdated on every save/update
+// Auto-update latestUpdated
 productSchema.pre("save", function (next) {
   this.latestUpdated = Date.now();
   next();
@@ -62,7 +60,7 @@ productSchema.pre("findOneAndUpdate", function (next) {
 const Product = mongoose.model("Product", productSchema);
 
 // ====================
-// PRODUCT CONTROLLERS
+// CONTROLLERS
 // ====================
 
 const createProduct = async (req, res) => {
@@ -169,8 +167,6 @@ const updateProduct = async (req, res) => {
     });
   }
 };
-
-// You can add deleteProduct later if needed
 
 module.exports = {
   createProduct,
