@@ -1,12 +1,12 @@
 const express = require("express");
 const {
-  Createproducts,
-  fetch,
-  edit,
-  Createcustomer,
+  createProduct,
+  getProductsSortedByName,
+  updateProduct,
+  createCustomer,
   createSale,
-  fetchCustomers,
-  allproducts,
+  getAllCustomers,
+  getAllProducts,
   getAllSales,
   getSaleById,
   updateSaleById,
@@ -16,14 +16,15 @@ const {
 const router = express.Router();
 
 // PRODUCT ROUTES
-router.post("/products", Createproducts);
-router.get("/fetch", fetch);
-router.put("/fetch/:id", edit);
-router.get("/allproducts", allproducts);
+router.post("/products", createProduct);
+router.get("/fetch", getProductsSortedByName);
+router.put("/fetch/:id", updateProduct);
+router.get("/allproducts", getAllProducts);
 
 // CUSTOMER ROUTES
-router.post("/create", Createcustomer);
-router.get("/getcustomers", fetchCustomers);
+router.post("/create", createCustomer);
+router.get("/getcustomers", getAllCustomers);
+
 
 // SALE ROUTES
 router.post("/sale", createSale);
