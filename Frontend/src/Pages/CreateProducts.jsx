@@ -1,171 +1,210 @@
 import React, { useState } from "react";
-import api from "../utils/api";
+import api from "../utils/api"; // your axios instance
 
 const CreateProducts = () => {
-  const [products, setProducts] = useState([]);
-  const [image, setImage] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    itemName: "",
+    salePrice: "",
+    purchasePrice: "",
+    quantity: "",
+    description: "",
+    expiryDate: "",
+  });
 
-  const handleImageChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setImage(e.target.files[0]);
-    }
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const extractBill = async () => {
-    if (!image) {
-      alert("Please select a bill image first!");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setSuccess("");
+    setError("");
+
+    // Basic frontend validation
+    if (!formData.itemName || !formData.salePrice || !formData.purchasePrice || !formData.quantity) {
+      setError("Please fill all required fields");
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
-    setProducts([]);
-
-    const formData = new FormData();
-    formData.append("billImage", image);
-
     try {
-      const response = await api.post("/extract-bill", formData);
-      const extracted = response.data.products || [];
-      setProducts(extracted);
-      alert(`Extracted ${extracted.length} products! Edit if needed and click Create All`);
+      const payload = {
+        itemName: formData.itemName.trim(),
+        salePrice: Number(formData.salePrice),
+        purchasePrice: Number(formData.purchasePrice),
+        quantity: Number(formData.quantity),
+        description: formData.description.trim() || "",
+        expiryDate: formData.expiryDate || null,
+      };
+
+      const response = await api.post("/products", payload);
+
+      setSuccess("Product added successfully!");
+      setFormData({
+        itemName: "",
+        salePrice: "",
+        purchasePrice: "",
+        quantity: "",
+        description: "",
+        expiryDate: "",
+      });
     } catch (err) {
-      console.error(err);
-      alert("Failed. Try a clearer cropped screenshot of the product table.");
+      console.error("Error adding product:", err);
+      setError(err.response?.data?.message || "Failed to add product. Please try again.");
     } finally {
       setLoading(false);
-      setImage(null);
     }
-  };
-
-  const handleProductChange = (index, field, value) => {
-    const updated = [...products];
-    updated[index][field] = field === "Mrp" || field === "Quantity" ? Number(value) || 0 : value;
-    setProducts(updated);
-  };
-
-  const createAllProducts = async () => {
-    if (products.length === 0) return alert("No products!");
-
-    setLoading(true);
-    let success = 0;
-    let failed = [];
-
-    for (const p of products) {
-      if (!p.Name || p.Mrp <= 0 || p.Quantity <= 0 || !p.Expiry) {
-        failed.push(p.Name || "Unknown");
-        continue;
-      }
-      try {
-        await api.post("/products", p);
-        success++;
-      } catch (err) {
-        failed.push(p.Name || "Unknown");
-      }
-    }
-
-    alert(success === products.length ? `All ${success} saved!` : `${success} saved, ${failed.length} failed`);
-    setProducts([]);
-    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-8">
-      <h1 className="text-4xl font-bold text-indigo-400 text-center mb-10">Vishwas Medical</h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white py-12 px-6">
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <h1 className="text-4xl md:text-5xl font-extrabold text-center mb-4 text-indigo-400 tracking-tight">
+          Vishwas Medical
+        </h1>
+        <p className="text-center text-lg text-slate-300 mb-12">
+          Add New Product to Inventory
+        </p>
 
-      <div className="max-w-4xl mx-auto bg-slate-800 rounded-2xl p-10 shadow-2xl">
-        <h2 className="text-3xl font-bold text-center mb-8">AI Bill Extraction</h2>
+        {/* Form Card */}
+        <div className="bg-slate-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-8 md:p-12 border border-slate-700">
+          {success && (
+            <div className="mb-8 p-4 bg-green-900/40 border border-green-600 text-green-300 rounded-lg text-center">
+              {success}
+            </div>
+          )}
 
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleImageChange}
-          className="block w-full text-lg mb-8 file:mr-6 file:py-3 file:px-8 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-indigo-600 file:text-white hover:file:bg-indigo-700"
-        />
+          {error && (
+            <div className="mb-8 p-4 bg-red-900/40 border border-red-600 text-red-300 rounded-lg text-center">
+              {error}
+            </div>
+          )}
 
-        <button
-          onClick={extractBill}
-          disabled={loading}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-70 py-5 rounded-xl font-bold text-2xl"
-        >
-          {loading ? "Extracting..." : "Extract Products from Bill"}
-        </button>
-      </div>
+          <form onSubmit={handleSubmit} className="space-y-7">
+            {/* Item Name */}
+            <div>
+              <label className="block text-slate-300 font-medium mb-2">
+                Item Name <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                name="itemName"
+                value={formData.itemName}
+                onChange={handleChange}
+                required
+                className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                placeholder="Paracetamol 500mg"
+              />
+            </div>
 
-      {products.length > 0 && (
-        <div className="max-w-6xl mx-auto bg-slate-800 rounded-2xl p-10 shadow-2xl mt-12">
-          <h3 className="text-3xl text-green-400 text-center mb-8">
-            Extracted {products.length} Products
-          </h3>
+            {/* Prices */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-slate-300 font-medium mb-2">
+                  Sale Price (₹) <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="number"
+                  name="salePrice"
+                  value={formData.salePrice}
+                  onChange={handleChange}
+                  required
+                  min="0"
+                  step="0.01"
+                  className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                  placeholder="50.00"
+                />
+              </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-slate-700">
-                <tr>
-                  <th className="px-6 py-4">Product Name</th>
-                  <th className="px-6 py-4">Description</th>
-                  <th className="px-6 py-4">MRP</th>
-                  <th className="px-6 py-4">Quantity</th>
-                  <th className="px-6 py-4">Expiry</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((p, i) => (
-                  <tr key={i} className="bg-slate-600 border-b border-slate-700">
-                    <td className="px-6 py-4">
-                      <input
-                        value={p.Name}
-                        onChange={(e) => handleProductChange(i, "Name", e.target.value)}
-                        className="w-full bg-slate-500 rounded px-4 py-2"
-                      />
-                    </td>
-                    <td className="px-6 py-4">
-                      <input
-                        value={p.Description}
-                        onChange={(e) => handleProductChange(i, "Description", e.target.value)}
-                        className="w-full bg-slate-500 rounded px-4 py-2"
-                      />
-                    </td>
-                    <td className="px-6 py-4">
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={p.Mrp}
-                        onChange={(e) => handleProductChange(i, "Mrp", e.target.value)}
-                        className="w-full bg-slate-500 rounded px-4 py-2"
-                      />
-                    </td>
-                    <td className="px-6 py-4">
-                      <input
-                        type="number"
-                        value={p.Quantity}
-                        onChange={(e) => handleProductChange(i, "Quantity", e.target.value)}
-                        className="w-full bg-slate-500 rounded px-4 py-2"
-                      />
-                    </td>
-                    <td className="px-6 py-4">
-                      <input
-                        type="date"
-                        value={p.Expiry}
-                        onChange={(e) => handleProductChange(i, "Expiry", e.target.value)}
-                        className="w-full bg-slate-500 rounded px-4 py-2"
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              <div>
+                <label className="block text-slate-300 font-medium mb-2">
+                  Purchase Price (₹) <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="number"
+                  name="purchasePrice"
+                  value={formData.purchasePrice}
+                  onChange={handleChange}
+                  required
+                  min="0"
+                  step="0.01"
+                  className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                  placeholder="35.00"
+                />
+              </div>
+            </div>
 
-          <button
-            onClick={createAllProducts}
-            disabled={loading}
-            className="w-full mt-12 bg-green-600 hover:bg-green-700 py-6 rounded-xl font-bold text-3xl"
-          >
-            {loading ? "Saving..." : `Create All ${products.length} Products`}
-          </button>
+            {/* Quantity */}
+            <div>
+              <label className="block text-slate-300 font-medium mb-2">
+                Quantity <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="number"
+                name="quantity"
+                value={formData.quantity}
+                onChange={handleChange}
+                required
+                min="0"
+                className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                placeholder="500"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-slate-300 font-medium mb-2">
+                Description (Optional)
+              </label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                rows={3}
+                className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                placeholder="Pain relief tablets..."
+              />
+            </div>
+
+            {/* Expiry Date */}
+            <div>
+              <label className="block text-slate-300 font-medium mb-2">
+                Expiry Date (Optional)
+              </label>
+              <input
+                type="date"
+                name="expiryDate"
+                value={formData.expiryDate}
+                onChange={handleChange}
+                className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+              />
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full py-5 px-8 text-xl font-bold rounded-xl transition-all duration-300 shadow-lg
+                ${loading 
+                  ? "bg-slate-600 cursor-not-allowed" 
+                  : "bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 hover:shadow-indigo-500/30"
+                }`}
+            >
+              {loading ? "Adding Product..." : "Add Product"}
+            </button>
+          </form>
         </div>
-      )}
+      </div>
     </div>
   );
 };
