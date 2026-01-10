@@ -1,35 +1,40 @@
-const express = require("express");
-const {
-  Createproducts,
-  fetch,
-  edit,
-  Createcustomer,
-  createSale,
-  fetchCustomers,
-  allproducts,
-  getAllSales,
-  getSaleById,
-  updateSaleById,
-  deleteSale,
-} = require("./config/products");
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import multer from "multer";
+import dotenv from "dotenv";
+import routes from "./routes.js";
+// import extractRoute from "./routes/extract.js";
 
-const router = express.Router();
+dotenv.config();
 
-// PRODUCT ROUTES
-router.post("/products", Createproducts);
-router.get("/fetch", fetch);
-router.put("/fetch/:id", edit);
-router.get("/allproducts", allproducts);
+const app = express();
 
-// CUSTOMER ROUTES
-router.post("/create", Createcustomer);
-router.get("/getcustomers", fetchCustomers);
+// Middleware
+app.use(cors({ origin: "*" }));
+app.use(express.json());
+app.use(multer().none());
 
-// SALE ROUTES
-router.post("/sale", createSale);
-router.get("/allsales", getAllSales);
-router.get("/sales/:id", getSaleById);
-router.put("/sales/:id", updateSaleById);
-router.delete("/sales/:id", deleteSale);
+// Routes
+app.use("/api", routes);
+// app.use("/api", extractRoute);
 
-module.exports = router;
+// Test route
+app.get("/", (req, res) => {
+  res.send("Backend running – Vishwas Medical Inventory API is live!");
+});
+
+// MongoDB Connection
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected ✅"))
+  .catch((err) => {
+    console.error("MongoDB error ❌:", err.message);
+    process.exit(1);
+  });
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT} 🚀`);
+  console.log(`Visit: https://bill-inventory-backend.onrender.com`);
+});
