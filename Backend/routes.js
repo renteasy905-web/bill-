@@ -25,7 +25,6 @@ router.get("/allproducts", getAllProducts);
 router.post("/create", createCustomer);
 router.get("/getcustomers", getAllCustomers);
 
-
 // SALE ROUTES
 router.post("/sale", createSale);
 router.get("/allsales", getAllSales);
