@@ -1,5 +1,5 @@
-import express from "express";
-import {
+const express = require("express");
+const {
   Createproducts,
   fetch,
   edit,
@@ -11,7 +11,7 @@ import {
   getSaleById,
   updateSaleById,
   deleteSale,
-} from "./config/products.js";
+} = require("./config/products");
 
 const router = express.Router();
 
@@ -32,4 +32,4 @@ router.get("/sales/:id", getSaleById);
 router.put("/sales/:id", updateSaleById);
 router.delete("/sales/:id", deleteSale);
 
-export default router;
+module.exports = router;
