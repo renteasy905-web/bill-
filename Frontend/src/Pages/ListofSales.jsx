@@ -1,3 +1,4 @@
+// src/Pages/ListofSales.jsx
 import React, { useEffect, useState } from "react";
 import api from "../utils/api";
 import { Receipt, Loader2, Trash2, Edit, Download, MessageCircle, X, Plus, Minus, Search } from "lucide-react";
@@ -13,42 +14,43 @@ const ListofSales = () => {
   const [editingSale, setEditingSale] = useState(null);
   const [editedItems, setEditedItems] = useState([]);
 
-  // Pharmacy details
+  // Pharmacy details (customize as needed)
   const pharmacy = {
     name: "Vishwas Medical",
     address: "Church Street, Bengaluru - 560001",
     phone: "+91-80-XXXXXXX",
+    gstin: "29ABCDE1234F1Z5", // optional
   };
 
+  // Fetch all sales
   useEffect(() => {
+    const fetchAllSales = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await api.get("/api/allsales"); // ← Correct path with /api/
+        const salesData = res.data.sales || res.data.data || res.data || [];
+        setSales(salesData);
+        setFilteredSales(salesData);
+      } catch (err) {
+        console.error("Fetch error:", err);
+        setError("Failed to load sales records. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchAllSales();
   }, []);
 
-  const fetchAllSales = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await api.get("/allsales");
-      const salesData = res.data.sales || res.data || [];
-      setSales(salesData);
-      setFilteredSales(salesData); // Initial full list
-    } catch (err) {
-      console.error("Fetch error:", err);
-      setError("Failed to load sales records. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Real-time search by name or phone
+  // Real-time search by patient name or phone
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredSales(sales);
       return;
     }
 
-    const term = searchTerm.toLowerCase().trim().replace(/[\s-]/g, ""); // Remove spaces/dashes for phone
-
+    const term = searchTerm.toLowerCase().trim().replace(/[\s-]/g, "");
     const filtered = sales.filter((sale) => {
       const name = (sale.customer?.name || "").toLowerCase();
       const phone = (sale.customer?.phone || "").replace(/[\s-]/g, "").toLowerCase();
@@ -58,14 +60,15 @@ const ListofSales = () => {
     setFilteredSales(filtered);
   }, [searchTerm, sales]);
 
-  // Delete Sale
+  // Delete sale
   const handleDelete = async (saleId) => {
     if (!window.confirm("Are you sure you want to delete this sale? This cannot be undone.")) return;
 
     try {
-      await api.delete(`/sales/${saleId}`);
-      setSales(sales.filter((s) => s._id !== saleId));
-      setFilteredSales(filteredSales.filter((s) => s._id !== saleId));
+      await api.delete(`/api/sales/${saleId}`);
+      const updated = sales.filter((s) => s._id !== saleId);
+      setSales(updated);
+      setFilteredSales(updated);
       alert("Sale deleted successfully");
     } catch (err) {
       console.error("Delete error:", err);
@@ -85,13 +88,17 @@ const ListofSales = () => {
 
     try {
       const updatedTotal = editedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-      await api.put(`/sales/${editingSale._id}`, {
+      await api.put(`/api/sales/${editingSale._id}`, {
         items: editedItems,
         totalAmount: updatedTotal,
       });
 
-      fetchAllSales();
+      // Refresh list
+      const updatedSales = sales.map((s) =>
+        s._id === editingSale._id ? { ...s, items: editedItems, totalAmount: updatedTotal } : s
+      );
+      setSales(updatedSales);
+      setFilteredSales(updatedSales);
       setEditingSale(null);
       alert("Sale updated successfully");
     } catch (err) {
@@ -100,14 +107,14 @@ const ListofSales = () => {
     }
   };
 
-  // PDF generation (unchanged)
+  // PDF Invoice Generation
   const generateInvoicePDF = (sale) => {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-
     const purple = "#6b21a8";
     const lightPurple = "#e9d5ff";
     const darkText = "#111827";
 
+    // Header
     doc.setFillColor(purple);
     doc.rect(0, 0, 210, 30, "F");
     doc.setTextColor(255);
@@ -119,33 +126,36 @@ const ListofSales = () => {
     doc.setFontSize(24);
     doc.text("MEDICAL INVOICE", 105, 38, { align: "center" });
 
+    // Pharmacy Info
     doc.setTextColor(darkText);
     doc.setFontSize(11);
     doc.text(pharmacy.name, 20, 55);
     doc.text(pharmacy.address, 20, 62);
     doc.text(`Phone: ${pharmacy.phone}`, 20, 69);
+    if (pharmacy.gstin) doc.text(`GSTIN: ${pharmacy.gstin}`, 20, 76);
 
+    // Patient Info
     doc.setFillColor(lightPurple);
     doc.rect(10, 85, 190, 12, "F");
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text("Patient's Name", 15, 93);
-
+    doc.text("Patient Details", 15, 93);
     doc.setFont("helvetica", "normal");
     doc.text(`Name: ${sale.customer?.name || "Walk-in Patient"}`, 15, 103);
     doc.text(`Address: ${sale.customer?.address || "—"}`, 15, 110);
     doc.text(`Phone: ${sale.customer?.phone || "—"}`, 15, 117);
 
-    const tableColumn = ["S.No", "Items", "HSN", "BATCH", "RATE", "MRP", "TAX", "Amount"];
+    // Items Table
+    const tableColumn = ["S.No", "Item", "Qty", "Rate", "Amount"];
     const tableRows = sale.items.map((item, index) => {
       const prod = item.product || {};
       const amount = (item.price * item.quantity).toFixed(2);
       return [
         index + 1,
-        prod.Name || "Item",
-        "—", "—", item.price.toFixed(2),
-        `₹${prod.Mrp?.toFixed(2) || item.price.toFixed(2)}`,
-        "—", `₹${amount}`,
+        prod.itemName || "Item",
+        item.quantity,
+        `₹${item.price.toFixed(2)}`,
+        `₹${amount}`,
       ];
     });
 
@@ -158,6 +168,7 @@ const ListofSales = () => {
       styles: { fontSize: 10, cellPadding: 3 },
     });
 
+    // Total
     const finalY = doc.lastAutoTable.finalY + 10;
     doc.setFillColor(purple);
     doc.rect(130, finalY, 70, 10, "F");
@@ -166,15 +177,14 @@ const ListofSales = () => {
     doc.setTextColor(darkText);
     doc.text(`₹${sale.totalAmount?.toFixed(2) || "0.00"}`, 175, finalY + 7, { align: "right" });
 
+    // Footer
     doc.setFontSize(10);
     doc.text("Amount in words: Rupees One Hundred Only", 20, finalY + 25);
-
     doc.text("Terms & Conditions:", 20, finalY + 45);
     doc.setFontSize(9);
     doc.text("1. Goods once sold will not be taken back or exchanged.", 25, finalY + 52);
     doc.text("2. All disputes subject to Bengaluru jurisdiction only.", 25, finalY + 59);
     doc.text("3. Medicines should be taken only on doctor's advice.", 25, finalY + 66);
-
     doc.setFontSize(11);
     doc.text("Seal & Signature", 150, finalY + 85, { align: "right" });
 
@@ -191,25 +201,27 @@ const ListofSales = () => {
       alert("Patient phone number not available");
       return;
     }
+
     const phone = sale.customer.phone.replace(/\D/g, "");
     const message = `Dear ${sale.customer.name || "Patient"},\nYour invoice is ready!\nTotal: ₹${sale.totalAmount?.toFixed(2)}\nDate: ${new Date(sale.date).toLocaleDateString('en-IN')}\n\nThank you!`;
     const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(waUrl, "_blank");
     handleDownload(sale);
-    alert("WhatsApp opened! Attach the downloaded PDF.");
+    alert("WhatsApp opened! Attach the downloaded PDF manually.");
   };
 
   if (loading) {
     return (
       <div className="pt-24 min-h-screen bg-gradient-to-br from-cream-50 to-cream-100 flex items-center justify-center">
         <Loader2 className="text-rose-500 animate-spin" size={48} />
+        <span className="ml-4 text-xl text-rose-600">Loading sales records...</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="pt-24 min-h-screen bg-gradient-to-br from-cream-50 to-cream-100 text-red-600 text-center p-8">
+      <div className="pt-24 min-h-screen bg-gradient-to-br from-cream-50 to-cream-100 text-red-600 text-center p-8 text-xl">
         {error}
       </div>
     );
@@ -218,7 +230,7 @@ const ListofSales = () => {
   return (
     <main className="pt-20 min-h-screen bg-gradient-to-br from-cream-50 to-cream-100 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header + Search Bar */}
+        {/* Header + Search */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6">
           <h1 className="text-4xl font-extrabold text-rose-800 flex items-center gap-4">
             <Receipt className="text-rose-600" size={40} />
@@ -231,13 +243,13 @@ const ListofSales = () => {
               placeholder="Search by patient name or phone..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-300 rounded-full shadow focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent text-gray-800 placeholder-gray-500"
+              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-300 rounded-full shadow focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent text-gray-800 placeholder-gray-500 transition"
             />
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           </div>
         </div>
 
-        {/* Sales Grid */}
+        {/* Sales List */}
         {filteredSales.length === 0 ? (
           <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-2xl p-12 text-center shadow-lg">
             <Receipt className="mx-auto text-gray-400 mb-6" size={80} />
@@ -245,7 +257,7 @@ const ListofSales = () => {
               {searchTerm ? "No matching sales found" : "No Sales Recorded Yet"}
             </h2>
             <p className="text-gray-500">
-              {searchTerm ? "Try a different name or phone number." : "Create your first sale from the New Sale page."}
+              {searchTerm ? "Try a different name or phone." : "Create your first sale from the New Sale page."}
             </p>
           </div>
         ) : (
@@ -262,18 +274,18 @@ const ListofSales = () => {
                       Sale #{sale._id.slice(-8)}
                     </h3>
                     <p className="text-gray-500 text-sm mt-1">
-                      {new Date(sale.date).toLocaleString('en-IN', {
-                        dateStyle: 'medium',
-                        timeStyle: 'short'
+                      {new Date(sale.date).toLocaleString("en-IN", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
                       })}
                     </p>
                   </div>
                   <span className="bg-rose-100 text-rose-700 px-4 py-1.5 rounded-full font-semibold">
-                    ₹{sale.totalAmount?.toLocaleString('en-IN') || "0"}
+                    ₹{sale.totalAmount?.toLocaleString("en-IN") || "0"}
                   </span>
                 </div>
 
-                {/* Customer */}
+                {/* Patient */}
                 <div className="mb-5 pb-4 border-b border-gray-200">
                   <p className="text-gray-800 font-semibold">
                     Patient: {sale.customer?.name || "Unknown"}
@@ -289,14 +301,14 @@ const ListofSales = () => {
                   <div className="space-y-2 text-sm text-gray-600">
                     {sale.items?.map((item, idx) => (
                       <div key={idx} className="flex justify-between">
-                        <span>{item.product?.Name || "Item"} × {item.quantity}</span>
-                        <span>₹{(item.price * item.quantity).toLocaleString('en-IN')}</span>
+                        <span>{item.product?.itemName || "Item"} × {item.quantity}</span>
+                        <span>₹{(item.price * item.quantity).toLocaleString("en-IN")}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Action Buttons */}
+                {/* Actions */}
                 <div className="grid grid-cols-2 gap-3 mt-6">
                   <button
                     onClick={() => handleDownload(sale)}
@@ -305,7 +317,6 @@ const ListofSales = () => {
                     <Download size={18} />
                     PDF
                   </button>
-
                   <button
                     onClick={() => handleWhatsApp(sale)}
                     className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition"
@@ -313,7 +324,6 @@ const ListofSales = () => {
                     <MessageCircle size={18} />
                     WhatsApp
                   </button>
-
                   <button
                     onClick={() => startEdit(sale)}
                     className="flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg transition col-span-2"
@@ -321,7 +331,6 @@ const ListofSales = () => {
                     <Edit size={18} />
                     Edit Sale
                   </button>
-
                   <button
                     onClick={() => handleDelete(sale._id)}
                     className="flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition col-span-2"
@@ -345,7 +354,9 @@ const ListofSales = () => {
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">Edit Sale #{editingSale._id.slice(-8)}</h2>
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Edit Sale #{editingSale._id.slice(-8)}
+                </h2>
                 <button onClick={() => setEditingSale(null)} className="text-gray-500 hover:text-gray-700">
                   <X size={28} />
                 </button>
@@ -355,7 +366,7 @@ const ListofSales = () => {
                 {editedItems.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
                     <div className="flex-1">
-                      <p className="text-gray-800 font-medium">{item.product?.Name || "Item"}</p>
+                      <p className="text-gray-800 font-medium">{item.product?.itemName || "Item"}</p>
                       <p className="text-gray-600 text-sm">₹{item.price} each</p>
                     </div>
                     <div className="flex items-center gap-3">
