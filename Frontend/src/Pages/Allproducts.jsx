@@ -1,9 +1,12 @@
 // src/Pages/AllProducts.jsx
 import React, { useEffect, useState } from "react";
 import api from "../utils/api";
+import { Search } from "lucide-react";
 
 const AllProducts = () => {
   const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -21,8 +24,8 @@ const AllProducts = () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get("/api/allproducts"); // or "/api/fetch" for sorted
-      console.log("API Response:", res.data); // Debug
+      const res = await api.get("/api/allproducts"); // or "/api/fetch"
+      console.log("API Response:", res.data);
       const productList = res.data.data || res.data.products || res.data.allproducts || res.data || [];
       setProducts(Array.isArray(productList) ? productList : []);
     } catch (err) {
@@ -36,11 +39,24 @@ const AllProducts = () => {
   useEffect(() => {
     fetchProducts();
 
-    // Auto-refresh every 10 seconds to reflect quantity changes from sales
+    // Auto-refresh every 10 seconds (for quantity changes from sales)
     const interval = setInterval(fetchProducts, 10000);
-
     return () => clearInterval(interval);
   }, []);
+
+  // Filter products by itemName search
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredProducts(products);
+      return;
+    }
+
+    const term = searchTerm.toLowerCase().trim();
+    const filtered = products.filter((p) =>
+      (p.itemName || "").toLowerCase().includes(term)
+    );
+    setFilteredProducts(filtered);
+  }, [searchTerm, products]);
 
   // Mobile detection
   useEffect(() => {
@@ -71,7 +87,8 @@ const AllProducts = () => {
     return { color: "#22c55e", label: "Safe" };
   };
 
-  const sortedProducts = [...products].sort((a, b) => {
+  // Sort by nearest expiry
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
     const da = a.expiryDate ? new Date(a.expiryDate) : new Date("9999-12-31");
     const db = b.expiryDate ? new Date(b.expiryDate) : new Date("9999-12-31");
     return da - db;
@@ -99,19 +116,33 @@ const AllProducts = () => {
       style={{ touchAction: "manipulation" }}
     >
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-10">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-indigo-400 mb-3">
-            Vishwas Medical Inventory
-          </h1>
-          <p className="text-lg md:text-xl text-slate-300">
-            Current Date: <strong className="text-white">{todayFormatted}</strong>
-          </p>
+        {/* Header + Search Bar */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
+          <div className="text-center md:text-left">
+            <h1 className="text-4xl md:text-5xl font-extrabold text-indigo-400 mb-3">
+              Vishwas Medical Inventory
+            </h1>
+            <p className="text-lg md:text-xl text-slate-300">
+              Current Date: <strong className="text-white">{todayFormatted}</strong>
+            </p>
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative w-full md:w-96">
+            <input
+              type="text"
+              placeholder="Search by product name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-600 rounded-full text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+            />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
+          </div>
         </div>
 
         {sortedProducts.length === 0 ? (
           <div className="text-center py-20 text-xl text-slate-400 bg-slate-800/50 rounded-2xl">
-            No products found in inventory yet
+            {searchTerm ? "No matching products found" : "No products in inventory yet"}
           </div>
         ) : (
           <>
