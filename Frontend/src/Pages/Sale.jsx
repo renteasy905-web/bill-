@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import api from "../utils/api";
-import { Search, Plus, Minus, Trash2, Loader2, ShoppingCart, UserCheck, Printer, ChevronRight } from "lucide-react";
+import { Search, Plus, Minus, Trash2, Loader2, ShoppingCart, UserCheck, Printer, ChevronRight, CheckCircle } from "lucide-react";
 
 const Sales = () => {
-  const [tab, setTab] = useState("customer"); // customer | products | cart
+  const [tab, setTab] = useState("customer");
   const [customers, setCustomers] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [customerSearch, setCustomerSearch] = useState("");
@@ -16,6 +16,15 @@ const Sales = () => {
   const [loading, setLoading] = useState({ products: true, customers: true });
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+
+  // Auto-hide toast after 2.5 seconds
+  useEffect(() => {
+    if (toast.show) {
+      const timer = setTimeout(() => setToast({ show: false, message: "", type: "success" }), 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [toast.show]);
 
   // Fetch data
   useEffect(() => {
@@ -46,21 +55,17 @@ const Sales = () => {
 
   // Search filters
   useEffect(() => {
-    // Product search
     if (productSearch.trim()) {
       const term = productSearch.toLowerCase();
-      setFilteredProducts(
-        products.filter((p) => p.itemName?.toLowerCase().includes(term))
-      );
+      setFilteredProducts(products.filter(p => p.itemName?.toLowerCase().includes(term)));
     } else {
       setFilteredProducts(products);
     }
 
-    // Customer search
     if (!isRegular && customerSearch.trim()) {
       const term = customerSearch.toLowerCase().replace(/[\s-]/g, "");
       setFilteredCustomers(
-        customers.filter((c) => {
+        customers.filter(c => {
           const name = c.name?.toLowerCase() || "";
           const phone = c.phone?.replace(/[\s-]/g, "").toLowerCase() || "";
           return name.includes(term) || phone.includes(term);
@@ -71,36 +76,37 @@ const Sales = () => {
     }
   }, [productSearch, customerSearch, isRegular, products, customers]);
 
+  // Show toast when adding to cart
   const addToCart = (product, qty = 1) => {
-    setCart((prev) => {
-      const exists = prev.find((i) => i.product === product._id);
+    setCart(prev => {
+      const exists = prev.find(i => i.product === product._id);
       if (exists) {
-        return prev.map((i) =>
+        return prev.map(i =>
           i.product === product._id ? { ...i, quantity: i.quantity + qty } : i
         );
       }
-      return [
-        ...prev,
-        {
-          product: product._id,
-          name: product.itemName,
-          price: product.salePrice,
-          quantity: qty,
-        },
-      ];
+      return [...prev, {
+        product: product._id,
+        name: product.itemName,
+        price: product.salePrice,
+        quantity: qty,
+      }];
+    });
+
+    // Show instant toast
+    setToast({
+      show: true,
+      message: `Added ${product.itemName} × ${qty} to bill`,
+      type: "success"
     });
   };
 
   const updateQty = (id, qty) => {
     if (qty < 1) return;
-    setCart((prev) =>
-      prev.map((i) => (i.product === id ? { ...i, quantity: qty } : i))
-    );
+    setCart(prev => prev.map(i => i.product === id ? { ...i, quantity: qty } : i));
   };
 
-  const removeItem = (id) => {
-    setCart((prev) => prev.filter((i) => i.product !== id));
-  };
+  const removeItem = (id) => setCart(prev => prev.filter(i => i.product !== id));
 
   const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
@@ -111,11 +117,7 @@ const Sales = () => {
     try {
       setSubmitting(true);
       const payload = {
-        items: cart.map((i) => ({
-          product: i.product,
-          quantity: i.quantity,
-          price: i.price,
-        })),
+        items: cart.map(i => ({ product: i.product, quantity: i.quantity, price: i.price })),
         totalAmount: total,
         paymentMode: "Cash",
         ...( !isRegular && { customer: selectedCustomer._id } ),
@@ -129,7 +131,7 @@ const Sales = () => {
       setIsRegular(false);
       setTab("customer");
     } catch (err) {
-      alert("Failed to save sale: " + (err.response?.data?.message || "Error"));
+      alert("Failed to save: " + (err.response?.data?.message || "Error"));
     } finally {
       setSubmitting(false);
     }
@@ -137,15 +139,25 @@ const Sales = () => {
 
   const previewBill = () => {
     alert(
-      "Mini Bill Preview:\n" +
-      cart.map((i) => `${i.name} × ${i.quantity} = ₹${i.price * i.quantity}`).join("\n") +
+      "Bill Preview:\n" +
+      cart.map(i => `${i.name} × ${i.quantity} = ₹${i.price * i.quantity}`).join("\n") +
       `\n\nTotal: ₹${total.toFixed(2)}`
     );
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cream-50 to-cream-100 pb-32">
-      {/* Floating Bottom Cart Bar (Mobile) */}
+    <div className="min-h-screen bg-gradient-to-br from-cream-50 to-cream-100 pb-32 relative">
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className="fixed top-4 right-4 z-50 animate-slide-in">
+          <div className="bg-green-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 max-w-xs">
+            <CheckCircle size={24} />
+            <span className="font-medium">{toast.message}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Cart Summary (Mobile) */}
       {cart.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-2xl p-4 lg:hidden">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
@@ -182,14 +194,12 @@ const Sales = () => {
 
         {/* Tab Navigation */}
         <div className="flex justify-center gap-4 mb-8 bg-white rounded-full p-2 shadow-sm border border-gray-200">
-          {["customer", "products", "cart"].map((t) => (
+          {["customer", "products", "cart"].map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className={`px-6 py-3 rounded-full font-medium transition-all ${
-                tab === t
-                  ? "bg-teal-600 text-white shadow-md"
-                  : "text-gray-600 hover:bg-gray-100"
+                tab === t ? "bg-teal-600 text-white shadow-md" : "text-gray-600 hover:bg-gray-100"
               }`}
             >
               {t === "customer" ? "Patient" : t === "products" ? "Medicines" : "Cart"}
@@ -197,7 +207,7 @@ const Sales = () => {
           ))}
         </div>
 
-        {/* Patient / Customer Section */}
+        {/* Patient Section */}
         {tab === "customer" && (
           <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
             <div className="flex items-center justify-between mb-6">
@@ -209,9 +219,7 @@ const Sales = () => {
                   setCustomerSearch("");
                 }}
                 className={`px-5 py-2 rounded-full text-sm font-medium transition ${
-                  isRegular
-                    ? "bg-green-100 text-green-700 border border-green-300"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  isRegular ? "bg-green-100 text-green-700 border border-green-300" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
                 {isRegular ? "Regular Sale" : "Search Patient"}
@@ -229,9 +237,9 @@ const Sales = () => {
                 <div className="relative mb-6">
                   <input
                     type="text"
-                    placeholder="Search name or phone number..."
+                    placeholder="Search name or phone..."
                     value={customerSearch}
-                    onChange={(e) => setCustomerSearch(e.target.value)}
+                    onChange={e => setCustomerSearch(e.target.value)}
                     className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-teal-400 text-lg"
                   />
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={24} />
@@ -239,7 +247,7 @@ const Sales = () => {
 
                 {loading.customers ? (
                   <div className="text-center py-10">
-                    <Loader2 className="animate-spin mx-auto text-teal-600" size={40} />
+                    <Loader2 className="animate-spin mx-auto text-teal-600" size={48} />
                   </div>
                 ) : filteredCustomers.length === 0 ? (
                   <p className="text-center text-gray-500 py-10">
@@ -247,7 +255,7 @@ const Sales = () => {
                   </p>
                 ) : (
                   <div className="space-y-3 max-h-[50vh] overflow-y-auto">
-                    {filteredCustomers.map((c) => (
+                    {filteredCustomers.map(c => (
                       <div
                         key={c._id}
                         onClick={() => {
@@ -290,7 +298,7 @@ const Sales = () => {
                   type="text"
                   placeholder="Search medicine..."
                   value={productSearch}
-                  onChange={(e) => setProductSearch(e.target.value)}
+                  onChange={e => setProductSearch(e.target.value)}
                   className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-teal-400"
                 />
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
@@ -305,7 +313,7 @@ const Sales = () => {
               <p className="text-center text-gray-500 py-12">No medicines found</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {filteredProducts.map((p) => (
+                {filteredProducts.map(p => (
                   <div
                     key={p._id}
                     className="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-lg hover:border-teal-300 transition-all cursor-pointer"
@@ -331,9 +339,7 @@ const Sales = () => {
               <h2 className="text-2xl font-bold text-gray-900">Current Bill</h2>
               {cart.length > 0 && (
                 <button
-                  onClick={() => {
-                    if (window.confirm("Clear entire bill?")) setCart([]);
-                  }}
+                  onClick={() => window.confirm("Clear entire bill?") && setCart([])}
                   className="text-red-600 hover:text-red-800 flex items-center gap-1 text-sm font-medium"
                 >
                   <Trash2 size={18} /> Clear
@@ -349,7 +355,7 @@ const Sales = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {cart.map((item) => (
+                {cart.map(item => (
                   <div
                     key={item.product}
                     className="flex items-center justify-between bg-gray-50 p-4 rounded-2xl border border-gray-200"
@@ -413,7 +419,7 @@ const Sales = () => {
                   {submitting ? (
                     <>
                       <Loader2 className="animate-spin" size={20} />
-                      <span>Processing...</span>
+                      Processing...
                     </>
                   ) : (
                     "Generate Bill"
