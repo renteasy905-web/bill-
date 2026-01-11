@@ -7,146 +7,173 @@ const First = () => {
 
   return (
     <>
-      {/* Fixed Top Navigation Bar */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-slate-900 border-b border-slate-800 shadow-lg">
+      {/* Modern Fixed Header with Glass Effect */}
+      <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-black/30 border-b border-white/10 shadow-2xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Logo + Title */}
+            {/* Logo + Mobile Menu Toggle */}
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden text-white hover:bg-slate-800 p-2 rounded-lg transition"
+                className="lg:hidden text-cyan-300 hover:text-cyan-200 p-2 rounded-lg transition"
               >
-                {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+                {sidebarOpen ? <X size={26} /> : <Menu size={26} />}
               </button>
               <div className="flex items-center space-x-3">
-                <Pill className="text-indigo-400" size={32} />
-                <h1 className="text-xl font-bold text-white">Vishwas Medical</h1>
+                <div className="bg-gradient-to-br from-indigo-600 to-cyan-600 p-2 rounded-xl shadow-lg">
+                  <Pill size={28} className="text-white" />
+                </div>
+                <h1 className="text-2xl font-extrabold bg-gradient-to-r from-cyan-300 to-indigo-300 bg-clip-text text-transparent">
+                  Vishwas Medical
+                </h1>
               </div>
             </div>
 
-            {/* Desktop Navigation */}
+            {/* Desktop Navigation - Neon Hover Effect */}
             <nav className="hidden lg:flex items-center space-x-2">
-              <Link to="/createProducts" className="text-slate-300 hover:bg-slate-800 px-4 py-2 rounded-lg transition flex items-center gap-2">
-                <Plus size={18} /> New Product
-              </Link>
-              <Link to="/allproducts" className="text-slate-300 hover:bg-slate-800 px-4 py-2 rounded-lg transition flex items-center gap-2">
-                <Package size={18} /> Products
-              </Link>
-              <Link to="/cart" className="text-slate-300 hover:bg-slate-800 px-4 py-2 rounded-lg transition flex items-center gap-2">
-                <ShoppingCart size={18} /> Billing Cart
-              </Link>
-              <Link to="/sales" className="text-slate-300 hover:bg-slate-800 px-4 py-2 rounded-lg transition flex items-center gap-2">
-                <Receipt size={18} /> New Sale
-              </Link>
-              <Link to="/allsales" className="text-slate-300 hover:bg-slate-800 px-4 py-2 rounded-lg transition flex items-center gap-2">
-                <BarChart3 size={18} /> Sales Report
-              </Link>
+              {[
+                { to: "/createProducts", label: "New Product", icon: Plus, color: "cyan" },
+                { to: "/allproducts", label: "Products", icon: Package, color: "emerald" },
+                { to: "/cart", label: "Billing Cart", icon: ShoppingCart, color: "sky" },
+                { to: "/sales", label: "New Sale", icon: Receipt, color: "rose" },
+                { to: "/allsales", label: "Sales Report", icon: BarChart3, color: "violet" },
+              ].map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={`text-gray-300 hover:text-${item.color}-300 px-4 py-2 rounded-lg transition flex items-center gap-2 hover:bg-white/10 hover:shadow-sm hover:shadow-${item.color}-500/30`}
+                >
+                  <item.icon size={18} />
+                  {item.label}
+                </Link>
+              ))}
             </nav>
 
-            {/* Right side: Notification Bell + Create Customer Button */}
-            <div className="flex items-center space-x-4">
-              {/* Bell Icon with Notification Badge */}
+            {/* Right Side - Notification + FAB Style Create Customer */}
+            <div className="flex items-center space-x-6">
               <Link
                 to="/notifications"
-                className="relative text-slate-300 hover:text-white hover:bg-slate-800 p-2 rounded-lg transition"
+                className="relative text-cyan-300 hover:text-cyan-200 p-2 rounded-full hover:bg-white/10 transition"
               >
                 <Bell size={24} />
-                {/* Example badge - you can make this dynamic later */}
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-md animate-pulse">
                   3
                 </span>
               </Link>
 
-              {/* Prominent Create Customer Button */}
               <Link
                 to="/createCustomer"
-                className="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-6 py-2.5 rounded-xl shadow-lg transition transform hover:scale-105 flex items-center gap-2"
+                className="hidden lg:flex bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold px-6 py-2.5 rounded-full shadow-xl shadow-amber-500/30 hover:shadow-amber-600/50 transition transform hover:scale-105 flex items-center gap-2"
               >
                 <Users size={20} />
-                Create Customer
+                New Customer
               </Link>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Sidebar for Mobile */}
-      <div className={`fixed inset-y-0 left-0 z-40 w-64 bg-slate-950 transform transition-transform duration-300 lg:hidden ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+      {/* Mobile Sidebar - Glassmorphic Slide-in */}
+      <div
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-black/70 backdrop-blur-xl border-r border-white/10 transform transition-transform duration-300 lg:hidden ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
         <div className="p-6 space-y-4 mt-16">
-          <Link to="/createProducts" onClick={() => setSidebarOpen(false)} className="block bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-xl font-medium flex items-center gap-3">
-            <Plus size={20} /> New Product
-          </Link>
-          <Link to="/allproducts" onClick={() => setSidebarOpen(false)} className="block bg-emerald-600 hover:bg-emerald-700 text-white py-3 px-4 rounded-xl font-medium flex items-center gap-3">
-            <Package size={20} /> All Products
-          </Link>
-          <Link to="/cart" onClick={() => setSidebarOpen(false)} className="block bg-sky-600 hover:bg-sky-700 text-white py-3 px-4 rounded-xl font-medium flex items-center gap-3">
-            <ShoppingCart size={20} /> Billing Cart
-          </Link>
-          <Link to="/notifications" onClick={() => setSidebarOpen(false)} className="block bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-xl font-medium flex items-center gap-3">
-            <Bell size={20} /> Notifications
-          </Link>
-          <Link to="/createCustomer" onClick={() => setSidebarOpen(false)} className="block bg-amber-500 hover:bg-amber-600 text-white py-3 px-4 rounded-xl font-medium flex items-center gap-3">
-            <Users size={20} /> Create Customer
-          </Link>
-          <Link to="/sales" onClick={() => setSidebarOpen(false)} className="block bg-rose-600 hover:bg-rose-700 text-white py-3 px-4 rounded-xl font-medium flex items-center gap-3">
-            <Receipt size={20} /> New Sale
-          </Link>
-          <Link to="/allsales" onClick={() => setSidebarOpen(false)} className="block bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-xl font-medium flex items-center gap-3">
-            <BarChart3 size={20} /> Sales Report
-          </Link>
+          {[
+            { to: "/createProducts", label: "New Product", icon: Plus, color: "indigo" },
+            { to: "/allproducts", label: "All Products", icon: Package, color: "emerald" },
+            { to: "/cart", label: "Billing Cart", icon: ShoppingCart, color: "sky" },
+            { to: "/notifications", label: "Notifications", icon: Bell, color: "purple" },
+            { to: "/createCustomer", label: "New Customer", icon: Users, color: "amber" },
+            { to: "/sales", label: "New Sale", icon: Receipt, color: "rose" },
+            { to: "/allsales", label: "Sales Report", icon: BarChart3, color: "green" },
+          ].map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              onClick={() => setSidebarOpen(false)}
+              className={`block bg-gradient-to-r from-${item.color}-900/70 to-${item.color}-800/50 hover:from-${item.color}-800 hover:to-${item.color}-700 text-white py-4 px-5 rounded-xl font-medium flex items-center gap-4 shadow-md transition-all hover:scale-[1.02] hover:shadow-${item.color}-500/30`}
+            >
+              <item.icon size={22} />
+              {item.label}
+            </Link>
+          ))}
         </div>
       </div>
 
-      {/* Main Dashboard Content */}
-      <main className="pt-20 min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <div className="max-w-7xl mx-auto px-4 py-12">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-extrabold text-white mb-4">
-              Welcome to Vishwas Medical Store
+      {/* Overlay for Mobile Sidebar */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Hero + Dashboard Content */}
+      <main className="pt-20 min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-950">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          {/* Hero Section */}
+          <div className="text-center mb-16 relative">
+            <div className="absolute inset-0 bg-gradient-radial from-cyan-500/10 via-transparent to-transparent" />
+            <h2 className="text-5xl md:text-6xl font-extrabold bg-gradient-to-r from-cyan-300 via-indigo-300 to-purple-300 bg-clip-text text-transparent mb-6 tracking-tight">
+              Vishwas Medical
             </h2>
-            <p className="text-slate-300 text-lg max-w-2xl mx-auto">
-              Manage your pharmacy inventory, track expiry dates, create bills quickly, and maintain customer records with ease.
+            <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+              Your modern pharmacy companion — fast billing, smart inventory, expiry tracking, and loyal customers management.
             </p>
           </div>
 
-          {/* Quick Action Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-            <div className="bg-slate-800/60 backdrop-blur border border-slate-700 rounded-2xl p-8 text-center hover:border-indigo-500 transition">
-              <ShoppingCart className="mx-auto text-indigo-400 mb-4" size={48} />
-              <h3 className="text-xl font-bold text-white mb-2">Quick Billing</h3>
-              <p className="text-slate-400">Add items to cart and generate bill instantly</p>
-            </div>
-            <div className="bg-slate-800/60 backdrop-blur border border-slate-700 rounded-2xl p-8 text-center hover:border-emerald-500 transition">
-              <Package className="mx-auto text-emerald-400 mb-4" size={48} />
-              <h3 className="text-xl font-bold text-white mb-2">Stock Management</h3>
-              <p className="text-slate-400">Track expiry, low stock alerts</p>
-            </div>
-            <div className="bg-slate-800/60 backdrop-blur border border-slate-700 rounded-2xl p-8 text-center hover:border-amber-500 transition">
-              <Users className="mx-auto text-amber-400 mb-4" size={48} />
-              <h3 className="text-xl font-bold text-white mb-2">Customer Records</h3>
-              <p className="text-slate-400">Save regular customers for faster billing</p>
-            </div>
+          {/* Quick Action Cards - Glassmorphism + Animation */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                title: "Quick Billing",
+                desc: "Add items & generate bills in seconds",
+                icon: ShoppingCart,
+                color: "cyan",
+                link: "/cart",
+              },
+              {
+                title: "Stock Control",
+                desc: "Low stock & expiry alerts in one glance",
+                icon: Package,
+                color: "emerald",
+                link: "/allproducts",
+              },
+              {
+                title: "Customer Hub",
+                desc: "Save regulars for lightning-fast checkout",
+                icon: Users,
+                color: "amber",
+                link: "/createCustomer",
+              },
+            ].map((card, i) => (
+              <Link
+                key={card.title}
+                to={card.link}
+                className={`group bg-black/30 backdrop-blur-xl border border-white/10 rounded-3xl p-8 text-center transition-all duration-500 hover:border-${card.color}-500/50 hover:shadow-xl hover:shadow-${card.color}-900/30 hover:-translate-y-2 animate-fade-in`}
+                style={{ animationDelay: `${i * 150}ms` }}
+              >
+                <div className={`mx-auto bg-gradient-to-br from-${card.color}-900/50 to-${card.color}-800/30 p-5 rounded-2xl mb-6 group-hover:scale-110 transition-transform`}>
+                  <card.icon className={`text-${card.color}-400`} size={48} />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-3">{card.title}</h3>
+                <p className="text-gray-400 group-hover:text-gray-200 transition-colors">{card.desc}</p>
+              </Link>
+            ))}
           </div>
         </div>
       </main>
 
-      {/* Floating Create Customer Button */}
+      {/* Floating Action Button - Modern FAB Style */}
       <Link
         to="/createCustomer"
-        className="fixed bottom-8 right-8 z-40 bg-amber-500 hover:bg-amber-600 text-white rounded-full p-5 shadow-2xl transition transform hover:scale-110 hover:shadow-amber-500/50 flex items-center gap-3 text-lg font-bold"
+        className="fixed bottom-8 right-8 z-40 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-full p-5 shadow-2xl shadow-amber-600/40 hover:shadow-amber-700/60 transition-all duration-300 transform hover:scale-110 flex items-center gap-3"
       >
         <Users size={28} />
-        <span className="hidden sm:inline">New Customer</span>
+        <span className="hidden sm:inline font-semibold">New Customer</span>
       </Link>
-
-      {/* Overlay when sidebar open */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
     </>
   );
 };
