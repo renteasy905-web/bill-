@@ -1,17 +1,19 @@
+// models/sale.js   (or wherever your Sale model is defined)
 const mongoose = require("mongoose");
 
 const saleSchema = new mongoose.Schema(
   {
     customer: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Customer",           // Correct — matches your Customer model
-      required: true
+      ref: "Customer",
+      required: false,          // ← CHANGED: Now optional for regular/walk-in sales
+      default: null             // Optional: null means "Walk-in" or regular
     },
     items: [
       {
         product: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "Product",        // Correct — matches your updated Product model
+          ref: "Product",
           required: true
         },
         quantity: {
@@ -37,10 +39,15 @@ const saleSchema = new mongoose.Schema(
     },
     date: {
       type: Date,
-      default: Date.now          // Perfect for 1-month reminders
+      default: Date.now
     }
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Sale", saleSchema);  // Correct — "Sale" (singular)
+// Optional: Add a virtual field to show "Regular" or customer name in frontend
+saleSchema.virtual("customerName").get(function () {
+  return this.customer ? "Registered Customer" : "Regular / Walk-in";
+});
+
+module.exports = mongoose.model("Sale", saleSchema);
