@@ -1,4 +1,4 @@
-// config/products.js
+// config/prodcts.js
 const mongoose = require("mongoose");
 
 // =====================
