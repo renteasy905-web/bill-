@@ -14,7 +14,7 @@ const Cart = () => {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/fetch");
+const res = await api.get("/api/fetch");  
       setProducts(res.data.t || []);
     } catch (err) {
       console.error(err);
