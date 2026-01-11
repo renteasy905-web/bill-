@@ -1,40 +1,49 @@
 // src/Pages/Sales.jsx
 import React, { useEffect, useState } from "react";
 import api from "../utils/api";
-import { Search, Plus, Minus, Trash2, Loader2, ShoppingCart } from "lucide-react";
+import { Search, Plus, Minus, Trash2, Loader2, ShoppingCart, UserCheck } from "lucide-react";
 
 const Sales = () => {
   const [customers, setCustomers] = useState([]);
+  const [filteredCustomers, setFilteredCustomers] = useState([]);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
+  const [productSearchTerm, setProductSearchTerm] = useState("");
+
   const [cart, setCart] = useState([]);
-  const [selectedCustomer, setSelectedCustomer] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [isRegular, setIsRegular] = useState(false); // New: Regular sale (no customer)
+
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Fetch products and customers
+  // Fetch data
   useEffect(() => {
     const fetchData = async () => {
       try {
         setError(null);
 
-        // Fetch products (use /api/fetch for sorted list)
+        // Products
         setLoadingProducts(true);
         const productsRes = await api.get("/api/fetch");
         const allProducts = productsRes.data.products || productsRes.data.data || [];
         setProducts(allProducts);
         setFilteredProducts(allProducts);
 
-        // Fetch customers
-        setLoadingCustomers(true);
-        const customersRes = await api.get("/api/getcustomers");
-        setCustomers(customersRes.data.customers || customersRes.data || []);
+        // Customers (only load if not regular)
+        if (!isRegular) {
+          setLoadingCustomers(true);
+          const customersRes = await api.get("/api/getcustomers");
+          setCustomers(customersRes.data.customers || customersRes.data || []);
+          setFilteredCustomers(customersRes.data.customers || customersRes.data || []);
+        }
       } catch (err) {
         console.error("Fetch error:", err);
-        setError("Failed to load data. Please check your connection or backend.");
+        setError("Failed to load data. Please try again.");
       } finally {
         setLoadingProducts(false);
         setLoadingCustomers(false);
@@ -42,23 +51,36 @@ const Sales = () => {
     };
 
     fetchData();
-  }, []);
+  }, [isRegular]); // Re-fetch customers when regular mode changes
 
-  // Real-time product search
+  // Product search
   useEffect(() => {
-    if (!searchTerm.trim()) {
+    if (!productSearchTerm.trim()) {
       setFilteredProducts(products);
       return;
     }
-
-    const term = searchTerm.toLowerCase().trim();
+    const term = productSearchTerm.toLowerCase().trim();
     const filtered = products.filter((p) =>
       (p.itemName || "").toLowerCase().includes(term)
     );
     setFilteredProducts(filtered);
-  }, [searchTerm, products]);
+  }, [productSearchTerm, products]);
 
-  // Add to cart
+  // Customer search (only when not regular)
+  useEffect(() => {
+    if (isRegular || !customerSearchTerm.trim()) {
+      setFilteredCustomers(customers);
+      return;
+    }
+    const term = customerSearchTerm.toLowerCase().trim().replace(/[\s-]/g, "");
+    const filtered = customers.filter((c) => {
+      const name = (c.name || "").toLowerCase();
+      const phone = (c.phone || "").replace(/[\s-]/g, "").toLowerCase();
+      return name.includes(term) || phone.includes(term);
+    });
+    setFilteredCustomers(filtered);
+  }, [customerSearchTerm, customers, isRegular]);
+
   const addToCart = (product) => {
     setCart((prev) => {
       const exists = prev.find((p) => p.product === product._id);
@@ -76,7 +98,6 @@ const Sales = () => {
     });
   };
 
-  // Update quantity in cart
   const updateQuantity = (id, qty) => {
     if (qty < 1) return;
     setCart((prev) =>
@@ -84,43 +105,50 @@ const Sales = () => {
     );
   };
 
-  // Remove from cart
   const removeFromCart = (id) => {
     setCart((prev) => prev.filter((p) => p.product !== id));
   };
 
-  // Clear cart
   const clearCart = () => {
-    if (window.confirm("Clear all items from cart?")) {
-      setCart([]);
-    }
+    if (window.confirm("Clear cart?")) setCart([]);
   };
 
-  // Calculate total
   const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  // Submit sale
   const submitSale = async () => {
-    if (!selectedCustomer || cart.length === 0) {
-      alert("Please select a customer and add at least one product");
+    if (cart.length === 0) {
+      alert("Add at least one product");
+      return;
+    }
+
+    if (!isRegular && !selectedCustomer) {
+      alert("Select a customer or choose Regular sale");
       return;
     }
 
     try {
       setSubmitting(true);
-      await api.post("/api/sale", {
-        customer: selectedCustomer,
+      const payload = {
         items: cart.map((c) => ({
           product: c.product,
           quantity: c.quantity,
           price: c.price,
         })),
         paymentMode: "Cash",
-      });
+      };
+
+      // Only add customer if not regular
+      if (!isRegular) {
+        payload.customer = selectedCustomer._id;
+      }
+
+      await api.post("/api/sale", payload);
 
       alert("Sale created successfully!");
       setCart([]);
-      setSelectedCustomer("");
+      setSelectedCustomer(null);
+      setCustomerSearchTerm("");
+      setIsRegular(false);
     } catch (err) {
       console.error("Sale error:", err);
       alert("Failed to create sale: " + (err.response?.data?.message || "Unknown error"));
@@ -148,19 +176,19 @@ const Sales = () => {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Side - Products & Search */}
+          {/* Left: Products */}
           <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
               <h2 className="text-2xl font-bold text-gray-800">Available Medicines</h2>
               <div className="relative w-full sm:w-80">
                 <input
                   type="text"
-                  placeholder="Search medicine name..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700 placeholder-gray-500 transition"
+                  placeholder="Search medicine..."
+                  value={productSearchTerm}
+                  onChange={(e) => setProductSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700"
                 />
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
               </div>
             </div>
 
@@ -193,32 +221,89 @@ const Sales = () => {
             )}
           </div>
 
-          {/* Right Side - Cart & Customer */}
+          {/* Right: Customer Search + Cart */}
           <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200 flex flex-col">
-            {/* Customer Select */}
+            {/* Customer Search / Regular Toggle */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Select Customer / Patient</label>
-              {loadingCustomers ? (
-                <div className="text-center py-4">
-                  <Loader2 className="animate-spin mx-auto text-indigo-500" size={24} />
-                </div>
-              ) : (
-                <select
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-gray-800"
-                  value={selectedCustomer}
-                  onChange={(e) => setSelectedCustomer(e.target.value)}
+              <div className="flex items-center justify-between mb-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  Patient / Customer
+                </label>
+                <button
+                  onClick={() => {
+                    setIsRegular(!isRegular);
+                    setSelectedCustomer(null);
+                    setCustomerSearchTerm("");
+                  }}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
+                    isRegular
+                      ? "bg-green-100 text-green-700 border border-green-300"
+                      : "bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200"
+                  }`}
                 >
-                  <option value="">-- Select Customer --</option>
-                  {customers.map((c) => (
-                    <option key={c._id} value={c._id}>
-                      {c.name} {c.phone ? `(${c.phone})` : ""}
-                    </option>
-                  ))}
-                </select>
+                  {isRegular ? "Regular (No Details)" : "Require Patient"}
+                </button>
+              </div>
+
+              {!isRegular && (
+                <>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search name or phone..."
+                      value={customerSearchTerm}
+                      onChange={(e) => setCustomerSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700"
+                    />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  </div>
+
+                  <div className="mt-3 max-h-60 overflow-y-auto border border-gray-200 rounded-lg">
+                    {loadingCustomers ? (
+                      <div className="text-center py-4">
+                        <Loader2 className="animate-spin mx-auto text-indigo-500" size={24} />
+                      </div>
+                    ) : filteredCustomers.length === 0 ? (
+                      <p className="text-center text-gray-500 py-4">
+                        {customerSearchTerm ? "No matching customers" : "No customers yet"}
+                      </p>
+                    ) : (
+                      filteredCustomers.map((c) => (
+                        <div
+                          key={c._id}
+                          onClick={() => {
+                            setSelectedCustomer(c);
+                            setCustomerSearchTerm("");
+                          }}
+                          className={`p-3 border-b border-gray-200 hover:bg-indigo-50 cursor-pointer transition ${
+                            selectedCustomer?._id === c._id ? "bg-indigo-100" : ""
+                          }`}
+                        >
+                          <p className="font-medium text-gray-800">{c.name}</p>
+                          <p className="text-sm text-gray-600">{c.phone ? `+91 ${c.phone}` : "No phone"}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {selectedCustomer && (
+                    <div className="mt-3 p-3 bg-indigo-50 rounded-lg">
+                      <p className="font-medium">Selected: {selectedCustomer.name}</p>
+                      <p className="text-sm text-gray-600">{selectedCustomer.phone}</p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {isRegular && (
+                <div className="mt-3 p-4 bg-green-50 border border-green-200 rounded-lg text-center text-green-700">
+                  <UserCheck className="mx-auto mb-2" size={28} />
+                  Regular / Walk-in Sale (No patient details required)
+                </div>
               )}
             </div>
 
-            {/* Cart */}
+            {/* Cart Section */}
             <div className="flex-1">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-gray-800">Current Bill</h2>
@@ -234,7 +319,7 @@ const Sales = () => {
 
               {cart.length === 0 ? (
                 <div className="text-center py-10 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
-                  No items added yet. Start selecting medicines!
+                  No items added yet
                 </div>
               ) : (
                 <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
@@ -286,9 +371,9 @@ const Sales = () => {
 
               <button
                 onClick={submitSale}
-                disabled={submitting || !selectedCustomer || cart.length === 0}
+                disabled={submitting || (!isRegular && !selectedCustomer) || cart.length === 0}
                 className={`w-full py-4 rounded-xl text-white font-bold text-lg transition-all ${
-                  submitting || !selectedCustomer || cart.length === 0
+                  submitting || (!isRegular && !selectedCustomer) || cart.length === 0
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-indigo-600 hover:bg-indigo-700 shadow-lg"
                 }`}
