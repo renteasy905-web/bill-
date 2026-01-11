@@ -17,11 +17,10 @@ const ProductEdit = () => {
     setError(null);
     try {
       const res = await api.get("/api/fetch");
-      // Backend returns { success: true, products: [...] }
       setProducts(res.data.products || []);
     } catch (err) {
       console.error("Fetch error:", err);
-      setError("Failed to load products. Check console.");
+      setError("Failed to load products. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -29,45 +28,36 @@ const ProductEdit = () => {
 
   const startEdit = (product) => {
     setEditId(product._id);
-    // Use backend field names + add display-friendly ones
-    setEditedProduct({
-      ...product,
-      displayName: product.itemName,
-      displaySalePrice: product.salePrice,
-      displayPurchasePrice: product.purchasePrice,
-      displayQuantity: product.quantity,
-    });
+    setEditedProduct({ ...product });
+  };
+
+  const cancelEdit = () => {
+    setEditId(null);
+    setEditedProduct({});
   };
 
   const saveEdit = async () => {
     if (!editId) return;
-
     try {
-      // Prepare data with backend field names
       const updateData = {
-        itemName: editedProduct.displayName || editedProduct.itemName,
-        salePrice: Number(editedProduct.displaySalePrice) || editedProduct.salePrice,
-        purchasePrice: Number(editedProduct.displayPurchasePrice) || editedProduct.purchasePrice,
-        quantity: Number(editedProduct.displayQuantity) || editedProduct.quantity,
-        // Add other fields if needed (description, expiryDate, etc.)
+        itemName: editedProduct.itemName,
+        salePrice: Number(editedProduct.salePrice),
+        purchasePrice: Number(editedProduct.purchasePrice),
+        quantity: Number(editedProduct.quantity),
+        // Add expiryDate, description if you want to edit them
       };
 
-      // IMPORTANT: Confirm correct PUT endpoint with your backend!
-      // Common options: /api/products/:id OR /api/fetch/:id
-      await api.put(`/api/fetch/${editId}`, updateData);
+      await api.put(`/api/fetch/${editId}`, updateData); // Change route if backend uses different
 
-      // Update local state
       setProducts((prev) =>
-        prev.map((p) =>
-          p._id === editId ? { ...p, ...updateData } : p
-        )
+        prev.map((p) => (p._id === editId ? { ...p, ...updateData } : p))
       );
 
       setEditId(null);
       setEditedProduct({});
     } catch (err) {
       console.error("Save error:", err);
-      alert("Failed to save. Check console & backend.");
+      alert("Failed to save changes. Check console.");
     }
   };
 
@@ -80,171 +70,170 @@ const ProductEdit = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-lg">Loading products... (Render may take 10-30s)</p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading products...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center text-red-600">
-        {error}
-      </div>
-    );
-  }
-
-  if (products.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-lg text-gray-600">No products found</p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <p className="text-red-600 font-medium text-lg bg-white p-6 rounded-2xl shadow-lg">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-24">
       {/* Header */}
-      <div className="bg-white border-b sticky top-0 z-10 shadow-sm">
-        <div className="flex items-center justify-between px-4 py-3 max-w-4xl mx-auto">
-          <button className="text-2xl">←</button>
-          <h1 className="text-lg font-semibold">PRODUCT EDIT KAREIN</h1>
-          <div className="w-8" />
+      <header className="bg-white shadow-sm sticky top-0 z-10 backdrop-blur-md bg-opacity-90">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+          <button className="text-2xl text-gray-700 hover:text-gray-900 transition">←</button>
+          <h1 className="text-xl font-bold text-gray-900">PRODUCT EDIT KAREIN</h1>
+          <div className="w-8"></div>
         </div>
-      </div>
+      </header>
 
-      <div className="p-4 max-w-4xl mx-auto">
-        {products.map((product) => {
-          const isEditing = editId === product._id;
-          const lowStock = product.quantity <= 5;
+      <main className="max-w-5xl mx-auto px-4 py-8">
+        {products.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-2xl shadow-md">
+            <p className="text-gray-500 text-lg">No products found</p>
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {products.map((product) => {
+              const isEditing = editId === product._id;
+              const lowStock = product.quantity <= 10;
+              const stockValue = (product.salePrice * product.quantity).toFixed(0);
 
-          return (
-            <div
-              key={product._id}
-              className="mb-6 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
-            >
-              {/* Product Name + Low Stock */}
-              <div className="p-5 border-b bg-gray-50">
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={editedProduct.displayName || ""}
-                    onChange={(e) => handleChange("displayName", e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-xl font-bold focus:outline-none focus:border-blue-500"
-                    placeholder="Item name"
-                  />
-                ) : (
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold">{product.itemName || "Unnamed"}</h2>
-                    {lowStock && (
-                      <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                        Low Stock
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Main Info */}
-              <div className="p-5">
-                <div className="grid grid-cols-3 gap-4 text-center mb-6">
-                  {/* Sale Price */}
-                  <div>
-                    <div className="text-sm text-gray-500 mb-1">Sale Price</div>
+              return (
+                <div
+                  key={product._id}
+                  className={`bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl border ${
+                    isEditing ? "border-blue-500 ring-2 ring-blue-200" : "border-gray-200"
+                  }`}
+                >
+                  {/* Product Header */}
+                  <div className="p-5 bg-gradient-to-r from-gray-50 to-white border-b">
                     {isEditing ? (
                       <input
-                        type="number"
-                        value={editedProduct.displaySalePrice || ""}
-                        onChange={(e) => handleChange("displaySalePrice", e.target.value)}
-                        className="w-full text-center text-xl font-bold border-b focus:outline-none"
+                        type="text"
+                        value={editedProduct.itemName || ""}
+                        onChange={(e) => handleChange("itemName", e.target.value)}
+                        className="w-full px-4 py-3 text-xl font-bold bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Product Name"
                       />
                     ) : (
-                      <div className="text-xl font-bold text-green-700">
-                        ₹{product.salePrice || "—"}
+                      <div className="flex items-start justify-between">
+                        <h2 className="text-xl font-bold text-gray-900">{product.itemName || "Unnamed Product"}</h2>
+                        {lowStock && (
+                          <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+                            Low Stock ({product.quantity})
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
 
-                  {/* Purchase Price */}
-                  <div>
-                    <div className="text-sm text-gray-500 mb-1">Purchase Price</div>
-                    {isEditing ? (
-                      <input
-                        type="number"
-                        value={editedProduct.displayPurchasePrice || ""}
-                        onChange={(e) => handleChange("displayPurchasePrice", e.target.value)}
-                        className="w-full text-center text-xl font-bold border-b focus:outline-none"
-                      />
-                    ) : (
-                      <div className="text-xl font-bold">
-                        ₹{product.purchasePrice || "—"}
+                  {/* Main Content */}
+                  <div className="p-6 space-y-6">
+                    <div className="grid grid-cols-2 gap-6">
+                      {/* Sale Price */}
+                      <div className="text-center">
+                        <p className="text-sm text-gray-500 mb-1">Sale Price</p>
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            value={editedProduct.salePrice || ""}
+                            onChange={(e) => handleChange("salePrice", e.target.value)}
+                            className="w-full px-4 py-3 text-2xl font-bold text-green-600 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+                          />
+                        ) : (
+                          <p className="text-3xl font-bold text-green-600">₹{product.salePrice || "—"}</p>
+                        )}
                       </div>
+
+                      {/* Quantity */}
+                      <div className="text-center">
+                        <p className="text-sm text-gray-500 mb-1">Stock</p>
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            value={editedProduct.quantity || ""}
+                            onChange={(e) => handleChange("quantity", e.target.value)}
+                            className="w-full px-4 py-3 text-2xl font-bold text-blue-600 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        ) : (
+                          <p className="text-3xl font-bold text-blue-600">{product.quantity || 0}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Purchase Price & Stock Value */}
+                    <div className="grid grid-cols-2 gap-6 text-sm">
+                      <div>
+                        <p className="text-gray-500">Purchase Price</p>
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            value={editedProduct.purchasePrice || ""}
+                            onChange={(e) => handleChange("purchasePrice", e.target.value)}
+                            className="mt-1 w-full px-3 py-2 text-lg font-medium border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        ) : (
+                          <p className="font-medium text-gray-900">₹{product.purchasePrice || "—"}</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-gray-500">Stock Value</p>
+                        <p className="font-medium text-gray-900">₹{stockValue}</p>
+                      </div>
+                    </div>
+
+                    {/* Description / Expiry (optional) */}
+                    {product.description && (
+                      <p className="text-sm text-gray-600 italic border-l-4 border-gray-300 pl-3">
+                        {product.description}
+                      </p>
                     )}
                   </div>
 
-                  {/* Quantity */}
-                  <div>
-                    <div className="text-sm text-gray-500 mb-1">Stock Quantity</div>
+                  {/* Action Buttons */}
+                  <div className="p-5 bg-gray-50 border-t flex justify-end gap-3">
                     {isEditing ? (
-                      <input
-                        type="number"
-                        value={editedProduct.displayQuantity || ""}
-                        onChange={(e) => handleChange("displayQuantity", e.target.value)}
-                        className="w-full text-center text-xl font-bold border-b focus:outline-none"
-                      />
+                      <>
+                        <button
+                          onClick={cancelEdit}
+                          className="px-6 py-2.5 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={saveEdit}
+                          className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 transition shadow-md"
+                        >
+                          Save Changes
+                        </button>
+                      </>
                     ) : (
-                      <div className="text-xl font-bold">
-                        {product.quantity || 0} {product.quantity === 1 ? "unit" : "units"}
-                      </div>
+                      <button
+                        onClick={() => startEdit(product)}
+                        className="px-8 py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition shadow-md flex items-center gap-2"
+                      >
+                        <span>✏️ Edit</span>
+                      </button>
                     )}
                   </div>
                 </div>
-
-                {/* Additional Info */}
-                <div className="space-y-3 text-sm text-gray-700">
-                  <div className="flex justify-between">
-                    <span>Stock Value:</span>
-                    <span className="font-medium">
-                      ₹{(product.salePrice * product.quantity).toFixed(0) || "—"}
-                    </span>
-                  </div>
-                  {/* Add more fields like expiryDate, description if you want */}
-                </div>
-              </div>
-
-              {/* Edit / Save Buttons */}
-              <div className="p-5 bg-gray-50 border-t flex justify-end gap-3">
-                {isEditing ? (
-                  <>
-                    <button
-                      onClick={() => {
-                        setEditId(null);
-                        setEditedProduct({});
-                      }}
-                      className="px-6 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={saveEdit}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                    >
-                      Save
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={() => startEdit(product)}
-                    className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-                  >
-                    Edit
-                  </button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
+        )}
+      </main>
     </div>
   );
 };
