@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import api from "../utils/api"; // your axios instance
+import api from "../utils/api";
 
 const CreateProducts = () => {
   const [formData, setFormData] = useState({
@@ -29,7 +29,6 @@ const CreateProducts = () => {
     setSuccess("");
     setError("");
 
-    // Basic frontend validation
     if (!formData.itemName || !formData.salePrice || !formData.purchasePrice || !formData.quantity) {
       setError("Please fill all required fields");
       setLoading(false);
@@ -46,7 +45,7 @@ const CreateProducts = () => {
         expiryDate: formData.expiryDate || null,
       };
 
-      const response = await api.post("/products", payload);
+      await api.post("/api/products", payload); // ← Correct path with /api/
 
       setSuccess("Product added successfully!");
       setFormData({
@@ -58,8 +57,8 @@ const CreateProducts = () => {
         expiryDate: "",
       });
     } catch (err) {
-      console.error("Error adding product:", err);
-      setError(err.response?.data?.message || "Failed to add product. Please try again.");
+      setError(err.response?.data?.message || "Failed to add product");
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -68,7 +67,6 @@ const CreateProducts = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white py-12 px-6">
       <div className="max-w-2xl mx-auto">
-        {/* Header */}
         <h1 className="text-4xl md:text-5xl font-extrabold text-center mb-4 text-indigo-400 tracking-tight">
           Vishwas Medical
         </h1>
@@ -76,7 +74,6 @@ const CreateProducts = () => {
           Add New Product to Inventory
         </p>
 
-        {/* Form Card */}
         <div className="bg-slate-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-8 md:p-12 border border-slate-700">
           {success && (
             <div className="mb-8 p-4 bg-green-900/40 border border-green-600 text-green-300 rounded-lg text-center">
@@ -90,119 +87,121 @@ const CreateProducts = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-7">
-            {/* Item Name */}
-            <div>
-              <label className="block text-slate-300 font-medium mb-2">
-                Item Name <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="text"
-                name="itemName"
-                value={formData.itemName}
-                onChange={handleChange}
-                required
-                className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-                placeholder="Paracetamol 500mg"
-              />
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+              <p className="text-xl text-slate-300">Adding product...</p>
             </div>
-
-            {/* Prices */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-7">
+              {/* Item Name */}
               <div>
                 <label className="block text-slate-300 font-medium mb-2">
-                  Sale Price (₹) <span className="text-red-400">*</span>
+                  Item Name <span className="text-red-400">*</span>
                 </label>
                 <input
-                  type="number"
-                  name="salePrice"
-                  value={formData.salePrice}
+                  type="text"
+                  name="itemName"
+                  value={formData.itemName}
                   onChange={handleChange}
                   required
-                  min="0"
-                  step="0.01"
                   className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-                  placeholder="50.00"
+                  placeholder="Paracetamol 500mg"
                 />
               </div>
 
+              {/* Prices */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-slate-300 font-medium mb-2">
+                    Sale Price (₹) <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="salePrice"
+                    value={formData.salePrice}
+                    onChange={handleChange}
+                    required
+                    min="0"
+                    step="0.01"
+                    className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                    placeholder="50.00"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-medium mb-2">
+                    Purchase Price (₹) <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="purchasePrice"
+                    value={formData.purchasePrice}
+                    onChange={handleChange}
+                    required
+                    min="0"
+                    step="0.01"
+                    className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                    placeholder="35.00"
+                  />
+                </div>
+              </div>
+
+              {/* Quantity */}
               <div>
                 <label className="block text-slate-300 font-medium mb-2">
-                  Purchase Price (₹) <span className="text-red-400">*</span>
+                  Quantity <span className="text-red-400">*</span>
                 </label>
                 <input
                   type="number"
-                  name="purchasePrice"
-                  value={formData.purchasePrice}
+                  name="quantity"
+                  value={formData.quantity}
                   onChange={handleChange}
                   required
                   min="0"
-                  step="0.01"
                   className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-                  placeholder="35.00"
+                  placeholder="500"
                 />
               </div>
-            </div>
 
-            {/* Quantity */}
-            <div>
-              <label className="block text-slate-300 font-medium mb-2">
-                Quantity <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="number"
-                name="quantity"
-                value={formData.quantity}
-                onChange={handleChange}
-                required
-                min="0"
-                className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-                placeholder="500"
-              />
-            </div>
+              {/* Description */}
+              <div>
+                <label className="block text-slate-300 font-medium mb-2">
+                  Description (Optional)
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  rows={3}
+                  className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                  placeholder="Pain relief tablets..."
+                />
+              </div>
 
-            {/* Description */}
-            <div>
-              <label className="block text-slate-300 font-medium mb-2">
-                Description (Optional)
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows={3}
-                className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-                placeholder="Pain relief tablets..."
-              />
-            </div>
+              {/* Expiry Date */}
+              <div>
+                <label className="block text-slate-300 font-medium mb-2">
+                  Expiry Date (Optional)
+                </label>
+                <input
+                  type="date"
+                  name="expiryDate"
+                  value={formData.expiryDate}
+                  onChange={handleChange}
+                  className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                />
+              </div>
 
-            {/* Expiry Date */}
-            <div>
-              <label className="block text-slate-300 font-medium mb-2">
-                Expiry Date (Optional)
-              </label>
-              <input
-                type="date"
-                name="expiryDate"
-                value={formData.expiryDate}
-                onChange={handleChange}
-                className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-              />
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-5 px-8 text-xl font-bold rounded-xl transition-all duration-300 shadow-lg
-                ${loading 
-                  ? "bg-slate-600 cursor-not-allowed" 
-                  : "bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 hover:shadow-indigo-500/30"
-                }`}
-            >
-              {loading ? "Adding Product..." : "Add Product"}
-            </button>
-          </form>
+              <button
+                type="submit"
+                disabled={loading}
+                className={`w-full py-5 px-8 text-xl font-bold rounded-xl transition-all duration-300 shadow-lg
+                  ${loading ? "bg-slate-600 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 hover:shadow-indigo-500/30"}`}
+              >
+                {loading ? "Adding Product..." : "Add Product"}
+              </button>
+            </form>
+          )}
         </div>
       </div>
     </div>
