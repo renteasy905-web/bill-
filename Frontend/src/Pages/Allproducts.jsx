@@ -1,7 +1,7 @@
 // src/Pages/AllProducts.jsx
 import React, { useEffect, useState } from "react";
 import api from "../utils/api";
-import { Search } from "lucide-react";
+import { Search, RefreshCw } from "lucide-react";
 
 const AllProducts = () => {
   const [products, setProducts] = useState([]);
@@ -10,6 +10,7 @@ const AllProducts = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [lastRefreshed, setLastRefreshed] = useState(new Date());
 
   const today = new Date();
   const todayFormatted = today.toLocaleDateString("en-IN", {
@@ -24,10 +25,11 @@ const AllProducts = () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get("/api/allproducts"); // or "/api/fetch"
+      const res = await api.get("/api/allproducts"); // or "/api/fetch" for sorted
       console.log("API Response:", res.data);
       const productList = res.data.data || res.data.products || res.data.allproducts || res.data || [];
       setProducts(Array.isArray(productList) ? productList : []);
+      setLastRefreshed(new Date());
     } catch (err) {
       console.error("Fetch error:", err);
       setError("Failed to load products. Please try again.");
@@ -39,8 +41,12 @@ const AllProducts = () => {
   useEffect(() => {
     fetchProducts();
 
-    // Auto-refresh every 10 seconds (for quantity changes from sales)
-    const interval = setInterval(fetchProducts, 10000);
+    // Auto-refresh every 120 seconds (2 minutes)
+    const interval = setInterval(() => {
+      fetchProducts();
+    }, 120000);
+
+    // Cleanup interval on unmount
     return () => clearInterval(interval);
   }, []);
 
@@ -138,6 +144,12 @@ const AllProducts = () => {
             />
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
           </div>
+        </div>
+
+        {/* Last Refreshed Info */}
+        <div className="text-right text-sm text-slate-400 mb-4 flex items-center justify-end gap-2">
+          <RefreshCw size={16} className="text-indigo-400" />
+          Last updated: {lastRefreshed.toLocaleTimeString("en-IN")}
         </div>
 
         {sortedProducts.length === 0 ? (
