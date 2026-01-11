@@ -1,32 +1,55 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
-import { Plus, X, Users, Package, ShoppingCart, Receipt, BarChart3, Pill, Bell } from "lucide-react";
+import { Bell, Plus, Package, ShoppingCart, Receipt, BarChart3, Users, Pill } from "lucide-react";
 
 const First = () => {
-  const [quickMenuOpen, setQuickMenuOpen] = useState(false);
-
-  const toggleQuickMenu = () => {
-    setQuickMenuOpen((prev) => !prev);
-  };
-
-  const menuItems = [
-    { to: "/allsales", icon: BarChart3, label: "Sales Report", color: "indigo" },
-    { to: "/createCustomer", icon: Users, label: "New Customer", color: "amber" },
-    { to: "/sales", icon: Receipt, label: "New Sale", color: "rose" },
-    { to: "/createProducts", icon: Plus, label: "New Product", color: "cyan" },
-    { to: "/cart", icon: ShoppingCart, label: "Billing Cart", color: "sky" },
-    { to: "/allproducts", icon: Package, label: "Products", color: "emerald" },
+  const quickActions = [
+    {
+      title: "New Sale",
+      desc: "Create bills instantly",
+      icon: Receipt,
+      color: "rose",
+      to: "/sales",
+    },
+    {
+      title: "Billing Cart",
+      desc: "Add items & checkout",
+      icon: ShoppingCart,
+      color: "sky",
+      to: "/cart",
+    },
+    {
+      title: "All Products",
+      desc: "Manage inventory & stock",
+      icon: Package,
+      color: "emerald",
+      to: "/allproducts",
+    },
+    {
+      title: "Sales Report",
+      desc: "View analytics & trends",
+      icon: BarChart3,
+      color: "violet",
+      to: "/allsales",
+    },
+    {
+      title: "New Product",
+      desc: "Add medicines & details",
+      icon: Plus,
+      color: "cyan",
+      to: "/createProducts",
+    },
   ];
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950 overflow-hidden">
+    <div className="relative min-h-screen bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-950 text-white overflow-hidden">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-black/40 border-b border-white/10">
+      <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-black/30 border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-br from-indigo-600 to-purple-600 p-2.5 rounded-xl shadow-lg">
+              <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-2.5 rounded-xl shadow-lg">
                 <Pill size={28} className="text-white" />
               </div>
               <h1 className="text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-cyan-300 via-indigo-300 to-purple-300 bg-clip-text text-transparent">
@@ -34,13 +57,13 @@ const First = () => {
               </h1>
             </div>
 
-            {/* Notification Bell */}
+            {/* Notification */}
             <Link
               to="/notifications"
-              className="relative p-2 rounded-full hover:bg-white/10 transition"
+              className="relative p-3 rounded-full hover:bg-white/10 transition"
             >
               <Bell size={24} className="text-cyan-300 hover:text-cyan-200" />
-              <span className="absolute -top-1 -right-1 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-md animate-pulse">
+              <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-md animate-pulse">
                 3
               </span>
             </Link>
@@ -49,69 +72,48 @@ const First = () => {
       </header>
 
       {/* Hero Section */}
-      <main className="pt-20 pb-32 flex flex-col items-center justify-center min-h-[80vh]">
-        <h2 className="text-5xl md:text-6xl font-extrabold bg-gradient-to-r from-cyan-300 via-indigo-400 to-purple-400 bg-clip-text text-transparent mb-6 text-center px-4">
+      <section className="pt-24 pb-16 px-4 text-center">
+        <h1 className="text-5xl md:text-7xl font-extrabold bg-gradient-to-r from-cyan-300 via-indigo-400 to-purple-400 bg-clip-text text-transparent mb-6 tracking-tight">
           Vishwas Medical
-        </h2>
-        <p className="text-xl text-gray-300 max-w-3xl mx-auto text-center px-4">
-          Fast billing • Smart inventory • Expiry alerts • Loyal customers
+        </h1>
+        <p className="text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto leading-relaxed">
+          Fast billing • Smart stock • Expiry alerts • Loyal customers
         </p>
-      </main>
+      </section>
 
-      {/* Floating + Button (Bottom Left) */}
-      <button
-        onClick={toggleQuickMenu}
-        className={`fixed bottom-8 left-8 z-50 w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${
-          quickMenuOpen
-            ? "bg-rose-600 hover:bg-rose-700 rotate-45"
-            : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-        } text-white hover:scale-110`}
-      >
-        {quickMenuOpen ? <X size={28} /> : <Plus size={28} />}
-      </button>
-
-      {/* Circular Quick Menu (Exactly like your screenshot) */}
-      {quickMenuOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="relative w-[400px] h-[400px]">
-            {/* Center Close Button */}
-            <button
-              onClick={toggleQuickMenu}
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full bg-gradient-to-br from-indigo-800 to-purple-900 flex items-center justify-center text-white shadow-2xl border-4 border-white/20 hover:scale-105 transition"
+      {/* Quick Action Cards */}
+      <section className="max-w-7xl mx-auto px-4 pb-32">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          {quickActions.map((action, index) => (
+            <Link
+              key={action.to}
+              to={action.to}
+              className={`group relative bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-8 shadow-2xl border border-white/10 overflow-hidden transition-all duration-500 hover:-translate-y-4 hover:shadow-3xl hover:border-${action.color}-500/50 hover:bg-gradient-to-br hover:from-slate-800 hover:to-slate-900`}
+              style={{ animationDelay: `${index * 100}ms`, animation: "fadeInUp 0.8s ease-out forwards" }}
             >
-              <X size={40} />
-            </button>
+              {/* Subtle gradient overlay */}
+              <div className={`absolute inset-0 bg-gradient-to-br from-${action.color}-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
 
-            {/* Circular Arranged Buttons */}
-            {menuItems.map((item, index) => {
-              const angle = (index / menuItems.length) * 360;
-              const radius = 160; // Adjust this for size of circle
-              const x = Math.cos((angle * Math.PI) / 180) * radius;
-              const y = Math.sin((angle * Math.PI) / 180) * radius;
-
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  onClick={toggleQuickMenu}
-                  className="absolute top-1/2 left-1/2 transform transition-all duration-500 hover:scale-110"
-                  style={{
-                    transform: `translate(${x}px, ${y}px)`,
-                    animation: `expand 0.7s ease-out forwards ${index * 0.08}s`,
-                  }}
-                >
-                  <div
-                    className={`w-28 h-28 rounded-2xl flex flex-col items-center justify-center text-white shadow-xl bg-gradient-to-br from-${item.color}-700 to-${item.color}-900 border border-white/20 hover:border-white/40 hover:shadow-2xl`}
-                  >
-                    <item.icon size={36} className="mb-2" />
-                    <span className="text-xs font-medium text-center px-2 leading-tight">{item.label}</span>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+              <div className="relative z-10 flex flex-col items-center text-center">
+                <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br from-${action.color}-700/50 to-${action.color}-900/50 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+                  <action.icon size={40} className={`text-${action.color}-300`} />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-3">{action.title}</h3>
+                <p className="text-gray-400 group-hover:text-gray-200 transition-colors">{action.desc}</p>
+              </div>
+            </Link>
+          ))}
         </div>
-      )}
+      </section>
+
+      {/* Floating Action Button - New Customer */}
+      <Link
+        to="/createCustomer"
+        className="fixed bottom-8 right-8 z-50 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-full p-6 shadow-2xl shadow-amber-600/50 hover:shadow-amber-700/70 transition-all duration-300 transform hover:scale-110 flex items-center gap-3"
+      >
+        <Users size={28} />
+        <span className="hidden sm:inline font-bold text-lg">New Customer</span>
+      </Link>
     </div>
   );
 };
