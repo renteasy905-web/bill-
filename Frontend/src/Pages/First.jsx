@@ -1,36 +1,40 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Plus, Users, Package, ShoppingCart, Receipt, BarChart3, Pill, Bell } from "lucide-react";
+import { Plus, X, Users, Package, ShoppingCart, Receipt, BarChart3, Pill, Bell } from "lucide-react";
 
 const First = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [quickMenuOpen, setQuickMenuOpen] = useState(false);
+
+  const toggleQuickMenu = () => {
+    setQuickMenuOpen((prev) => !prev);
+  };
+
+  const menuItems = [
+    { to: "/createProducts", icon: Plus, label: "New Product", color: "indigo" },
+    { to: "/allproducts", icon: Package, label: "Products", color: "emerald" },
+    { to: "/cart", icon: ShoppingCart, label: "Billing Cart", color: "sky" },
+    { to: "/sales", icon: Receipt, label: "New Sale", color: "rose" },
+    { to: "/allsales", icon: BarChart3, label: "Sales Report", color: "violet" },
+    { to: "/createCustomer", icon: Users, label: "New Customer", color: "amber" },
+  ];
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-950">
-      {/* Header - Sleek & Minimal */}
+      {/* Header - Clean & Minimal */}
       <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-black/40 border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Left: Logo + Mobile Toggle */}
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden text-cyan-300 hover:text-white p-2 rounded-full hover:bg-white/10 transition"
-              >
-                {sidebarOpen ? <X size={26} /> : <Menu size={26} />}
-              </button>
-
-              <div className="flex items-center gap-3">
-                <div className="bg-gradient-to-br from-indigo-600 to-cyan-600 p-2.5 rounded-xl shadow-lg">
-                  <Pill size={28} className="text-white" />
-                </div>
-                <h1 className="text-2xl font-extrabold bg-gradient-to-r from-cyan-300 to-indigo-300 bg-clip-text text-transparent">
-                  Vishwas Medical
-                </h1>
+            {/* Logo */}
+            <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-br from-indigo-600 to-cyan-600 p-2.5 rounded-xl shadow-lg">
+                <Pill size={28} className="text-white" />
               </div>
+              <h1 className="text-2xl font-extrabold bg-gradient-to-r from-cyan-300 to-indigo-300 bg-clip-text text-transparent">
+                Vishwas Medical
+              </h1>
             </div>
 
-            {/* Desktop Nav - Pill-shaped */}
+            {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center gap-3">
               {[
                 { to: "/createProducts", icon: Plus, label: "New Product", color: "cyan" },
@@ -50,8 +54,8 @@ const First = () => {
               ))}
             </nav>
 
-            {/* Right: Bell + (Desktop) Customer Button */}
-            <div className="flex items-center gap-6">
+            {/* Notification Bell */}
+            <div className="flex items-center">
               <Link
                 to="/notifications"
                 className="relative p-2 rounded-full hover:bg-white/10 transition"
@@ -61,65 +65,14 @@ const First = () => {
                   3
                 </span>
               </Link>
-
-              {/* Desktop-only Create Customer */}
-              <Link
-                to="/createCustomer"
-                className="hidden lg:flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-full shadow-xl shadow-amber-500/30 hover:shadow-amber-600/50 transition-all duration-300 hover:scale-105"
-              >
-                <Users size={20} />
-                New Customer
-              </Link>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Mobile Sidebar - Vertical, thumb-friendly */}
-      <div
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-black/80 backdrop-blur-xl border-r border-white/10 transform transition-transform duration-300 lg:hidden ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <div className="flex flex-col h-full pt-20 px-5 pb-10">
-          <div className="flex-1 space-y-3">
-            {[
-              { to: "/createProducts", icon: Plus, label: "New Product", color: "indigo" },
-              { to: "/allproducts", icon: Package, label: "All Products", color: "emerald" },
-              { to: "/cart", icon: ShoppingCart, label: "Billing Cart", color: "sky" },
-              { to: "/notifications", icon: Bell, label: "Notifications", color: "purple" },
-              { to: "/createCustomer", icon: Users, label: "New Customer", color: "amber" },
-              { to: "/sales", icon: Receipt, label: "New Sale", color: "rose" },
-              { to: "/allsales", icon: BarChart3, label: "Sales Report", color: "green" },
-            ].map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-4 px-5 py-4 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 hover:border-${item.color}-500/50 text-white font-medium transition-all duration-300 hover:shadow-${item.color}-500/20`}
-              >
-                <div className={`p-2.5 rounded-lg bg-${item.color}-900/40`}>
-                  <item.icon size={22} className={`text-${item.color}-300`} />
-                </div>
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
       {/* Main Content */}
       <main className="pt-20 pb-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          {/* Hero */}
           <div className="text-center mb-16">
             <h2 className="text-5xl md:text-6xl font-extrabold bg-gradient-to-r from-cyan-300 via-indigo-400 to-purple-400 bg-clip-text text-transparent mb-6">
               Vishwas Medical
@@ -152,14 +105,59 @@ const First = () => {
         </div>
       </main>
 
-      {/* Modern Floating Action Button */}
-      <Link
-        to="/createCustomer"
-        className="fixed bottom-8 right-8 z-50 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-full p-6 shadow-2xl shadow-amber-600/50 hover:shadow-amber-700/70 transition-all duration-300 transform hover:scale-110 flex items-center gap-3"
+      {/* Quick Menu Toggle Button (Bottom Left + Icon) */}
+      <button
+        onClick={toggleQuickMenu}
+        className={`fixed bottom-8 left-8 z-50 w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${
+          quickMenuOpen
+            ? "bg-rose-600 hover:bg-rose-700"
+            : "bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700"
+        } text-white hover:scale-110`}
       >
-        <Users size={28} />
-        <span className="hidden sm:inline font-bold text-lg">New Customer</span>
-      </Link>
+        {quickMenuOpen ? <X size={28} /> : <Plus size={28} />}
+      </button>
+
+      {/* Quick Menu - Expanding Circular Buttons */}
+      {quickMenuOpen && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="relative">
+            {menuItems.map((item, index) => {
+              const angle = (index / menuItems.length) * 360;
+              const radius = 140; // distance from center
+              const x = Math.cos((angle * Math.PI) / 180) * radius;
+              const y = Math.sin((angle * Math.PI) / 180) * radius;
+
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={toggleQuickMenu}
+                  className={`absolute transform transition-all duration-500 ease-out hover:scale-110`}
+                  style={{
+                    transform: `translate(${x}px, ${y}px)`,
+                    animation: `expand ${0.4 + index * 0.1}s ease-out`,
+                  }}
+                >
+                  <div
+                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl bg-gradient-to-br from-${item.color}-700 to-${item.color}-900 text-white shadow-xl hover:shadow-2xl w-24 h-24`}
+                  >
+                    <item.icon size={32} />
+                    <span className="text-xs font-medium text-center">{item.label}</span>
+                  </div>
+                </Link>
+              );
+            })}
+
+            {/* Center Close Button */}
+            <button
+              onClick={toggleQuickMenu}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white shadow-xl hover:bg-white/20 transition"
+            >
+              <X size={32} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
