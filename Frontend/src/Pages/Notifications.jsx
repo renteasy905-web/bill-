@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import api from "../utils/api";
 import { AlertCircle, Package, ShoppingBag, CalendarDays, Download } from "lucide-react";
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable"; // ← Important! Import this way
+import autoTable from "jspdf-autotable";
 
 const Notifications = () => {
   const [stockAlerts, setStockAlerts] = useState([]);
@@ -10,7 +10,7 @@ const Notifications = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const today = new Date(); // Current date ~ Jan 2026
+  const today = new Date(); // January 11, 2026
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -18,14 +18,16 @@ const Notifications = () => {
         setLoading(true);
         setError(null);
 
-        // 1. Get products from correct endpoint
+        // 1. Fetch products from the correct endpoint
         const productsRes = await api.get("/api/fetch");
-        const allProducts = productsRes.data.products || []; // ← backend returns {success, products}
+        const allProducts = productsRes.data.products || [];
 
+        // Process low stock & near expiry alerts
         const alerts = allProducts
           .map((product) => {
             const expiryDate = new Date(product.expiryDate);
             const daysToExpiry = Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24));
+
             const isLowStock = product.quantity < 30;
             const isNearExpiry = daysToExpiry <= 90 && daysToExpiry >= 0;
 
@@ -33,45 +35,48 @@ const Notifications = () => {
 
             return {
               ...product,
-              type: "stock",
-              reason: isLowStock ? "low_quantity" : "near_expiry",
+              Name: product.itemName || "Unnamed Product",
+              Quantity: product.quantity,
+              Mrp: product.salePrice || product.purchasePrice || 0,
+              Expiry: product.expiryDate,
               daysToExpiry: isNearExpiry ? daysToExpiry : null,
               stockLeft: product.quantity,
-              Name: product.itemName, // map backend → frontend field
-              Mrp: product.salePrice, // assuming salePrice is used as MRP
-              Expiry: product.expiryDate,
-              Quantity: product.quantity,
+              reason: isLowStock ? "low_quantity" : "near_expiry",
             };
           })
           .filter(Boolean);
 
         setStockAlerts(alerts);
 
-        // 2. Customer refill reminders (~25–35 days ago)
-        // ATTENTION: You need to implement /api/sales or /api/allsales on backend!
-        // For now we simulate empty result — add real endpoint later
-        const salesRes = await api.get("/api/sales"); // ← CHANGE THIS when you add endpoint
-        const allSales = salesRes.data.sales || salesRes.data || [];
+        // 2. Customer refill reminders (25-35 days ago)
+        // Note: Your backend doesn't have sales endpoint yet → will be empty
+        let allSales = [];
+        try {
+          // Try /api/sales or /api/allsales - change when you implement it
+          const salesRes = await api.get("/api/sales");
+          allSales = salesRes.data.sales || salesRes.data || [];
+        } catch (salesErr) {
+          console.log("Sales endpoint not available yet:", salesErr.message);
+        }
 
         const reminders = allSales
           .flatMap((sale) => {
-            const saleDate = new Date(sale.date || sale.createdAt);
+            const saleDate = new Date(sale.date || sale.createdAt || new Date());
             const daysAgo = Math.floor((today - saleDate) / (1000 * 60 * 60 * 24));
 
             if (daysAgo < 25 || daysAgo > 35) return [];
 
             return (sale.items || []).map((item) => ({
-              saleId: sale._id,
-              date: sale.date || sale.createdAt,
+              saleId: sale._id || "unknown",
+              date: sale.date || sale.createdAt || new Date().toISOString(),
               daysAgo,
-              customer: sale.customer || { name: "Walk-in", phone: "—" },
+              customer: sale.customer || { name: "Walk-in Patient", phone: "—" },
               product: {
-                Name: item.product?.itemName || item.productName || "Unknown Medicine",
-                Mrp: item.product?.salePrice || 0,
+                Name: item.itemName || item.productName || "Unknown Medicine",
+                Mrp: item.salePrice || 0,
               },
-              quantity: item.quantity,
+              quantity: item.quantity || 1,
               price: item.price || item.salePrice || 0,
-              type: "reminder",
               reason: "purchase_reminder",
             }));
           });
@@ -79,7 +84,11 @@ const Notifications = () => {
         setPurchaseReminders(reminders);
       } catch (err) {
         console.error("Notifications fetch error:", err);
-        setError("Failed to load notifications. Check console & backend.");
+        setError(
+          err.response?.status === 404
+            ? "Backend endpoint not found. Using /api/fetch for products."
+            : "Failed to load notifications. Please check your connection."
+        );
       } finally {
         setLoading(false);
       }
@@ -88,9 +97,13 @@ const Notifications = () => {
     fetchNotifications();
   }, []);
 
-  // Generate PDF – Fixed import + usage
+  // PDF Invoice Generator for reminders
   const downloadReminderPDF = (reminder) => {
-    const doc = new jsPDF({ format: "a4", orientation: "portrait" });
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
 
     const purple = "#6b21a8";
     const lightPurple = "#e9d5ff";
@@ -102,7 +115,7 @@ const Notifications = () => {
     doc.setTextColor(255);
     doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
-    doc.text("TAX INVOICE", 105, 18, { align: "center" });
+    doc.text("Vishwas Medical", 105, 18, { align: "center" });
 
     doc.setTextColor(lightPurple);
     doc.setFontSize(24);
@@ -112,8 +125,8 @@ const Notifications = () => {
     doc.setTextColor(darkText);
     doc.setFontSize(11);
     doc.text("Vishwas Medical", 20, 55);
-    doc.text("Church Street, Bengaluru - 560001", 20, 62);
-    doc.text("Phone: +91-XXXXXXXXXX", 20, 69);
+    doc.text("Beside bus stand sindagi ", 20, 62);
+    doc.text("Phone: +91-63610 27924", 20, 69);
 
     // Patient Details
     doc.setFillColor(lightPurple);
@@ -125,7 +138,7 @@ const Notifications = () => {
     doc.text(`Name: ${reminder.customer?.name || "Walk-in Patient"}`, 15, 103);
     doc.text(`Phone: ${reminder.customer?.phone || "—"}`, 15, 110);
 
-    // Invoice Table (single item)
+    // Table - Single item
     autoTable(doc, {
       startY: 120,
       head: [["S.No", "Items", "HSN", "BATCH", "RATE", "MRP", "TAX", "Amount"]],
@@ -148,7 +161,7 @@ const Notifications = () => {
 
     const finalY = doc.lastAutoTable.finalY + 10;
 
-    // Total Amount
+    // Total
     doc.setFillColor(purple);
     doc.rect(130, finalY, 70, 10, "F");
     doc.setTextColor(255);
@@ -161,20 +174,17 @@ const Notifications = () => {
       { align: "right" }
     );
 
-    // Amount in words (simple placeholder – improve later if needed)
-    doc.setFontSize(10);
-    doc.text("Amount in words: Rupees One Hundred Only", 20, finalY + 25);
 
-    // Terms & Conditions
+    // Terms
     doc.text("Terms & Conditions:", 20, finalY + 45);
     doc.setFontSize(9);
-    doc.text("1. Goods once sold will not be taken back or exchanged.", 25, finalY + 52);
-    doc.text("2. All disputes subject to Bengaluru jurisdiction only.", 25, finalY + 59);
+    doc.text("Retur will be taken within 72hrs ", 25, finalY + 52);
+    doc.text("2. All disputes subject to  jurisdiction only.", 25, finalY + 59);
     doc.text("3. Medicines should be taken only on doctor's advice.", 25, finalY + 66);
 
-    // Seal & Signature
+    // Signature
     doc.setFontSize(11);
-    doc.text("Seal & Signature", 150, finalY + 85, { align: "right" });
+    doc.text("This is a computer-generated invoice with digital signature.", 150, finalY + 85, { align: "right" });
 
     doc.save(`Reminder_Invoice_${reminder.saleId?.slice(-8) || "unknown"}.pdf`);
   };
@@ -204,16 +214,18 @@ const Notifications = () => {
   if (loading) {
     return (
       <div className="pt-24 text-center text-slate-300 min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
-        Loading notifications... (Render may take 10-30s first time)
+        Loading notifications... (Render may take 10-40s first time)
       </div>
     );
   }
 
-  if (error) return (
-    <div className="pt-24 text-center text-red-400 min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
-      {error}
-    </div>
-  );
+  if (error) {
+    return (
+      <div className="pt-24 text-center text-red-400 min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <main className="pt-20 min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pb-16">
@@ -224,7 +236,7 @@ const Notifications = () => {
             Notifications
           </h1>
           <p className="text-slate-400 mt-3">
-            Low stock • Near expiry • Customer refill reminders (≈1 month ago)
+            Low stock • Near expiry • Customer refill reminders (~25-35 days ago)
           </p>
         </div>
 
@@ -235,7 +247,9 @@ const Notifications = () => {
             Stock & Expiry Alerts
           </h2>
           {stockAlerts.length === 0 ? (
-            <p className="text-slate-400 text-center py-8">No urgent stock or expiry issues right now.</p>
+            <p className="text-slate-400 text-center py-8">
+              No urgent stock or expiry issues right now.
+            </p>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {stockAlerts.map((item) => {
@@ -245,10 +259,14 @@ const Notifications = () => {
                     key={item._id}
                     className="relative bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-xl p-6 shadow-lg hover:border-slate-500 transition-all"
                   >
-                    <div className={`absolute -top-3 right-4 px-4 py-1.5 rounded-full text-xs font-medium border ${color}`}>
+                    <div
+                      className={`absolute -top-3 right-4 px-4 py-1.5 rounded-full text-xs font-medium border ${color}`}
+                    >
                       {text}
                     </div>
-                    <h3 className="text-lg font-semibold text-white mb-4 pr-28">{item.Name}</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4 pr-28">
+                      {item.Name}
+                    </h3>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-slate-400">Quantity:</span>
@@ -282,7 +300,7 @@ const Notifications = () => {
             <p className="text-slate-400 text-center py-8">
               No customer refill reminders for this period.
               <br />
-              (Backend needs /api/sales endpoint)
+              <small>(Waiting for /api/sales endpoint on backend)</small>
             </p>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -293,7 +311,9 @@ const Notifications = () => {
                     key={rem.saleId + (rem.product?.Name || "prod")}
                     className="relative bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-xl p-6 shadow-lg hover:border-slate-500 transition-all"
                   >
-                    <div className={`absolute -top-3 right-4 px-4 py-1.5 rounded-full text-xs font-medium border flex items-center gap-1.5 ${color}`}>
+                    <div
+                      className={`absolute -top-3 right-4 px-4 py-1.5 rounded-full text-xs font-medium border flex items-center gap-1.5 ${color}`}
+                    >
                       <CalendarDays size={14} />
                       {text}
                     </div>
@@ -303,7 +323,9 @@ const Notifications = () => {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-slate-400">Phone:</span>
-                        <span className="text-white font-medium">{rem.customer?.phone || "—"}</span>
+                        <span className="text-white font-medium">
+                          {rem.customer?.phone || "—"}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">Product:</span>
