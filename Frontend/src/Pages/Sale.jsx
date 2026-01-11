@@ -1,6 +1,7 @@
+// src/Pages/Sales.jsx
 import React, { useEffect, useState } from "react";
 import api from "../utils/api";
-import { Search, Plus, Minus, Trash2, Loader2 } from "lucide-react";
+import { Search, Plus, Minus, Trash2, Loader2, ShoppingCart } from "lucide-react";
 
 const Sales = () => {
   const [customers, setCustomers] = useState([]);
@@ -9,36 +10,39 @@ const Sales = () => {
   const [cart, setCart] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [productsLoading, setProductsLoading] = useState(true);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingCustomers, setLoadingCustomers] = useState(true);
+  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
+  // Fetch products and customers
   useEffect(() => {
-    fetchProducts();
-    fetchCustomers();
+    const fetchData = async () => {
+      try {
+        setError(null);
+
+        // Fetch products (use /api/fetch for sorted list)
+        setLoadingProducts(true);
+        const productsRes = await api.get("/api/fetch");
+        const allProducts = productsRes.data.products || productsRes.data.data || [];
+        setProducts(allProducts);
+        setFilteredProducts(allProducts);
+
+        // Fetch customers
+        setLoadingCustomers(true);
+        const customersRes = await api.get("/api/getcustomers");
+        setCustomers(customersRes.data.customers || customersRes.data || []);
+      } catch (err) {
+        console.error("Fetch error:", err);
+        setError("Failed to load data. Please check your connection or backend.");
+      } finally {
+        setLoadingProducts(false);
+        setLoadingCustomers(false);
+      }
+    };
+
+    fetchData();
   }, []);
-
-  const fetchProducts = async () => {
-    try {
-      setProductsLoading(true);
-      const res = await api.get("/fetch");
-      const allProducts = res.data.t || [];
-      setProducts(allProducts);
-      setFilteredProducts(allProducts);
-    } catch (err) {
-      console.error("Error fetching products:", err);
-    } finally {
-      setProductsLoading(false);
-    }
-  };
-
-  const fetchCustomers = async () => {
-    try {
-      const res = await api.get("/getcustomers");
-      setCustomers(res.data.customers || []);
-    } catch (err) {
-      console.error("Error fetching customers:", err);
-    }
-  };
 
   // Real-time product search
   useEffect(() => {
@@ -49,7 +53,7 @@ const Sales = () => {
 
     const term = searchTerm.toLowerCase().trim();
     const filtered = products.filter((p) =>
-      p.Name.toLowerCase().includes(term)
+      (p.itemName || "").toLowerCase().includes(term)
     );
     setFilteredProducts(filtered);
   }, [searchTerm, products]);
@@ -60,12 +64,15 @@ const Sales = () => {
       const exists = prev.find((p) => p.product === product._id);
       if (exists) {
         return prev.map((p) =>
-          p.product === product._id
-            ? { ...p, quantity: p.quantity + 1 }
-            : p
+          p.product === product._id ? { ...p, quantity: p.quantity + 1 } : p
         );
       }
-      return [...prev, { product: product._id, name: product.Name, price: product.Mrp, quantity: 1 }];
+      return [...prev, {
+        product: product._id,
+        name: product.itemName,
+        price: product.salePrice,
+        quantity: 1,
+      }];
     });
   };
 
@@ -73,9 +80,7 @@ const Sales = () => {
   const updateQuantity = (id, qty) => {
     if (qty < 1) return;
     setCart((prev) =>
-      prev.map((p) =>
-        p.product === id ? { ...p, quantity: qty } : p
-      )
+      prev.map((p) => (p.product === id ? { ...p, quantity: qty } : p))
     );
   };
 
@@ -84,7 +89,7 @@ const Sales = () => {
     setCart((prev) => prev.filter((p) => p.product !== id));
   };
 
-  // Clear entire cart
+  // Clear cart
   const clearCart = () => {
     if (window.confirm("Clear all items from cart?")) {
       setCart([]);
@@ -92,7 +97,7 @@ const Sales = () => {
   };
 
   // Calculate total
-  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
   // Submit sale
   const submitSale = async () => {
@@ -102,10 +107,14 @@ const Sales = () => {
     }
 
     try {
-      setLoading(true);
-      await api.post("/sale", {
+      setSubmitting(true);
+      await api.post("/api/sale", {
         customer: selectedCustomer,
-        items: cart.map((c) => ({ product: c.product, quantity: c.quantity, price: c.price })),
+        items: cart.map((c) => ({
+          product: c.product,
+          quantity: c.quantity,
+          price: c.price,
+        })),
         paymentMode: "Cash",
       });
 
@@ -116,7 +125,7 @@ const Sales = () => {
       console.error("Sale error:", err);
       alert("Failed to create sale: " + (err.response?.data?.message || "Unknown error"));
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -125,31 +134,40 @@ const Sales = () => {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">Vishwas Medical Billing</h1>
-          <p className="text-gray-600">Quick & Easy Sale Billing</p>
+          <h1 className="text-4xl font-bold text-gray-800 mb-2 flex items-center justify-center gap-3">
+            <ShoppingCart className="text-indigo-600" size={36} />
+            Vishwas Medical Billing
+          </h1>
+          <p className="text-gray-600">Quick & Easy Sale Generation</p>
         </div>
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-100 border border-red-300 text-red-700 rounded-lg text-center">
+            {error}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Side - Products & Search */}
           <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
               <h2 className="text-2xl font-bold text-gray-800">Available Medicines</h2>
-              <div className="relative w-64">
+              <div className="relative w-full sm:w-80">
                 <input
                   type="text"
                   placeholder="Search medicine name..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700 placeholder-gray-500 transition"
                 />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
               </div>
             </div>
 
-            {productsLoading ? (
+            {loadingProducts ? (
               <div className="text-center py-10">
                 <Loader2 className="animate-spin mx-auto text-indigo-500" size={40} />
-                <p className="mt-2 text-gray-500">Loading products...</p>
+                <p className="mt-2 text-gray-500">Loading medicines...</p>
               </div>
             ) : filteredProducts.length === 0 ? (
               <p className="text-center text-gray-500 py-10">No medicines found</p>
@@ -161,9 +179,9 @@ const Sales = () => {
                     className="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all cursor-pointer"
                     onClick={() => addToCart(p)}
                   >
-                    <h3 className="font-semibold text-gray-800 mb-1">{p.Name}</h3>
-                    <p className="text-sm text-gray-600 mb-2">₹{p.Mrp}</p>
-                    <p className="text-xs text-gray-500">Stock: {p.Quantity}</p>
+                    <h3 className="font-semibold text-gray-800 mb-1">{p.itemName}</h3>
+                    <p className="text-sm text-gray-600 mb-2">₹{p.salePrice}</p>
+                    <p className="text-xs text-gray-500">Stock: {p.quantity}</p>
                     <div className="mt-2 flex justify-end">
                       <button className="bg-indigo-500 text-white px-4 py-1 rounded-lg text-sm hover:bg-indigo-600 transition">
                         Add to Bill
@@ -180,18 +198,24 @@ const Sales = () => {
             {/* Customer Select */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">Select Customer / Patient</label>
-              <select
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-                value={selectedCustomer}
-                onChange={(e) => setSelectedCustomer(e.target.value)}
-              >
-                <option value="">-- Select Customer --</option>
-                {customers.map((c) => (
-                  <option key={c._id} value={c._id}>
-                    {c.name} {c.phone ? `(${c.phone})` : ""}
-                  </option>
-                ))}
-              </select>
+              {loadingCustomers ? (
+                <div className="text-center py-4">
+                  <Loader2 className="animate-spin mx-auto text-indigo-500" size={24} />
+                </div>
+              ) : (
+                <select
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-gray-800"
+                  value={selectedCustomer}
+                  onChange={(e) => setSelectedCustomer(e.target.value)}
+                >
+                  <option value="">-- Select Customer --</option>
+                  {customers.map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {c.name} {c.phone ? `(${c.phone})` : ""}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* Cart */}
@@ -223,7 +247,6 @@ const Sales = () => {
                         <p className="font-medium text-gray-800">{item.name}</p>
                         <p className="text-sm text-gray-600">₹{item.price} × {item.quantity}</p>
                       </div>
-
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
                           <button
@@ -263,14 +286,14 @@ const Sales = () => {
 
               <button
                 onClick={submitSale}
-                disabled={loading || !selectedCustomer || cart.length === 0}
+                disabled={submitting || !selectedCustomer || cart.length === 0}
                 className={`w-full py-4 rounded-xl text-white font-bold text-lg transition-all ${
-                  loading || !selectedCustomer || cart.length === 0
+                  submitting || !selectedCustomer || cart.length === 0
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-indigo-600 hover:bg-indigo-700 shadow-lg"
                 }`}
               >
-                {loading ? (
+                {submitting ? (
                   <span className="flex items-center justify-center">
                     <Loader2 className="animate-spin mr-2" size={20} />
                     Processing...
