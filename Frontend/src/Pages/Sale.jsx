@@ -14,14 +14,14 @@ const Sales = () => {
   const [productSearchTerm, setProductSearchTerm] = useState("");
 
   const [cart, setCart] = useState([]);
-  const [isRegular, setIsRegular] = useState(false); // New: Regular sale (no customer)
+  const [isRegular, setIsRegular] = useState(false); // Toggle for regular/walk-in sale
 
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Fetch data
+  // Fetch products and customers
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -29,18 +29,17 @@ const Sales = () => {
 
         // Products
         setLoadingProducts(true);
-        const productsRes = await api.get("/api/fetch");
+        const productsRes = await api.get("/api/fetch"); // sorted by name
         const allProducts = productsRes.data.products || productsRes.data.data || [];
         setProducts(allProducts);
         setFilteredProducts(allProducts);
 
-        // Customers (only load if not regular)
-        if (!isRegular) {
-          setLoadingCustomers(true);
-          const customersRes = await api.get("/api/getcustomers");
-          setCustomers(customersRes.data.customers || customersRes.data || []);
-          setFilteredCustomers(customersRes.data.customers || customersRes.data || []);
-        }
+        // Customers
+        setLoadingCustomers(true);
+        const customersRes = await api.get("/api/getcustomers");
+        const allCustomers = customersRes.data.customers || customersRes.data || [];
+        setCustomers(allCustomers);
+        setFilteredCustomers(allCustomers);
       } catch (err) {
         console.error("Fetch error:", err);
         setError("Failed to load data. Please try again.");
@@ -51,7 +50,7 @@ const Sales = () => {
     };
 
     fetchData();
-  }, [isRegular]); // Re-fetch customers when regular mode changes
+  }, []);
 
   // Product search
   useEffect(() => {
@@ -66,7 +65,7 @@ const Sales = () => {
     setFilteredProducts(filtered);
   }, [productSearchTerm, products]);
 
-  // Customer search (only when not regular)
+  // Customer search
   useEffect(() => {
     if (isRegular || !customerSearchTerm.trim()) {
       setFilteredCustomers(customers);
@@ -81,6 +80,7 @@ const Sales = () => {
     setFilteredCustomers(filtered);
   }, [customerSearchTerm, customers, isRegular]);
 
+  // Add product to cart
   const addToCart = (product) => {
     setCart((prev) => {
       const exists = prev.find((p) => p.product === product._id);
@@ -98,6 +98,7 @@ const Sales = () => {
     });
   };
 
+  // Update quantity
   const updateQuantity = (id, qty) => {
     if (qty < 1) return;
     setCart((prev) =>
@@ -105,16 +106,20 @@ const Sales = () => {
     );
   };
 
+  // Remove from cart
   const removeFromCart = (id) => {
     setCart((prev) => prev.filter((p) => p.product !== id));
   };
 
+  // Clear cart
   const clearCart = () => {
     if (window.confirm("Clear cart?")) setCart([]);
   };
 
+  // Total amount
   const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
+  // Submit sale
   const submitSale = async () => {
     if (cart.length === 0) {
       alert("Add at least one product");
@@ -128,16 +133,18 @@ const Sales = () => {
 
     try {
       setSubmitting(true);
+
       const payload = {
         items: cart.map((c) => ({
           product: c.product,
           quantity: c.quantity,
           price: c.price,
         })),
+        totalAmount: total, // Required by backend
         paymentMode: "Cash",
       };
 
-      // Only add customer if not regular
+      // Only include customer if not regular
       if (!isRegular) {
         payload.customer = selectedCustomer._id;
       }
@@ -241,7 +248,7 @@ const Sales = () => {
                       : "bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200"
                   }`}
                 >
-                  {isRegular ? "Regular (No Details)" : "Require Patient"}
+                  {isRegular ? "Regular Sale" : "Select Patient"}
                 </button>
               </div>
 
@@ -265,7 +272,7 @@ const Sales = () => {
                       </div>
                     ) : filteredCustomers.length === 0 ? (
                       <p className="text-center text-gray-500 py-4">
-                        {customerSearchTerm ? "No matching customers" : "No customers yet"}
+                        {customerSearchTerm ? "No matching customers" : "Start typing to search"}
                       </p>
                     ) : (
                       filteredCustomers.map((c) => (
@@ -303,7 +310,7 @@ const Sales = () => {
               )}
             </div>
 
-            {/* Cart Section */}
+            {/* Cart */}
             <div className="flex-1">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-gray-800">Current Bill</h2>
