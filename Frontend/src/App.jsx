@@ -1,42 +1,68 @@
+// src/App.jsx
 import React from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
-import Cart from './Pages/Cart';
-import CreateCustomer from './Pages/CreateCustomer';
-import Sales from './Pages/Sale';
-import CreateProducts from './Pages/CreateProducts';
-import Allrproducts from './Pages/Allproducts';
-import ListofSales from './Pages/ListofSales';
-import First from './Pages/First';
-import EditSale from './Pages/Editsales';
+// Import all your page components
+import First from './Pages/First';                    // Dashboard / Home
+import CreateProducts from './Pages/CreateProducts';  // Add new product
+import Cart from './Pages/Cart';                      // Billing cart
+import CreateCustomer from './Pages/CreateCustomer';  // New customer form
+import Sales from './Pages/Sale';                     // New sale / billing
+import Allrproducts from './Pages/Allproducts';       // All products list
+import ListofSales from './Pages/ListofSales';        // All sales report
+import EditSale from './Pages/Editsales';             // Edit existing sale
+import Notifications from './Pages/Notifications';    // Notifications page
 
-// ADD THIS IMPORT FOR NOTIFICATIONS
-import Notifications from './Pages/Notifications';  // Make sure the path matches your file location
-
+// Main App component with routing
 const App = () => {
   return (
-    <div>
-      <Routes>
-        <Route path='/' element={<First />} />
-        <Route path='/createProducts' element={<CreateProducts />} />
-        <Route path='/cart' element={<Cart />} />
-        <Route path='/createCustomer' element={<CreateCustomer />} />
-        <Route path='/sales' element={<Sales />} />
-        <Route path='/allproducts' element={<Allrproducts />} />
-        <Route path='/allsales' element={<ListofSales />} />
-        <Route path='/editsales/:id' element={<EditSale />} />
+    <Router>
+      <div className="min-h-screen bg-slate-950 text-white">
+        {/* All routes go here */}
+        <Routes>
+          {/* Home / Dashboard */}
+          <Route path="/" element={<First />} />
 
-        {/* ADD THIS NEW ROUTE */}
-        <Route path='/notifications' element={<Notifications />} />
+          {/* Product Management */}
+          <Route path="/createProducts" element={<CreateProducts />} />
+          <Route path="/allproducts" element={<Allrproducts />} />
 
-        {/* Optional: Catch-all for unknown paths */}
-        <Route path="*" element={
-          <div className="pt-20 text-center text-white text-3xl p-8">
-            404 - Page Not Found
-          </div>
-        } />
-      </Routes>
-    </div>
+          {/* Customer Management */}
+          <Route path="/createCustomer" element={<CreateCustomer />} />
+
+          {/* Billing & Sales */}
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/sales" element={<Sales />} />
+          <Route path="/allsales" element={<ListofSales />} />
+          <Route path="/editsales/:id" element={<EditSale />} />
+
+          {/* Notifications */}
+          <Route path="/notifications" element={<Notifications />} />
+
+          {/* 404 - Page Not Found (catch-all for invalid URLs) */}
+          <Route
+            path="*"
+            element={
+              <div className="min-h-screen flex items-center justify-center text-center px-6">
+                <div>
+                  <h1 className="text-6xl md:text-9xl font-extrabold text-indigo-500 mb-6">404</h1>
+                  <h2 className="text-3xl md:text-5xl font-bold mb-4">Page Not Found</h2>
+                  <p className="text-xl text-slate-400 mb-8">
+                    The page you're looking for doesn't exist or has been moved.
+                  </p>
+                  <a
+                    href="/"
+                    className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-10 rounded-xl text-lg transition transform hover:scale-105 shadow-lg"
+                  >
+                    Return to Dashboard
+                  </a>
+                </div>
+              </div>
+            }
+          />
+        </Routes>
+      </div>
+    </Router>
   );
 };
 
