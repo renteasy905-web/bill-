@@ -3,6 +3,8 @@ import api from "../utils/api";
 
 const ProductEdit = () => {
   const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [editId, setEditId] = useState(null);
   const [editedProduct, setEditedProduct] = useState({});
   const [loading, setLoading] = useState(true);
@@ -17,7 +19,9 @@ const ProductEdit = () => {
     setError(null);
     try {
       const res = await api.get("/api/fetch");
-      setProducts(res.data.products || []);
+      const data = res.data.products || [];
+      setProducts(data);
+      setFilteredProducts(data);
     } catch (err) {
       console.error("Fetch error:", err);
       setError("Failed to load products. Please try again.");
@@ -25,6 +29,19 @@ const ProductEdit = () => {
       setLoading(false);
     }
   };
+
+  // Real-time search filter
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredProducts(products);
+      return;
+    }
+    const term = searchTerm.toLowerCase();
+    const filtered = products.filter((p) =>
+      p.itemName?.toLowerCase().includes(term)
+    );
+    setFilteredProducts(filtered);
+  }, [searchTerm, products]);
 
   const startEdit = (product) => {
     setEditId(product._id);
@@ -40,16 +57,18 @@ const ProductEdit = () => {
     if (!editId) return;
     try {
       const updateData = {
-        itemName: editedProduct.itemName,
-        salePrice: Number(editedProduct.salePrice),
-        purchasePrice: Number(editedProduct.purchasePrice),
-        quantity: Number(editedProduct.quantity),
-        // Add expiryDate, description if you want to edit them
+        itemName: editedProduct.itemName || "",
+        salePrice: Number(editedProduct.salePrice) || 0,
+        purchasePrice: Number(editedProduct.purchasePrice) || 0,
+        quantity: Number(editedProduct.quantity) || 0,
       };
 
-      await api.put(`/api/fetch/${editId}`, updateData); // Change route if backend uses different
+      await api.put(`/api/fetch/${editId}`, updateData);
 
       setProducts((prev) =>
+        prev.map((p) => (p._id === editId ? { ...p, ...updateData } : p))
+      );
+      setFilteredProducts((prev) =>
         prev.map((p) => (p._id === editId ? { ...p, ...updateData } : p))
       );
 
@@ -57,7 +76,7 @@ const ProductEdit = () => {
       setEditedProduct({});
     } catch (err) {
       console.error("Save error:", err);
-      alert("Failed to save changes. Check console.");
+      alert("Failed to save changes.");
     }
   };
 
@@ -68,11 +87,16 @@ const ProductEdit = () => {
     }));
   };
 
+  const profitPerUnit = (sale, purchase) => {
+    const profit = (Number(sale) || 0) - (Number(purchase) || 0);
+    return profit;
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-cream-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-teal-600 mx-auto mb-4"></div>
           <p className="text-gray-600 font-medium">Loading products...</p>
         </div>
       </div>
@@ -81,57 +105,83 @@ const ProductEdit = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-        <p className="text-red-600 font-medium text-lg bg-white p-6 rounded-2xl shadow-lg">{error}</p>
+      <div className="min-h-screen bg-cream-50 flex items-center justify-center">
+        <p className="text-red-600 font-medium text-lg bg-white p-8 rounded-2xl shadow-md">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-24">
+    <div className="min-h-screen bg-cream-50 pb-20">
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-10 backdrop-blur-md bg-opacity-90">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <button className="text-2xl text-gray-700 hover:text-gray-900 transition">←</button>
-          <h1 className="text-xl font-bold text-gray-900">PRODUCT EDIT KAREIN</h1>
+      <header className="bg-white shadow-sm sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+          <button className="text-2xl text-gray-700 hover:text-teal-700 transition">←</button>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-800">PRODUCT EDIT KAREIN</h1>
           <div className="w-8"></div>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-8">
-        {products.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-2xl shadow-md">
-            <p className="text-gray-500 text-lg">No products found</p>
+      {/* Search Bar */}
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search by product name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-5 py-4 pl-12 rounded-2xl border border-gray-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none bg-white shadow-sm text-lg"
+          />
+          <svg
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 h-6 w-6 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+        </div>
+      </div>
+
+      <main className="max-w-6xl mx-auto px-4">
+        {filteredProducts.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-2xl shadow-md">
+            <p className="text-gray-500 text-xl">No products found matching "{searchTerm}"</p>
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {products.map((product) => {
+            {filteredProducts.map((product) => {
               const isEditing = editId === product._id;
               const lowStock = product.quantity <= 10;
-              const stockValue = (product.salePrice * product.quantity).toFixed(0);
+              const profit = profitPerUnit(product.salePrice, product.purchasePrice);
 
               return (
                 <div
                   key={product._id}
-                  className={`bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl border ${
-                    isEditing ? "border-blue-500 ring-2 ring-blue-200" : "border-gray-200"
+                  className={`bg-white rounded-2xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg border ${
+                    isEditing ? "border-teal-500 ring-2 ring-teal-100" : "border-cream-200"
                   }`}
                 >
-                  {/* Product Header */}
-                  <div className="p-5 bg-gradient-to-r from-gray-50 to-white border-b">
+                  {/* Header */}
+                  <div className="p-5 bg-cream-100 border-b">
                     {isEditing ? (
                       <input
                         type="text"
                         value={editedProduct.itemName || ""}
                         onChange={(e) => handleChange("itemName", e.target.value)}
-                        className="w-full px-4 py-3 text-xl font-bold bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 text-xl font-bold bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
                         placeholder="Product Name"
                       />
                     ) : (
-                      <div className="flex items-start justify-between">
-                        <h2 className="text-xl font-bold text-gray-900">{product.itemName || "Unnamed Product"}</h2>
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-xl font-bold text-gray-800">{product.itemName || "Unnamed Product"}</h2>
                         {lowStock && (
-                          <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+                          <span className="bg-red-100 text-red-700 text-xs font-bold px-3 py-1 rounded-full">
                             Low Stock ({product.quantity})
                           </span>
                         )}
@@ -139,92 +189,98 @@ const ProductEdit = () => {
                     )}
                   </div>
 
-                  {/* Main Content */}
+                  {/* Content */}
                   <div className="p-6 space-y-6">
                     <div className="grid grid-cols-2 gap-6">
                       {/* Sale Price */}
                       <div className="text-center">
-                        <p className="text-sm text-gray-500 mb-1">Sale Price</p>
+                        <p className="text-sm text-gray-600 mb-1">Sale Price</p>
                         {isEditing ? (
                           <input
                             type="number"
-                            value={editedProduct.salePrice || ""}
+                            value={editedProduct.salePrice ?? ""}
                             onChange={(e) => handleChange("salePrice", e.target.value)}
-                            className="w-full px-4 py-3 text-2xl font-bold text-green-600 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+                            className="w-full px-4 py-3 text-2xl font-bold text-teal-700 bg-cream-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400"
                           />
                         ) : (
-                          <p className="text-3xl font-bold text-green-600">₹{product.salePrice || "—"}</p>
+                          <p className="text-3xl font-bold text-teal-700">
+                            ₹{product.salePrice ?? "0"}
+                          </p>
                         )}
                       </div>
 
                       {/* Quantity */}
                       <div className="text-center">
-                        <p className="text-sm text-gray-500 mb-1">Stock</p>
+                        <p className="text-sm text-gray-600 mb-1">Stock</p>
                         {isEditing ? (
                           <input
                             type="number"
-                            value={editedProduct.quantity || ""}
+                            value={editedProduct.quantity ?? ""}
                             onChange={(e) => handleChange("quantity", e.target.value)}
-                            className="w-full px-4 py-3 text-2xl font-bold text-blue-600 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-4 py-3 text-2xl font-bold text-indigo-700 bg-cream-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400"
                           />
                         ) : (
-                          <p className="text-3xl font-bold text-blue-600">{product.quantity || 0}</p>
+                          <p className="text-3xl font-bold text-indigo-700">
+                            {product.quantity ?? 0}
+                          </p>
                         )}
                       </div>
                     </div>
 
-                    {/* Purchase Price & Stock Value */}
-                    <div className="grid grid-cols-2 gap-6 text-sm">
+                    {/* Purchase & Profit */}
+                    <div className="grid grid-cols-2 gap-6 text-base">
                       <div>
-                        <p className="text-gray-500">Purchase Price</p>
+                        <p className="text-gray-600">Purchase Price</p>
                         {isEditing ? (
                           <input
                             type="number"
-                            value={editedProduct.purchasePrice || ""}
+                            value={editedProduct.purchasePrice ?? ""}
                             onChange={(e) => handleChange("purchasePrice", e.target.value)}
-                            className="mt-1 w-full px-3 py-2 text-lg font-medium border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="mt-1 w-full px-3 py-2 text-lg font-medium border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400"
                           />
                         ) : (
-                          <p className="font-medium text-gray-900">₹{product.purchasePrice || "—"}</p>
+                          <p className="font-medium text-gray-800">
+                            ₹{product.purchasePrice ?? "0"}
+                          </p>
                         )}
                       </div>
+
                       <div>
-                        <p className="text-gray-500">Stock Value</p>
-                        <p className="font-medium text-gray-900">₹{stockValue}</p>
+                        <p className="text-gray-600">Profit per unit</p>
+                        <p
+                          className={`font-bold ${
+                            profit > 0 ? "text-green-600" : profit < 0 ? "text-red-600" : "text-gray-600"
+                          }`}
+                        >
+                          You get ₹{profit}
+                        </p>
                       </div>
                     </div>
-
-                    {/* Description / Expiry (optional) */}
-                    {product.description && (
-                      <p className="text-sm text-gray-600 italic border-l-4 border-gray-300 pl-3">
-                        {product.description}
-                      </p>
-                    )}
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="p-5 bg-gray-50 border-t flex justify-end gap-3">
+                  {/* Buttons */}
+                  <div className="p-5 bg-cream-100 border-t flex justify-end gap-3">
                     {isEditing ? (
                       <>
                         <button
                           onClick={cancelEdit}
-                          className="px-6 py-2.5 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition"
+                          className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
                         >
                           Cancel
                         </button>
                         <button
                           onClick={saveEdit}
-                          className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 transition shadow-md"
+                          className="px-6 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition shadow-sm"
                         >
-                          Save Changes
+                          Save
                         </button>
                       </>
                     ) : (
                       <button
                         onClick={() => startEdit(product)}
-                        className="px-8 py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition shadow-md flex items-center gap-2"
+                        className="px-8 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-md"
                       >
-                        <span>✏️ Edit</span>
+                        ✏️ Edit
                       </button>
                     )}
                   </div>
