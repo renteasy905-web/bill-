@@ -1,66 +1,69 @@
-// src/utils/api.js
-// This file creates a centralized axios instance for all API calls
+// src/App.jsx
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
-import axios from "axios";
+// Import all your page components
+import First from './Pages/First';                    // Dashboard / Home
+import CreateProducts from './Pages/CreateProducts';  // Add new product
+import Cart from './Pages/Cart';                      // Billing cart
+import CreateCustomer from './Pages/CreateCustomer';  // New customer form
+import Sales from './Pages/Sale';                     // New sale / billing
+import Allrproducts from './Pages/Allproducts';       // All products list
+import ListofSales from './Pages/ListofSales';        // All sales report
+import EditSale from './Pages/Editsales';             // Edit existing sale
+import Notifications from './Pages/Notifications';    // Notifications page
 
-const api = axios.create({
-  // IMPORTANT: Base URL should be the root domain ONLY – do NOT add /api here!
-  baseURL: "https://bill-inventory-backend.onrender.com",
-  
-  // For local development – uncomment when testing locally
-  // baseURL: "http://localhost:3000",
-  
-  timeout: 60000, // 60 seconds – gives enough time for slow Render cold starts
-  
-  headers: {
-    "Content-Type": "application/json",
-    // You can add common headers here if needed
-    // "Accept": "application/json",
-  },
-});
+// Main App component with routing
+const App = () => {
+  return (
+    <Router>
+      <div className="min-h-screen bg-slate-950 text-white">
+        {/* All routes go here */}
+        <Routes>
+          {/* Home / Dashboard */}
+          <Route path="/" element={<First />} />
 
-// Request Interceptor – automatically adds Authorization header if token exists
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token"); // or sessionStorage, cookies, etc.
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    // Handle request errors (rare)
-    return Promise.reject(error);
-  }
-);
+          {/* Product Management */}
+          <Route path="/createProducts" element={<CreateProducts />} />
+          <Route path="/allproducts" element={<Allrproducts />} />
 
-// Response Interceptor – global error handling
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    // Handle common errors globally (e.g., 401 → logout, 404 → custom message)
-    if (error.response) {
-      const status = error.response.status;
+          {/* Customer Management */}
+          <Route path="/createCustomer" element={<CreateCustomer />} />
 
-      if (status === 401) {
-        console.warn("Unauthorized – token expired or invalid");
-        // Optional: logout logic
-        // localStorage.removeItem("token");
-        // window.location.href = "/login";
-      } else if (status === 404) {
-        console.warn("Resource not found:", error.config.url);
-      } else if (status >= 500) {
-        console.error("Server error:", error.response.data);
-      }
-    } else if (error.request) {
-      console.error("No response received – network issue or server down");
-    } else {
-      console.error("Request setup error:", error.message);
-    }
+          {/* Billing & Sales */}
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/sales" element={<Sales />} />
+          <Route path="/allsales" element={<ListofSales />} />
+          <Route path="/editsales/:id" element={<EditSale />} />
 
-    // Always reject so component can handle specific errors
-    return Promise.reject(error);
-  }
-);
+          {/* Notifications */}
+          <Route path="/notifications" element={<Notifications />} />
 
-export default api;
+          {/* 404 - Page Not Found (catch-all for invalid URLs) */}
+          <Route
+            path="*"
+            element={
+              <div className="min-h-screen flex items-center justify-center text-center px-6">
+                <div>
+                  <h1 className="text-6xl md:text-9xl font-extrabold text-indigo-500 mb-6">404</h1>
+                  <h2 className="text-3xl md:text-5xl font-bold mb-4">Page Not Found</h2>
+                  <p className="text-xl text-slate-400 mb-8">
+                    The page you're looking for doesn't exist or has been moved.
+                  </p>
+                  <a
+                    href="/"
+                    className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-10 rounded-xl text-lg transition transform hover:scale-105 shadow-lg"
+                  >
+                    Return to Dashboard
+                  </a>
+                </div>
+              </div>
+            }
+          />
+        </Routes>
+      </div>
+    </Router>
+  );
+};
+
+export default App;
