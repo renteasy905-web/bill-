@@ -1,8 +1,7 @@
 // src/Pages/ListofSales.jsx
 import React, { useEffect, useState } from "react";
-
 import api from "../utils/api";
-import { Receipt, Loader2, Trash2, Edit, Download, MessageCircle, X, Plus, Minus, Search } from "lucide-react";
+import { Receipt, Loader2, Trash2, Edit, Download, MessageCircle, X, Plus, Minus, Search, CheckCircle, AlertCircle } from "lucide-react";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 
@@ -11,34 +10,17 @@ const ListofSales = () => {
   const [filteredSales, setFilteredSales] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   const [error, setError] = useState(null);
   const [editingSale, setEditingSale] = useState(null);
   const [editedItems, setEditedItems] = useState([]);
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
-  // Pharmacy details (customize as needed)
+  // Pharmacy details
   const pharmacy = {
     name: "Vishwas Medical",
     address: "Church Street, Bengaluru - 560001",
-    phone: "+91-80-XXXXXXX",
-    gstin: "29ABCDE1234F1Z5", // optional
+    phone: "+91-XXXXXXXXXX",
+    gstin: "29ABCDE1234F1Z5",
   };
 
   // Fetch all sales
@@ -47,74 +29,72 @@ const ListofSales = () => {
       try {
         setLoading(true);
         setError(null);
-        const res = await api.get("/api/allsales"); // ← Correct path with /api/
+        const res = await api.get("/api/allsales");
         const salesData = res.data.sales || res.data.data || res.data || [];
         setSales(salesData);
         setFilteredSales(salesData);
-
-
-
-
-
-
-
-
       } catch (err) {
         console.error("Fetch error:", err);
-        setError("Failed to load sales records. Please try again.");
+        setError("Failed to load sales records.");
       } finally {
         setLoading(false);
       }
     };
-
     fetchAllSales();
   }, []);
 
-  // Real-time search by patient name or phone
+  // Real-time search
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredSales(sales);
       return;
-
-
     }
-
-    const term = searchTerm.toLowerCase().trim().replace(/[\s-]/g, "");
+    const term = searchTerm.toLowerCase().trim();
     const filtered = sales.filter((sale) => {
-      const name = (sale.customer?.name || "").toLowerCase();
-      const phone = (sale.customer?.phone || "").replace(/[\s-]/g, "").toLowerCase();
+      const name = (sale.customer?.name || "Walk-in").toLowerCase();
+      const phone = (sale.customer?.phone || "").toLowerCase();
       return name.includes(term) || phone.includes(term);
     });
-
     setFilteredSales(filtered);
   }, [searchTerm, sales]);
 
+  // Toast auto-hide
+  useEffect(() => {
+    if (toast.show) {
+      const timer = setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast.show]);
+
+  // Show toast
+  const showToast = (msg, type = "success") => {
+    setToast({ show: true, message: msg, type });
+  };
+
   // Delete sale
   const handleDelete = async (saleId) => {
-    if (!window.confirm("Are you sure you want to delete this sale? This cannot be undone.")) return;
-
+    if (!window.confirm("Delete this sale? This cannot be undone.")) return;
     try {
       await api.delete(`/api/sales/${saleId}`);
       const updated = sales.filter((s) => s._id !== saleId);
       setSales(updated);
       setFilteredSales(updated);
-      alert("Sale deleted successfully");
+      showToast("Sale deleted successfully", "success");
     } catch (err) {
-      console.error("Delete error:", err);
-      alert("Failed to delete sale");
+      console.error(err);
+      showToast("Failed to delete sale", "error");
     }
   };
 
   // Start editing
   const startEdit = (sale) => {
     setEditingSale(sale);
-    setEditedItems([...sale.items]);
+    setEditedItems(sale.items.map(item => ({ ...item }))); // Deep copy
   };
 
   // Save edited sale
   const saveEdit = async () => {
     if (!editingSale) return;
-
     try {
       const updatedTotal = editedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       await api.put(`/api/sales/${editingSale._id}`, {
@@ -122,21 +102,20 @@ const ListofSales = () => {
         totalAmount: updatedTotal,
       });
 
-      // Refresh list
       const updatedSales = sales.map((s) =>
         s._id === editingSale._id ? { ...s, items: editedItems, totalAmount: updatedTotal } : s
       );
       setSales(updatedSales);
       setFilteredSales(updatedSales);
       setEditingSale(null);
-      alert("Sale updated successfully");
+      showToast("Sale updated successfully", "success");
     } catch (err) {
-      console.error("Update error:", err);
-      alert("Failed to update sale");
+      console.error(err);
+      showToast("Failed to update sale", "error");
     }
   };
 
-  // PDF Invoice Generation
+  // PDF Generation
   const generateInvoicePDF = (sale) => {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const purple = "#6b21a8";
@@ -150,12 +129,11 @@ const ListofSales = () => {
     doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
     doc.text("TAX INVOICE", 105, 18, { align: "center" });
-
     doc.setTextColor(lightPurple);
     doc.setFontSize(24);
     doc.text("MEDICAL INVOICE", 105, 38, { align: "center" });
 
-    // Pharmacy Info
+    // Pharmacy details
     doc.setTextColor(darkText);
     doc.setFontSize(11);
     doc.text(pharmacy.name, 20, 55);
@@ -163,7 +141,7 @@ const ListofSales = () => {
     doc.text(`Phone: ${pharmacy.phone}`, 20, 69);
     if (pharmacy.gstin) doc.text(`GSTIN: ${pharmacy.gstin}`, 20, 76);
 
-    // Patient Info
+    // Patient Details
     doc.setFillColor(lightPurple);
     doc.rect(10, 85, 190, 12, "F");
     doc.setFontSize(12);
@@ -171,26 +149,19 @@ const ListofSales = () => {
     doc.text("Patient Details", 15, 93);
     doc.setFont("helvetica", "normal");
     doc.text(`Name: ${sale.customer?.name || "Walk-in Patient"}`, 15, 103);
-    doc.text(`Address: ${sale.customer?.address || "—"}`, 15, 110);
-    doc.text(`Phone: ${sale.customer?.phone || "—"}`, 15, 117);
+    doc.text(`Phone: ${sale.customer?.phone || "—"}`, 15, 110);
 
     // Items Table
     const tableColumn = ["S.No", "Item", "Qty", "Rate", "Amount"];
     const tableRows = sale.items.map((item, index) => {
       const prod = item.product || {};
       const amount = (item.price * item.quantity).toFixed(2);
-
-
-
-
       return [
         index + 1,
-        prod.itemName || "Item",
+        prod.itemName || "Unknown Item",
         item.quantity,
         `₹${item.price.toFixed(2)}`,
         `₹${amount}`,
-
-
       ];
     });
 
@@ -224,8 +195,6 @@ const ListofSales = () => {
     doc.text("Seal & Signature", 150, finalY + 85, { align: "right" });
 
     return doc;
-
-
   };
 
   const handleDownload = (sale) => {
@@ -235,44 +204,15 @@ const ListofSales = () => {
 
   const handleWhatsApp = (sale) => {
     if (!sale.customer?.phone) {
-      alert("Patient phone number not available");
+      showToast("Patient phone number not available", "error");
       return;
     }
-
-
-
-
-
-
-
-
     const phone = sale.customer.phone.replace(/\D/g, "");
-    const message = `Dear ${sale.customer.name || "Patient"},\nYour invoice is ready!\nTotal: ₹${sale.totalAmount?.toFixed(2)}\nDate: ${new Date(sale.date).toLocaleDateString('en-IN')}\n\nThank you!`;
+    const message = `Dear ${sale.customer.name || "Patient"},\nYour invoice is ready!\nTotal: ₹${sale.totalAmount?.toFixed(2)}\nDate: ${new Date(sale.date).toLocaleDateString('en-IN')}\n\nThank you for choosing Vishwas Medical!`;
     const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(waUrl, "_blank");
     handleDownload(sale);
-    alert("WhatsApp opened! Attach the downloaded PDF manually.");
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    showToast("WhatsApp opened! Attach PDF manually if needed", "success");
   };
 
   if (loading) {
@@ -294,6 +234,23 @@ const ListofSales = () => {
 
   return (
     <main className="pt-20 min-h-screen bg-gradient-to-br from-cream-50 to-cream-100 pb-16">
+      {/* Toast */}
+      {toast.show && (
+        <div className="fixed top-4 right-4 z-50 animate-slide-in">
+          <div
+            className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 max-w-sm text-white font-medium border-l-8 ${
+              toast.type === "success"
+                ? "bg-gradient-to-r from-emerald-600 to-teal-600 border-emerald-400"
+                : "bg-gradient-to-r from-rose-600 to-red-600 border-rose-400"
+            }`}
+          >
+            {toast.type === "success" && <CheckCircle size={28} />}
+            {toast.type === "error" && <AlertCircle size={28} />}
+            <span>{toast.message}</span>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header + Search */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6">
@@ -301,7 +258,6 @@ const ListofSales = () => {
             <Receipt className="text-rose-600" size={40} />
             All Sales Records
           </h1>
-
           <div className="relative w-full sm:w-96">
             <input
               type="text"
@@ -311,8 +267,6 @@ const ListofSales = () => {
               className="w-full pl-12 pr-4 py-3 bg-white border border-gray-300 rounded-full shadow focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent text-gray-800 placeholder-gray-500 transition"
             />
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-
-
           </div>
         </div>
 
@@ -326,11 +280,6 @@ const ListofSales = () => {
             <p className="text-gray-500">
               {searchTerm ? "Try a different name or phone." : "Create your first sale from the New Sale page."}
             </p>
-
-
-
-
-
           </div>
         ) : (
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -380,8 +329,6 @@ const ListofSales = () => {
                   </div>
                 </div>
 
-
-
                 {/* Actions */}
                 <div className="grid grid-cols-2 gap-3 mt-6">
                   <button
@@ -397,7 +344,6 @@ const ListofSales = () => {
                   >
                     <MessageCircle size={18} />
                     WhatsApp
-
                   </button>
                   <button
                     onClick={() => startEdit(sale)}
@@ -499,3 +445,4 @@ const ListofSales = () => {
   );
 };
 
+export default ListofSales;
