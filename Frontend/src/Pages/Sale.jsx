@@ -18,7 +18,7 @@ const Sales = () => {
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
-  // Auto-hide toast after 2.5 seconds
+  // Auto-hide toast
   useEffect(() => {
     if (toast.show) {
       const timer = setTimeout(() => setToast({ show: false, message: "", type: "success" }), 2500);
@@ -35,11 +35,9 @@ const Sales = () => {
           api.get("/api/fetch"),
           api.get("/api/getcustomers"),
         ]);
-
         const prods = prodRes.data.products || [];
         setProducts(prods);
         setFilteredProducts(prods);
-
         const custs = custRes.data.customers || [];
         setCustomers(custs);
         setFilteredCustomers(custs);
@@ -93,7 +91,6 @@ const Sales = () => {
       }];
     });
 
-    // Show instant toast
     setToast({
       show: true,
       message: `Added ${product.itemName} × ${qty} to bill`,
@@ -120,16 +117,22 @@ const Sales = () => {
         items: cart.map(i => ({ product: i.product, quantity: i.quantity, price: i.price })),
         totalAmount: total,
         paymentMode: "Cash",
-        ...( !isRegular && { customer: selectedCustomer._id } ),
+        ...(!isRegular && { customer: selectedCustomer._id }),
       };
-
       await api.post("/api/sale", payload);
-      alert("Sale recorded successfully!");
+
+      setToast({
+        show: true,
+        message: "Sale recorded successfully!",
+        type: "success"
+      });
+
       setCart([]);
       setSelectedCustomer(null);
       setCustomerSearch("");
       setIsRegular(false);
       setTab("customer");
+
     } catch (err) {
       alert("Failed to save: " + (err.response?.data?.message || "Error"));
     } finally {
@@ -240,7 +243,9 @@ const Sales = () => {
                     placeholder="Search name or phone..."
                     value={customerSearch}
                     onChange={e => setCustomerSearch(e.target.value)}
-                    className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-teal-400 text-lg"
+                    className="w-full pl-12 pr-4 py-4 bg-white border border-gray-400 rounded-2xl 
+                               text-gray-900 placeholder:text-gray-500 text-lg
+                               focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={24} />
                 </div>
@@ -299,7 +304,9 @@ const Sales = () => {
                   placeholder="Search medicine..."
                   value={productSearch}
                   onChange={e => setProductSearch(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-teal-400"
+                  className="w-full pl-12 pr-4 py-3 bg-white border border-gray-400 rounded-2xl 
+                             text-gray-900 placeholder:text-gray-500
+                             focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                 />
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               </div>
@@ -371,14 +378,14 @@ const Sales = () => {
                           className="px-3 py-2 hover:bg-gray-100"
                           disabled={item.quantity <= 1}
                         >
-                          <Minus size={16} />
+                          <Minus size={16} className="text-gray-900" />
                         </button>
-                        <span className="px-4 font-medium">{item.quantity}</span>
+                        <span className="px-4 font-medium text-gray-900">{item.quantity}</span>
                         <button
                           onClick={() => updateQty(item.product, item.quantity + 1)}
                           className="px-3 py-2 hover:bg-gray-100"
                         >
-                          <Plus size={16} />
+                          <Plus size={16} className="text-gray-900" />
                         </button>
                       </div>
                       <button
@@ -399,7 +406,6 @@ const Sales = () => {
                 <span className="text-xl font-bold text-gray-900">Grand Total</span>
                 <span className="text-3xl font-bold text-teal-700">₹{total.toFixed(2)}</span>
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <button
                   onClick={previewBill}
