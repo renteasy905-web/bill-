@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios"; // ← using axios directly for reliability
+import axios from "axios";
 
 const BACKEND_URL = "https://bill-inventory-backend.onrender.com";
 
@@ -16,7 +16,6 @@ const CreateCustomer = () => {
   const submit = async (e) => {
     e.preventDefault();
 
-    // Basic validation
     if (!name.trim() || !phone.trim()) {
       setErrorMsg("Name and phone number are required");
       return;
@@ -26,6 +25,9 @@ const CreateCustomer = () => {
     setLoading(true);
 
     try {
+      // Debug log - you can remove this after it starts working
+      console.log("Sending request to:", `${BACKEND_URL}/create`);
+
       await axios.post(`${BACKEND_URL}/create`, {
         name: name.trim(),
         phone: phone.trim(),
@@ -33,13 +35,9 @@ const CreateCustomer = () => {
       });
 
       alert("Customer created successfully!");
-
-      // Reset form
       setName("");
       setPhone("");
       setAddress("");
-
-      // Go to sales page
       navigate("/sales");
     } catch (error) {
       console.error("Create customer error:", error);
@@ -47,7 +45,7 @@ const CreateCustomer = () => {
       const message =
         error.response?.data?.message ||
         error.message ||
-        "Failed to create customer. Please check your connection or try again later.";
+        "Failed to create customer. Please try again later.";
 
       setErrorMsg(message);
     } finally {
@@ -58,7 +56,6 @@ const CreateCustomer = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden text-gray-900">
-        {/* Header */}
         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white">
           <h1 className="text-2xl font-bold">Create New Customer</h1>
           <p className="text-indigo-100 text-sm mt-1">
@@ -66,16 +63,13 @@ const CreateCustomer = () => {
           </p>
         </div>
 
-        {/* Form */}
         <form onSubmit={submit} className="p-6 space-y-6">
-          {/* Error message */}
           {errorMsg && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
               {errorMsg}
             </div>
           )}
 
-          {/* Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Customer Name <span className="text-red-600">*</span>
@@ -90,7 +84,6 @@ const CreateCustomer = () => {
             />
           </div>
 
-          {/* Phone */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Phone Number <span className="text-red-600">*</span>
@@ -105,7 +98,6 @@ const CreateCustomer = () => {
             />
           </div>
 
-          {/* Address */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Address (optional)
@@ -119,7 +111,6 @@ const CreateCustomer = () => {
             />
           </div>
 
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
