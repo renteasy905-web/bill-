@@ -1,11 +1,28 @@
-// src/Pages/ListofSales.jsx
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom"; // ← Added for back button
 import api from "../utils/api";
-import { Receipt, Loader2, Trash2, Edit, Download, MessageCircle, X, Plus, Minus, Search, CheckCircle, AlertCircle } from "lucide-react";
+import {
+  Receipt,
+  Loader2,
+  Trash2,
+  Edit,
+  Download,
+  MessageCircle,
+  X,
+  Plus,
+  Minus,
+  Search,
+  CheckCircle,
+  AlertCircle,
+  ArrowLeft,
+  RefreshCw,
+} from "lucide-react";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 
 const ListofSales = () => {
+  const navigate = useNavigate();
+
   const [sales, setSales] = useState([]);
   const [filteredSales, setFilteredSales] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -24,22 +41,23 @@ const ListofSales = () => {
   };
 
   // Fetch all sales
+  const fetchAllSales = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await api.get("/api/allsales");
+      const salesData = res.data.sales || res.data.data || res.data || [];
+      setSales(salesData);
+      setFilteredSales(salesData);
+    } catch (err) {
+      console.error("Fetch error:", err);
+      setError("Failed to load sales records.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchAllSales = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const res = await api.get("/api/allsales");
-        const salesData = res.data.sales || res.data.data || res.data || [];
-        setSales(salesData);
-        setFilteredSales(salesData);
-      } catch (err) {
-        console.error("Fetch error:", err);
-        setError("Failed to load sales records.");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchAllSales();
   }, []);
 
@@ -66,7 +84,6 @@ const ListofSales = () => {
     }
   }, [toast.show]);
 
-  // Show toast
   const showToast = (msg, type = "success") => {
     setToast({ show: true, message: msg, type });
   };
@@ -89,19 +106,18 @@ const ListofSales = () => {
   // Start editing
   const startEdit = (sale) => {
     setEditingSale(sale);
-    setEditedItems(sale.items.map(item => ({ ...item }))); // Deep copy
+    setEditedItems(sale.items.map((item) => ({ ...item })));
   };
 
   // Save edited sale
   const saveEdit = async () => {
     if (!editingSale) return;
     try {
-      const updatedTotal = editedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const updatedTotal = editedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
       await api.put(`/api/sales/${editingSale._id}`, {
         items: editedItems,
         totalAmount: updatedTotal,
       });
-
       const updatedSales = sales.map((s) =>
         s._id === editingSale._id ? { ...s, items: editedItems, totalAmount: updatedTotal } : s
       );
@@ -115,14 +131,13 @@ const ListofSales = () => {
     }
   };
 
-  // PDF Generation
+  // PDF Generation (unchanged)
   const generateInvoicePDF = (sale) => {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const purple = "#6b21a8";
     const lightPurple = "#e9d5ff";
     const darkText = "#111827";
 
-    // Header
     doc.setFillColor(purple);
     doc.rect(0, 0, 210, 30, "F");
     doc.setTextColor(255);
@@ -133,7 +148,6 @@ const ListofSales = () => {
     doc.setFontSize(24);
     doc.text("MEDICAL INVOICE", 105, 38, { align: "center" });
 
-    // Pharmacy details
     doc.setTextColor(darkText);
     doc.setFontSize(11);
     doc.text(pharmacy.name, 20, 55);
@@ -141,7 +155,6 @@ const ListofSales = () => {
     doc.text(`Phone: ${pharmacy.phone}`, 20, 69);
     if (pharmacy.gstin) doc.text(`GSTIN: ${pharmacy.gstin}`, 20, 76);
 
-    // Patient Details
     doc.setFillColor(lightPurple);
     doc.rect(10, 85, 190, 12, "F");
     doc.setFontSize(12);
@@ -151,18 +164,11 @@ const ListofSales = () => {
     doc.text(`Name: ${sale.customer?.name || "Walk-in Patient"}`, 15, 103);
     doc.text(`Phone: ${sale.customer?.phone || "—"}`, 15, 110);
 
-    // Items Table
     const tableColumn = ["S.No", "Item", "Qty", "Rate", "Amount"];
     const tableRows = sale.items.map((item, index) => {
       const prod = item.product || {};
       const amount = (item.price * item.quantity).toFixed(2);
-      return [
-        index + 1,
-        prod.itemName || "Unknown Item",
-        item.quantity,
-        `₹${item.price.toFixed(2)}`,
-        `₹${amount}`,
-      ];
+      return [index + 1, prod.itemName || "Unknown Item", item.quantity, `₹${item.price.toFixed(2)}`, `₹${amount}`];
     });
 
     doc.autoTable({
@@ -174,7 +180,6 @@ const ListofSales = () => {
       styles: { fontSize: 10, cellPadding: 3 },
     });
 
-    // Total
     const finalY = doc.lastAutoTable.finalY + 10;
     doc.setFillColor(purple);
     doc.rect(130, finalY, 70, 10, "F");
@@ -183,18 +188,17 @@ const ListofSales = () => {
     doc.setTextColor(darkText);
     doc.text(`₹${sale.totalAmount?.toFixed(2) || "0.00"}`, 175, finalY + 7, { align: "right" });
 
-    // Footer
     doc.setFontSize(10);
     doc.text("Amount in words: Rupees One Hundred Only", 20, finalY + 25);
     doc.text("Terms & Conditions:", 20, finalY + 45);
     doc.setFontSize(9);
-    doc.text("1. Goods once sold will not be taken back or exchanged.", 25, finalY + 52);
-    doc.text("2. All disputes subject to Bengaluru jurisdiction only.", 25, finalY + 59);
+    doc.text("1. Goods once sold will  be taken back or exchanged.", 25, finalY + 52);
+    doc.text("2. All disputes subject to  jurisdiction only.", 25, finalY + 59);
     doc.text("3. Medicines should be taken only on doctor's advice.", 25, finalY + 66);
     doc.setFontSize(11);
-    doc.text("Seal & Signature", 150, finalY + 85, { align: "right" });
+    doc.text("Digitally Signature", 150, finalY + 85, { align: "right" });
 
-    return doc;
+    return doc;  
   };
 
   const handleDownload = (sale) => {
@@ -252,22 +256,43 @@ const ListofSales = () => {
       )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header + Search */}
+        {/* Header with Back + Title + Refresh */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6">
-          <h1 className="text-4xl font-extrabold text-rose-800 flex items-center gap-4">
+          {/* Back Button */}
+          <button
+            onClick={() => navigate("/")} // ← Change to "/first" if needed
+            className="flex items-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition shadow-md"
+          >
+            <ArrowLeft size={20} />
+            Back
+          </button>
+
+          <h1 className="text-4xl font-extrabold text-rose-800 flex items-center gap-4 flex-1 justify-center">
             <Receipt className="text-rose-600" size={40} />
             All Sales Records
           </h1>
-          <div className="relative w-full sm:w-96">
-            <input
-              type="text"
-              placeholder="Search by patient name or phone..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-300 rounded-full shadow focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent text-gray-800 placeholder-gray-500 transition"
-            />
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-          </div>
+
+          {/* Refresh Button */}
+          <button
+            onClick={fetchAllSales}
+            disabled={loading}
+            className="flex items-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition shadow-md disabled:opacity-50"
+          >
+            <RefreshCw size={18} className={`${loading ? "animate-spin" : ""}`} />
+            {loading ? "Refreshing..." : "Refresh"}
+          </button>
+        </div>
+
+        {/* Search */}
+        <div className="relative w-full mb-8">
+          <input
+            type="text"
+            placeholder="Search by patient name or phone..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 bg-white border border-gray-300 rounded-full shadow focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent text-gray-800 placeholder-gray-500 transition"
+          />
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
         </div>
 
         {/* Sales List */}
@@ -288,7 +313,6 @@ const ListofSales = () => {
                 key={sale._id}
                 className="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:border-rose-300 transition-all duration-300"
               >
-                {/* Header */}
                 <div className="flex justify-between items-start mb-5">
                   <div>
                     <h3 className="text-xl font-bold text-gray-800">
@@ -306,7 +330,6 @@ const ListofSales = () => {
                   </span>
                 </div>
 
-                {/* Patient */}
                 <div className="mb-5 pb-4 border-b border-gray-200">
                   <p className="text-gray-800 font-semibold">
                     Patient: {sale.customer?.name || "Unknown"}
@@ -316,7 +339,6 @@ const ListofSales = () => {
                   </p>
                 </div>
 
-                {/* Items */}
                 <div className="mb-5">
                   <p className="text-gray-700 font-semibold mb-2">Items</p>
                   <div className="space-y-2 text-sm text-gray-600">
@@ -329,7 +351,6 @@ const ListofSales = () => {
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div className="grid grid-cols-2 gap-3 mt-6">
                   <button
                     onClick={() => handleDownload(sale)}
@@ -361,7 +382,6 @@ const ListofSales = () => {
                   </button>
                 </div>
 
-                {/* Payment */}
                 <div className="mt-4 text-right text-sm text-gray-500">
                   Payment: {sale.paymentMode || "Cash"}
                 </div>
