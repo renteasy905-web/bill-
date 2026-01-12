@@ -1,134 +1,131 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom"; // ← Added for back button
 import api from "../utils/api";
-import { AlertCircle, Package, ShoppingBag, CalendarDays, Download } from "lucide-react";
+import {
+  AlertCircle,
+  Package,
+  ShoppingBag,
+  CalendarDays,
+  Download,
+  ArrowLeft,
+  RefreshCw,
+  Loader2,
+} from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 const Notifications = () => {
+  const navigate = useNavigate();
+
   const [stockAlerts, setStockAlerts] = useState([]);
   const [purchaseReminders, setPurchaseReminders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const today = new Date(); // January 11, 2026
+  const today = new Date();
+
+  // Fetch notifications
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // 1. Fetch products
+      const productsRes = await api.get("/api/fetch");
+      const allProducts = productsRes.data.products || [];
+
+      // Process low stock & near expiry alerts
+      const alerts = allProducts
+        .map((product) => {
+          const expiryDate = new Date(product.expiryDate);
+          const daysToExpiry = Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24));
+          const isLowStock = product.quantity < 30;
+          const isNearExpiry = daysToExpiry <= 90 && daysToExpiry >= 0;
+          if (!isLowStock && !isNearExpiry) return null;
+          return {
+            ...product,
+            Name: product.itemName || "Unnamed Product",
+            Quantity: product.quantity,
+            Mrp: product.salePrice || product.purchasePrice || 0,
+            Expiry: product.expiryDate,
+            daysToExpiry: isNearExpiry ? daysToExpiry : null,
+            stockLeft: product.quantity,
+            reason: isLowStock ? "low_quantity" : "near_expiry",
+          };
+        })
+        .filter(Boolean);
+
+      setStockAlerts(alerts);
+
+      // 2. Customer refill reminders (25-35 days ago)
+      let allSales = [];
+      try {
+        const salesRes = await api.get("/api/allsales"); // ← Updated endpoint (was /api/sales)
+        allSales = salesRes.data.sales || salesRes.data || [];
+      } catch (salesErr) {
+        console.log("Sales endpoint not available:", salesErr.message);
+      }
+
+      const reminders = allSales
+        .flatMap((sale) => {
+          const saleDate = new Date(sale.date || sale.createdAt || new Date());
+          const daysAgo = Math.floor((today - saleDate) / (1000 * 60 * 60 * 24));
+          if (daysAgo < 25 || daysAgo > 35) return [];
+          return (sale.items || []).map((item) => ({
+            saleId: sale._id || "unknown",
+            date: sale.date || sale.createdAt || new Date().toISOString(),
+            daysAgo,
+            customer: sale.customer || { name: "Walk-in Patient", phone: "—" },
+            product: {
+              Name: item.product?.itemName || item.itemName || "Unknown Medicine",
+              Mrp: item.salePrice || 0,
+            },
+            quantity: item.quantity || 1,
+            price: item.price || item.salePrice || 0,
+            reason: "purchase_reminder",
+          }));
+        });
+
+      setPurchaseReminders(reminders);
+    } catch (err) {
+      console.error("Notifications fetch error:", err);
+      setError(
+        err.response?.status === 404
+          ? "Backend endpoint not found. Check /api/fetch and /api/allsales."
+          : "Failed to load notifications."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // 1. Fetch products from the correct endpoint
-        const productsRes = await api.get("/api/fetch");
-        const allProducts = productsRes.data.products || [];
-
-        // Process low stock & near expiry alerts
-        const alerts = allProducts
-          .map((product) => {
-            const expiryDate = new Date(product.expiryDate);
-            const daysToExpiry = Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24));
-
-            const isLowStock = product.quantity < 30;
-            const isNearExpiry = daysToExpiry <= 90 && daysToExpiry >= 0;
-
-            if (!isLowStock && !isNearExpiry) return null;
-
-            return {
-              ...product,
-              Name: product.itemName || "Unnamed Product",
-              Quantity: product.quantity,
-              Mrp: product.salePrice || product.purchasePrice || 0,
-              Expiry: product.expiryDate,
-              daysToExpiry: isNearExpiry ? daysToExpiry : null,
-              stockLeft: product.quantity,
-              reason: isLowStock ? "low_quantity" : "near_expiry",
-            };
-          })
-          .filter(Boolean);
-
-        setStockAlerts(alerts);
-
-        // 2. Customer refill reminders (25-35 days ago)
-        // Note: Your backend doesn't have sales endpoint yet → will be empty
-        let allSales = [];
-        try {
-          // Try /api/sales or /api/allsales - change when you implement it
-          const salesRes = await api.get("/api/sales");
-          allSales = salesRes.data.sales || salesRes.data || [];
-        } catch (salesErr) {
-          console.log("Sales endpoint not available yet:", salesErr.message);
-        }
-
-        const reminders = allSales
-          .flatMap((sale) => {
-            const saleDate = new Date(sale.date || sale.createdAt || new Date());
-            const daysAgo = Math.floor((today - saleDate) / (1000 * 60 * 60 * 24));
-
-            if (daysAgo < 25 || daysAgo > 35) return [];
-
-            return (sale.items || []).map((item) => ({
-              saleId: sale._id || "unknown",
-              date: sale.date || sale.createdAt || new Date().toISOString(),
-              daysAgo,
-              customer: sale.customer || { name: "Walk-in Patient", phone: "—" },
-              product: {
-                Name: item.itemName || item.productName || "Unknown Medicine",
-                Mrp: item.salePrice || 0,
-              },
-              quantity: item.quantity || 1,
-              price: item.price || item.salePrice || 0,
-              reason: "purchase_reminder",
-            }));
-          });
-
-        setPurchaseReminders(reminders);
-      } catch (err) {
-        console.error("Notifications fetch error:", err);
-        setError(
-          err.response?.status === 404
-            ? "Backend endpoint not found. Using /api/fetch for products."
-            : "Failed to load notifications. Please check your connection."
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchNotifications();
   }, []);
 
-  // PDF Invoice Generator for reminders
+  // PDF Invoice for reminders (unchanged)
   const downloadReminderPDF = (reminder) => {
-    const doc = new jsPDF({
-      orientation: "portrait",
-      unit: "mm",
-      format: "a4",
-    });
-
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const purple = "#6b21a8";
     const lightPurple = "#e9d5ff";
     const darkText = "#111827";
 
-    // Header
     doc.setFillColor(purple);
     doc.rect(0, 0, 210, 30, "F");
     doc.setTextColor(255);
     doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
     doc.text("Vishwas Medical", 105, 18, { align: "center" });
-
     doc.setTextColor(lightPurple);
     doc.setFontSize(24);
     doc.text("MEDICAL INVOICE", 105, 38, { align: "center" });
 
-    // Pharmacy details
     doc.setTextColor(darkText);
     doc.setFontSize(11);
     doc.text("Vishwas Medical", 20, 55);
-    doc.text("Beside bus stand sindagi ", 20, 62);
+    doc.text("Beside bus stand sindagi", 20, 62);
     doc.text("Phone: +91-63610 27924", 20, 69);
 
-    // Patient Details
     doc.setFillColor(lightPurple);
     doc.rect(10, 85, 190, 12, "F");
     doc.setFontSize(12);
@@ -138,7 +135,6 @@ const Notifications = () => {
     doc.text(`Name: ${reminder.customer?.name || "Walk-in Patient"}`, 15, 103);
     doc.text(`Phone: ${reminder.customer?.phone || "—"}`, 15, 110);
 
-    // Table - Single item
     autoTable(doc, {
       startY: 120,
       head: [["S.No", "Items", "HSN", "BATCH", "RATE", "MRP", "TAX", "Amount"]],
@@ -160,29 +156,19 @@ const Notifications = () => {
     });
 
     const finalY = doc.lastAutoTable.finalY + 10;
-
-    // Total
     doc.setFillColor(purple);
     doc.rect(130, finalY, 70, 10, "F");
     doc.setTextColor(255);
     doc.text("Total Amount", 135, finalY + 7);
     doc.setTextColor(darkText);
-    doc.text(
-      `₹${(reminder.price * reminder.quantity).toFixed(2)}`,
-      175,
-      finalY + 7,
-      { align: "right" }
-    );
+    doc.text(`₹${(reminder.price * reminder.quantity).toFixed(2)}`, 175, finalY + 7, { align: "right" });
 
-
-    // Terms
     doc.text("Terms & Conditions:", 20, finalY + 45);
     doc.setFontSize(9);
-    doc.text("Retur will be taken within 72hrs ", 25, finalY + 52);
-    doc.text("2. All disputes subject to  jurisdiction only.", 25, finalY + 59);
+    doc.text("Return will be taken within 72hrs", 25, finalY + 52);
+    doc.text("2. All disputes subject to jurisdiction only.", 25, finalY + 59);
     doc.text("3. Medicines should be taken only on doctor's advice.", 25, finalY + 66);
 
-    // Signature
     doc.setFontSize(11);
     doc.text("This is a computer-generated invoice with digital signature.", 150, finalY + 85, { align: "right" });
 
@@ -213,15 +199,16 @@ const Notifications = () => {
 
   if (loading) {
     return (
-      <div className="pt-24 text-center text-slate-300 min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
-        Loading notifications... (Render may take 10-40s first time)
+      <div className="pt-24 min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
+        <Loader2 className="text-indigo-400 animate-spin" size={48} />
+        <span className="ml-4 text-xl text-slate-300">Loading notifications...</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="pt-24 text-center text-red-400 min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+      <div className="pt-24 min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-red-400 text-center p-8 text-xl">
         {error}
       </div>
     );
@@ -230,15 +217,36 @@ const Notifications = () => {
   return (
     <main className="pt-20 min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold text-white flex items-center justify-center gap-3">
+        {/* Header with Back + Title + Refresh */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6">
+          {/* Back Button */}
+          <button
+            onClick={() => navigate("/")} // ← Change to "/first" if first.jsx is at /first
+            className="flex items-center gap-2 px-5 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-white transition shadow-md"
+          >
+            <ArrowLeft size={20} />
+            Back
+          </button>
+
+          <h1 className="text-4xl font-bold text-white flex items-center gap-3 flex-1 justify-center">
             <AlertCircle className="text-yellow-400" size={36} />
             Notifications
           </h1>
-          <p className="text-slate-400 mt-3">
-            Low stock • Near expiry • Customer refill reminders (~25-35 days ago)
-          </p>
+
+          {/* Refresh Button */}
+          <button
+            onClick={fetchNotifications}
+            disabled={loading}
+            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white transition shadow-md disabled:opacity-50"
+          >
+            <RefreshCw size={18} className={`${loading ? "animate-spin" : ""}`} />
+            {loading ? "Refreshing..." : "Refresh"}
+          </button>
         </div>
+
+        <p className="text-center text-slate-400 mb-12">
+          Low stock • Near expiry • Customer refill reminders (~25-35 days ago)
+        </p>
 
         {/* Stock & Expiry Alerts */}
         <section className="mb-16">
@@ -300,7 +308,7 @@ const Notifications = () => {
             <p className="text-slate-400 text-center py-8">
               No customer refill reminders for this period.
               <br />
-              <small>(Waiting for /api/sales endpoint on backend)</small>
+              <small>(Waiting for /api/allsales endpoint on backend)</small>
             </p>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
