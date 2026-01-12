@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Search, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { Search, Loader2, CheckCircle, AlertCircle, IndianRupee } from "lucide-react";
 import api from "../utils/api";
 
 const ProductEdit = () => {
@@ -11,6 +11,13 @@ const ProductEdit = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+
+  // Calculate total stock value (medical stock worth)
+  const totalStockValue = products.reduce((sum, product) => {
+    const purchasePrice = Number(product.purchasePrice) || 0;
+    const quantity = Number(product.quantity) || 0;
+    return sum + purchasePrice * quantity;
+  }, 0);
 
   useEffect(() => {
     fetchProducts();
@@ -77,19 +84,19 @@ const ProductEdit = () => {
 
       await api.put(`/api/fetch/${editId}`, updateData);
 
-      // Update both lists immutably
+      // Update products list
       const updatedProducts = products.map((p) =>
         p._id === editId ? { ...p, ...updateData } : p
       );
+
       setProducts(updatedProducts);
       setFilteredProducts(updatedProducts);
 
       showToast("Product updated successfully!", "success");
-      setEditId(null);
-      setEditedProduct({});
+      cancelEdit(); // Reset edit mode
     } catch (err) {
       console.error("Save error:", err);
-      showToast("Failed to save changes.", "error");
+      showToast("Failed to save changes. Please try again.", "error");
     }
   };
 
@@ -130,7 +137,7 @@ const ProductEdit = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
-      {/* Toast */}
+      {/* Toast Notification */}
       {toast.show && (
         <div className="fixed top-4 right-4 z-50 animate-fade-in">
           <div
@@ -146,17 +153,27 @@ const ProductEdit = () => {
         </div>
       )}
 
-      {/* Header */}
+      {/* Header + Total Stock Value */}
       <header className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <button className="text-2xl text-gray-600 hover:text-teal-600 transition">← Back</button>
-          <h1 className="text-xl md:text-2xl font-bold text-gray-800">Edit Products</h1>
-          <button
-            onClick={fetchProducts}
-            className="px-5 py-2 bg-teal-50 text-teal-700 rounded-lg hover:bg-teal-100 transition"
-          >
-            Refresh
-          </button>
+        <div className="max-w-6xl mx-auto px-4 py-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold text-gray-800">Edit Products</h1>
+              <p className="text-gray-600 text-sm">Manage medicine inventory</p>
+            </div>
+
+            <div className="bg-teal-50 px-5 py-3 rounded-xl border border-teal-200 shadow-sm">
+              <div className="flex items-center gap-2 text-teal-800">
+                <IndianRupee size={20} className="text-teal-600" />
+                <div>
+                  <p className="text-xs font-medium">Total Stock Value</p>
+                  <p className="text-xl font-bold">
+                    ₹{totalStockValue.toLocaleString("en-IN")}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -168,9 +185,7 @@ const ProductEdit = () => {
             placeholder="Search product name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-5 py-4 pl-12 rounded-2xl border border-gray-300 
-                       bg-white text-gray-900 placeholder:text-gray-500 text-lg
-                       focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none shadow-sm"
+            className="w-full px-5 py-4 pl-12 rounded-2xl border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 text-lg focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none shadow-sm"
           />
           <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={24} />
         </div>
