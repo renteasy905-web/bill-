@@ -1,7 +1,11 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 
 const CreateProducts = () => {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     itemName: "",
     salePrice: "",
@@ -25,15 +29,15 @@ const CreateProducts = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setSuccess("");
     setError("");
 
     if (!formData.itemName || !formData.salePrice || !formData.purchasePrice || !formData.quantity) {
       setError("Please fill all required fields");
-      setLoading(false);
       return;
     }
+
+    setLoading(true);
 
     try {
       const payload = {
@@ -45,7 +49,7 @@ const CreateProducts = () => {
         expiryDate: formData.expiryDate || null,
       };
 
-      await api.post("/api/products", payload); // ← Correct path with /api/
+      await api.post("/api/products", payload);
 
       setSuccess("Product added successfully!");
       setFormData({
@@ -57,7 +61,7 @@ const CreateProducts = () => {
         expiryDate: "",
       });
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to add product");
+      setError(err.response?.data?.message || "Failed to add product. Please try again.");
       console.error(err);
     } finally {
       setLoading(false);
@@ -66,14 +70,36 @@ const CreateProducts = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white py-12 px-6">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-4xl md:text-5xl font-extrabold text-center mb-4 text-indigo-400 tracking-tight">
-          Vishwas Medical
-        </h1>
-        <p className="text-center text-lg text-slate-300 mb-12">
-          Add New Product to Inventory
-        </p>
+      <div className="max-w-3xl mx-auto">
+        {/* Top Bar: Back + Title + Refresh */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6">
+          {/* Back Button */}
+          <button
+            onClick={() => navigate("/")} // ← Change to "/first" if first.jsx is at /first
+            className="flex items-center gap-2 px-5 py-2.5 bg-slate-700/70 hover:bg-slate-600 rounded-lg text-white transition-all shadow-md"
+          >
+            <ArrowLeft size={20} />
+            Back
+          </button>
 
+          <div className="text-center flex-1">
+            <h1 className="text-4xl md:text-5xl font-extrabold text-indigo-400 mb-2">
+              Vishwas Medical
+            </h1>
+            <p className="text-lg text-slate-300">Add New Product to Inventory</p>
+          </div>
+
+          {/* Refresh Button */}
+          <button
+            onClick={() => window.location.reload()}
+            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600/70 hover:bg-indigo-600 rounded-lg text-white transition-all shadow-md"
+          >
+            <RefreshCw size={18} />
+            Refresh Page
+          </button>
+        </div>
+
+        {/* Main Form Card */}
         <div className="bg-slate-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-8 md:p-12 border border-slate-700">
           {success && (
             <div className="mb-8 p-4 bg-green-900/40 border border-green-600 text-green-300 rounded-lg text-center">
@@ -192,6 +218,7 @@ const CreateProducts = () => {
                 />
               </div>
 
+              {/* Submit Button */}
               <button
                 type="submit"
                 disabled={loading}
