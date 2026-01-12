@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Search, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import api from "../utils/api";
 
 const ProductEdit = () => {
@@ -38,15 +39,19 @@ const ProductEdit = () => {
       return;
     }
     const term = searchTerm.toLowerCase();
-    setFilteredProducts(
-      products.filter(p => p.itemName?.toLowerCase().includes(term))
-    );
+    setFilteredProducts(products.filter((p) => p.itemName?.toLowerCase().includes(term)));
   }, [searchTerm, products]);
 
-  // Show toast
+  // Toast auto-hide
+  useEffect(() => {
+    if (toast.show) {
+      const timer = setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast.show]);
+
   const showToast = (msg, type = "success") => {
     setToast({ show: true, message: msg, type });
-    setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
   };
 
   const startEdit = (product) => {
@@ -61,9 +66,10 @@ const ProductEdit = () => {
 
   const saveEdit = async () => {
     if (!editId) return;
+
     try {
       const updateData = {
-        itemName: editedProduct.itemName || "",
+        itemName: editedProduct.itemName?.trim() || "",
         salePrice: Number(editedProduct.salePrice) || 0,
         purchasePrice: Number(editedProduct.purchasePrice) || 0,
         quantity: Number(editedProduct.quantity) || 0,
@@ -71,40 +77,32 @@ const ProductEdit = () => {
 
       await api.put(`/api/fetch/${editId}`, updateData);
 
-      // Immutable update + force UI refresh
-      setProducts(prev => {
-        const newProducts = prev.map(p =>
-          p._id === editId ? { ...p, ...updateData } : p
-        );
-        setFilteredProducts(newProducts); // also update filtered list
-        return newProducts;
-      });
+      // Update both lists immutably
+      const updatedProducts = products.map((p) =>
+        p._id === editId ? { ...p, ...updateData } : p
+      );
+      setProducts(updatedProducts);
+      setFilteredProducts(updatedProducts);
 
       showToast("Product updated successfully!", "success");
-
       setEditId(null);
       setEditedProduct({});
     } catch (err) {
       console.error("Save error:", err);
-      showToast("Failed to save changes. Check console.", "error");
+      showToast("Failed to save changes.", "error");
     }
   };
 
   const handleChange = (field, value) => {
-    setEditedProduct(prev => ({
+    setEditedProduct((prev) => ({
       ...prev,
       [field]: value,
     }));
   };
 
-  const getCartQty = (productId) => {
-    // If you have cart logic here, implement it; otherwise remove
-    return 0;
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-cream-50 to-cream-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="animate-spin mx-auto text-teal-600" size={48} />
           <p className="mt-4 text-gray-600 font-medium">Loading products...</p>
@@ -115,12 +113,13 @@ const ProductEdit = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-cream-50 to-cream-100 flex items-center justify-center">
-        <div className="text-center bg-white p-8 rounded-2xl shadow-lg">
-          <p className="text-red-600 font-medium text-lg">{error}</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-center bg-white p-8 rounded-2xl shadow-lg max-w-md w-full">
+          <AlertCircle className="mx-auto text-red-500" size={48} />
+          <p className="mt-4 text-red-600 font-medium text-lg">{error}</p>
           <button
             onClick={fetchProducts}
-            className="mt-4 px-6 py-2 bg-teal-600 text-white rounded-xl hover:bg-teal-700"
+            className="mt-6 px-8 py-3 bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition"
           >
             Try Again
           </button>
@@ -130,17 +129,18 @@ const ProductEdit = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cream-50 to-cream-100 pb-20 relative">
+    <div className="min-h-screen bg-gray-50 pb-12">
       {/* Toast */}
       {toast.show && (
-        <div className="fixed top-4 right-4 z-50 animate-slide-in">
+        <div className="fixed top-4 right-4 z-50 animate-fade-in">
           <div
             className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 max-w-sm text-white font-medium ${
-              toast.type === "success" ? "bg-gradient-to-r from-green-600 to-emerald-600" : "bg-gradient-to-r from-red-600 to-rose-600"
+              toast.type === "success"
+                ? "bg-gradient-to-r from-green-600 to-emerald-600"
+                : "bg-gradient-to-r from-red-600 to-rose-600"
             }`}
           >
-            {toast.type === "success" && <CheckCircle size={24} />}
-            {toast.type === "error" && <AlertCircle size={24} />}
+            {toast.type === "success" ? <CheckCircle size={24} /> : <AlertCircle size={24} />}
             <span>{toast.message}</span>
           </div>
         </div>
@@ -149,11 +149,11 @@ const ProductEdit = () => {
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <button className="text-2xl text-gray-700 hover:text-teal-700 transition">←</button>
-          <h1 className="text-xl md:text-2xl font-bold text-gray-800">PRODUCT EDIT KAREIN</h1>
+          <button className="text-2xl text-gray-600 hover:text-teal-600 transition">← Back</button>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-800">Edit Products</h1>
           <button
             onClick={fetchProducts}
-            className="px-4 py-2 bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 transition"
+            className="px-5 py-2 bg-teal-50 text-teal-700 rounded-lg hover:bg-teal-100 transition"
           >
             Refresh
           </button>
@@ -167,10 +167,12 @@ const ProductEdit = () => {
             type="text"
             placeholder="Search product name..."
             value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="w-full px-5 py-4 pl-12 rounded-2xl border border-gray-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none bg-white shadow-sm text-lg"
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-5 py-4 pl-12 rounded-2xl border border-gray-300 
+                       bg-white text-gray-900 placeholder:text-gray-500 text-lg
+                       focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none shadow-sm"
           />
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={24} />
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={24} />
         </div>
       </div>
 
@@ -181,7 +183,7 @@ const ProductEdit = () => {
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredProducts.map(product => {
+            {filteredProducts.map((product) => {
               const isEditing = editId === product._id;
               const lowStock = product.quantity <= 10;
               const profit = (product.salePrice || 0) - (product.purchasePrice || 0);
@@ -189,23 +191,23 @@ const ProductEdit = () => {
               return (
                 <div
                   key={product._id}
-                  className={`bg-white rounded-2xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg border ${
-                    isEditing ? "border-teal-500 ring-2 ring-teal-100" : "border-cream-200"
+                  className={`bg-white rounded-2xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl border-2 ${
+                    isEditing ? "border-teal-500" : "border-gray-200"
                   }`}
                 >
                   {/* Header */}
-                  <div className="p-5 bg-cream-100 border-b">
+                  <div className="p-5 bg-gray-50 border-b">
                     {isEditing ? (
                       <input
                         type="text"
                         value={editedProduct.itemName || ""}
-                        onChange={e => handleChange("itemName", e.target.value)}
-                        className="w-full px-4 py-3 text-xl font-bold bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        onChange={(e) => handleChange("itemName", e.target.value)}
+                        className="w-full px-4 py-3 text-xl font-bold bg-white border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
                         placeholder="Product Name"
                       />
                     ) : (
                       <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-bold text-gray-800">{product.itemName || "Unnamed"}</h2>
+                        <h2 className="text-xl font-bold text-gray-900">{product.itemName || "Unnamed"}</h2>
                         {lowStock && (
                           <span className="bg-red-100 text-red-700 text-xs font-bold px-3 py-1 rounded-full">
                             Low ({product.quantity})
@@ -224,8 +226,8 @@ const ProductEdit = () => {
                           <input
                             type="number"
                             value={editedProduct.salePrice ?? ""}
-                            onChange={e => handleChange("salePrice", e.target.value)}
-                            className="w-full px-4 py-3 text-2xl font-bold text-teal-700 bg-cream-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400"
+                            onChange={(e) => handleChange("salePrice", e.target.value)}
+                            className="w-full px-4 py-3 text-2xl font-bold text-teal-700 bg-white border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-400"
                           />
                         ) : (
                           <p className="text-3xl font-bold text-teal-700">₹{product.salePrice ?? "0"}</p>
@@ -238,8 +240,8 @@ const ProductEdit = () => {
                           <input
                             type="number"
                             value={editedProduct.quantity ?? ""}
-                            onChange={e => handleChange("quantity", e.target.value)}
-                            className="w-full px-4 py-3 text-2xl font-bold text-indigo-700 bg-cream-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                            onChange={(e) => handleChange("quantity", e.target.value)}
+                            className="w-full px-4 py-3 text-2xl font-bold text-indigo-700 bg-white border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-400"
                           />
                         ) : (
                           <p className="text-3xl font-bold text-indigo-700">{product.quantity ?? 0}</p>
@@ -254,17 +256,21 @@ const ProductEdit = () => {
                           <input
                             type="number"
                             value={editedProduct.purchasePrice ?? ""}
-                            onChange={e => handleChange("purchasePrice", e.target.value)}
-                            className="mt-1 w-full px-3 py-2 text-lg font-medium border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400"
+                            onChange={(e) => handleChange("purchasePrice", e.target.value)}
+                            className="mt-1 w-full px-3 py-2 text-lg font-medium border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-400"
                           />
                         ) : (
-                          <p className="font-medium text-gray-800">₹{product.purchasePrice ?? "0"}</p>
+                          <p className="font-medium text-gray-900">₹{product.purchasePrice ?? "0"}</p>
                         )}
                       </div>
 
                       <div>
                         <p className="text-gray-600">Profit</p>
-                        <p className={`font-bold ${profit > 0 ? "text-green-600" : profit < 0 ? "text-red-600" : "text-gray-600"}`}>
+                        <p
+                          className={`font-bold ${
+                            profit > 0 ? "text-green-600" : profit < 0 ? "text-red-600" : "text-gray-600"
+                          }`}
+                        >
                           ₹{profit}
                         </p>
                       </div>
@@ -272,7 +278,7 @@ const ProductEdit = () => {
                   </div>
 
                   {/* Buttons */}
-                  <div className="p-5 bg-cream-100 border-t flex justify-end gap-3">
+                  <div className="p-5 bg-gray-50 border-t flex justify-end gap-3">
                     {isEditing ? (
                       <>
                         <button
