@@ -1,9 +1,11 @@
-// src/Pages/AllProducts.jsx
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom"; // ← Added for back button
 import api from "../utils/api";
-import { Search, RefreshCw } from "lucide-react";
+import { Search, RefreshCw, ArrowLeft } from "lucide-react";
 
 const AllProducts = () => {
+  const navigate = useNavigate(); // ← For back button
+
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -25,7 +27,7 @@ const AllProducts = () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get("/api/allproducts"); // or "/api/fetch" for sorted
+      const res = await api.get("/api/allproducts"); // or "/api/fetch" if you prefer sorted
       console.log("API Response:", res.data);
       const productList = res.data.data || res.data.products || res.data.allproducts || res.data || [];
       setProducts(Array.isArray(productList) ? productList : []);
@@ -40,23 +42,19 @@ const AllProducts = () => {
 
   useEffect(() => {
     fetchProducts();
-
-    // Auto-refresh every 120 seconds (2 minutes)
+    // Auto-refresh every 2 minutes
     const interval = setInterval(() => {
       fetchProducts();
     }, 120000);
-
-    // Cleanup interval on unmount
     return () => clearInterval(interval);
   }, []);
 
-  // Filter products by itemName search
+  // Search filter
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredProducts(products);
       return;
     }
-
     const term = searchTerm.toLowerCase().trim();
     const filtered = products.filter((p) =>
       (p.itemName || "").toLowerCase().includes(term)
@@ -69,17 +67,6 @@ const AllProducts = () => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  // Prevent zoom
-  useEffect(() => {
-    const meta = document.querySelector('meta[name="viewport"]');
-    if (meta) {
-      meta.setAttribute(
-        "content",
-        "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-      );
-    }
   }, []);
 
   // Expiry status
@@ -122,9 +109,18 @@ const AllProducts = () => {
       style={{ touchAction: "manipulation" }}
     >
       <div className="max-w-7xl mx-auto">
-        {/* Header + Search Bar */}
+        {/* Header with Back + Refresh + Title */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
-          <div className="text-center md:text-left">
+          {/* Back button */}
+          <button
+            onClick={() => navigate("/")} // ← Change to "/first" if your first.jsx is at /first
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600/30 hover:bg-indigo-600/50 rounded-lg text-indigo-300 hover:text-white transition"
+          >
+            <ArrowLeft size={20} />
+            Back
+          </button>
+
+          <div className="text-center md:text-left flex-1">
             <h1 className="text-4xl md:text-5xl font-extrabold text-indigo-400 mb-3">
               Vishwas Medical Inventory
             </h1>
@@ -133,21 +129,31 @@ const AllProducts = () => {
             </p>
           </div>
 
-          {/* Search Bar */}
-          <div className="relative w-full md:w-96">
-            <input
-              type="text"
-              placeholder="Search by product name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-600 rounded-full text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-            />
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
-          </div>
+          {/* Refresh button */}
+          <button
+            onClick={fetchProducts}
+            disabled={loading}
+            className="flex items-center gap-2 px-5 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-white transition disabled:opacity-50"
+          >
+            <RefreshCw size={18} className={`${loading ? "animate-spin" : ""}`} />
+            {loading ? "Refreshing..." : "Refresh"}
+          </button>
         </div>
 
-        {/* Last Refreshed Info */}
-        <div className="text-right text-sm text-slate-400 mb-4 flex items-center justify-end gap-2">
+        {/* Search Bar */}
+        <div className="relative w-full mb-8">
+          <input
+            type="text"
+            placeholder="Search by product name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-600 rounded-full text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+          />
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
+        </div>
+
+        {/* Last Refreshed */}
+        <div className="text-right text-sm text-slate-400 mb-6 flex items-center justify-end gap-2">
           <RefreshCw size={16} className="text-indigo-400" />
           Last updated: {lastRefreshed.toLocaleTimeString("en-IN")}
         </div>
