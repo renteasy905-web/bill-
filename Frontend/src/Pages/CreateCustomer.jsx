@@ -16,36 +16,51 @@ const CreateCustomer = () => {
   const submit = async (e) => {
     e.preventDefault();
 
+    // Clear previous error
+    setErrorMsg("");
+
+    // Basic validation
     if (!name.trim() || !phone.trim()) {
       setErrorMsg("Name and phone number are required");
       return;
     }
 
-    setErrorMsg("");
     setLoading(true);
 
     try {
-      // Debug log - you can remove this after it starts working
-      console.log("Sending request to:", `${BACKEND_URL}/create`);
-
-      await axios.post(`${BACKEND_URL}/create`, {
+      // IMPORTANT: We are using /api/create now – this matches your backend mounting
+      const response = await axios.post(`${BACKEND_URL}/api/create`, {
         name: name.trim(),
         phone: phone.trim(),
-        address: address.trim(),
+        address: address.trim() || undefined, // optional field
       });
 
       alert("Customer created successfully!");
+      
+      // Reset form
       setName("");
       setPhone("");
       setAddress("");
+
+      // Navigate to sales
       navigate("/sales");
     } catch (error) {
       console.error("Create customer error:", error);
 
-      const message =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to create customer. Please try again later.";
+      let message = "Failed to create customer. Please try again.";
+
+      if (error.response) {
+        // Backend sent a response (e.g. 400, 409 duplicate)
+        if (error.response.status === 400) {
+          message = error.response.data.message || "Invalid data provided";
+        } else if (error.response.status === 409) {
+          message = "Phone number already exists";
+        } else {
+          message = error.response.data?.message || `Server error (${error.response.status})`;
+        }
+      } else if (error.request) {
+        message = "No response from server. Check your internet or backend status.";
+      }
 
       setErrorMsg(message);
     } finally {
@@ -56,6 +71,7 @@ const CreateCustomer = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden text-gray-900">
+        {/* Header */}
         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white">
           <h1 className="text-2xl font-bold">Create New Customer</h1>
           <p className="text-indigo-100 text-sm mt-1">
@@ -63,13 +79,16 @@ const CreateCustomer = () => {
           </p>
         </div>
 
+        {/* Form */}
         <form onSubmit={submit} className="p-6 space-y-6">
+          {/* Error display */}
           {errorMsg && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
               {errorMsg}
             </div>
           )}
 
+          {/* Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Customer Name <span className="text-red-600">*</span>
@@ -84,6 +103,7 @@ const CreateCustomer = () => {
             />
           </div>
 
+          {/* Phone */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Phone Number <span className="text-red-600">*</span>
@@ -98,6 +118,7 @@ const CreateCustomer = () => {
             />
           </div>
 
+          {/* Address */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Address (optional)
@@ -111,6 +132,7 @@ const CreateCustomer = () => {
             />
           </div>
 
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
@@ -122,9 +144,25 @@ const CreateCustomer = () => {
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8 8 8 0 01-8-8z" />
+                <svg
+                  className="animate-spin h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
                 Creating...
               </span>
