@@ -1,8 +1,24 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom"; // ← Added for back button
 import api from "../utils/api";
-import { Search, Plus, Minus, Trash2, Loader2, ShoppingCart, UserCheck, Printer, ChevronRight, CheckCircle } from "lucide-react";
+import {
+  Search,
+  Plus,
+  Minus,
+  Trash2,
+  Loader2,
+  ShoppingCart,
+  UserCheck,
+  Printer,
+  ChevronRight,
+  CheckCircle,
+  ArrowLeft,
+  RefreshCw,
+} from "lucide-react";
 
 const Sales = () => {
+  const navigate = useNavigate();
+
   const [tab, setTab] = useState("customer");
   const [customers, setCustomers] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
@@ -27,27 +43,32 @@ const Sales = () => {
   }, [toast.show]);
 
   // Fetch data
+  const loadData = async () => {
+    try {
+      setError(null);
+      setLoading({ products: true, customers: true });
+
+      const [prodRes, custRes] = await Promise.all([
+        api.get("/api/fetch"),
+        api.get("/api/getcustomers"),
+      ]);
+
+      const prods = prodRes.data.products || [];
+      setProducts(prods);
+      setFilteredProducts(prods);
+
+      const custs = custRes.data.customers || [];
+      setCustomers(custs);
+      setFilteredCustomers(custs);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load data. Please check connection.");
+    } finally {
+      setLoading({ products: false, customers: false });
+    }
+  };
+
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setError(null);
-        const [prodRes, custRes] = await Promise.all([
-          api.get("/api/fetch"),
-          api.get("/api/getcustomers"),
-        ]);
-        const prods = prodRes.data.products || [];
-        setProducts(prods);
-        setFilteredProducts(prods);
-        const custs = custRes.data.customers || [];
-        setCustomers(custs);
-        setFilteredCustomers(custs);
-      } catch (err) {
-        console.error(err);
-        setError("Failed to load data. Please check connection.");
-      } finally {
-        setLoading({ products: false, customers: false });
-      }
-    };
     loadData();
   }, []);
 
@@ -55,7 +76,7 @@ const Sales = () => {
   useEffect(() => {
     if (productSearch.trim()) {
       const term = productSearch.toLowerCase();
-      setFilteredProducts(products.filter(p => p.itemName?.toLowerCase().includes(term)));
+      setFilteredProducts(products.filter((p) => p.itemName?.toLowerCase().includes(term)));
     } else {
       setFilteredProducts(products);
     }
@@ -63,7 +84,7 @@ const Sales = () => {
     if (!isRegular && customerSearch.trim()) {
       const term = customerSearch.toLowerCase().replace(/[\s-]/g, "");
       setFilteredCustomers(
-        customers.filter(c => {
+        customers.filter((c) => {
           const name = c.name?.toLowerCase() || "";
           const phone = c.phone?.replace(/[\s-]/g, "").toLowerCase() || "";
           return name.includes(term) || phone.includes(term);
@@ -76,10 +97,10 @@ const Sales = () => {
 
   // Show toast when adding to cart
   const addToCart = (product, qty = 1) => {
-    setCart(prev => {
-      const exists = prev.find(i => i.product === product._id);
+    setCart((prev) => {
+      const exists = prev.find((i) => i.product === product._id);
       if (exists) {
-        return prev.map(i =>
+        return prev.map((i) =>
           i.product === product._id ? { ...i, quantity: i.quantity + qty } : i
         );
       }
@@ -94,16 +115,16 @@ const Sales = () => {
     setToast({
       show: true,
       message: `Added ${product.itemName} × ${qty} to bill`,
-      type: "success"
+      type: "success",
     });
   };
 
   const updateQty = (id, qty) => {
     if (qty < 1) return;
-    setCart(prev => prev.map(i => i.product === id ? { ...i, quantity: qty } : i));
+    setCart((prev) => prev.map((i) => (i.product === id ? { ...i, quantity: qty } : i)));
   };
 
-  const removeItem = (id) => setCart(prev => prev.filter(i => i.product !== id));
+  const removeItem = (id) => setCart((prev) => prev.filter((i) => i.product !== id));
 
   const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
@@ -114,17 +135,18 @@ const Sales = () => {
     try {
       setSubmitting(true);
       const payload = {
-        items: cart.map(i => ({ product: i.product, quantity: i.quantity, price: i.price })),
+        items: cart.map((i) => ({ product: i.product, quantity: i.quantity, price: i.price })),
         totalAmount: total,
         paymentMode: "Cash",
         ...(!isRegular && { customer: selectedCustomer._id }),
       };
+
       await api.post("/api/sale", payload);
 
       setToast({
         show: true,
         message: "Sale recorded successfully!",
-        type: "success"
+        type: "success",
       });
 
       setCart([]);
@@ -132,7 +154,6 @@ const Sales = () => {
       setCustomerSearch("");
       setIsRegular(false);
       setTab("customer");
-
     } catch (err) {
       alert("Failed to save: " + (err.response?.data?.message || "Error"));
     } finally {
@@ -143,8 +164,8 @@ const Sales = () => {
   const previewBill = () => {
     alert(
       "Bill Preview:\n" +
-      cart.map(i => `${i.name} × ${i.quantity} = ₹${i.price * i.quantity}`).join("\n") +
-      `\n\nTotal: ₹${total.toFixed(2)}`
+        cart.map((i) => `${i.name} × ${i.quantity} = ₹${i.price * i.quantity}`).join("\n") +
+        `\n\nTotal: ₹${total.toFixed(2)}`
     );
   };
 
@@ -180,13 +201,34 @@ const Sales = () => {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 pt-6 pb-20">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2 flex items-center justify-center gap-3">
-            <ShoppingCart className="text-teal-600" size={36} />
-            Billing Desk
-          </h1>
-          <p className="text-gray-600">Professional • Fast • Accurate</p>
+        {/* Header with Back + Title + Refresh */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6">
+          {/* Back Button */}
+          <button
+            onClick={() => navigate("/")} // ← Change to "/first" if first.jsx is at /first
+            className="flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition shadow-md"
+          >
+            <ArrowLeft size={20} />
+            Back
+          </button>
+
+          <div className="text-center flex-1">
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2 flex items-center justify-center gap-3">
+              <ShoppingCart className="text-teal-600" size={36} />
+              Billing Desk
+            </h1>
+            <p className="text-gray-600">Professional • Fast • Accurate</p>
+          </div>
+
+          {/* Refresh Button */}
+          <button
+            onClick={loadData}
+            disabled={loading.products || loading.customers}
+            className="flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition shadow-md disabled:opacity-50"
+          >
+            <RefreshCw size={18} className={`${loading.products || loading.customers ? "animate-spin" : ""}`} />
+            {loading.products || loading.customers ? "Refreshing..." : "Refresh"}
+          </button>
         </div>
 
         {error && (
@@ -197,7 +239,7 @@ const Sales = () => {
 
         {/* Tab Navigation */}
         <div className="flex justify-center gap-4 mb-8 bg-white rounded-full p-2 shadow-sm border border-gray-200">
-          {["customer", "products", "cart"].map(t => (
+          {["customer", "products", "cart"].map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -242,10 +284,8 @@ const Sales = () => {
                     type="text"
                     placeholder="Search name or phone..."
                     value={customerSearch}
-                    onChange={e => setCustomerSearch(e.target.value)}
-                    className="w-full pl-12 pr-4 py-4 bg-white border border-gray-400 rounded-2xl 
-                               text-gray-900 placeholder:text-gray-500 text-lg
-                               focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    onChange={(e) => setCustomerSearch(e.target.value)}
+                    className="w-full pl-12 pr-4 py-4 bg-white border border-gray-400 rounded-2xl text-gray-900 placeholder:text-gray-500 text-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={24} />
                 </div>
@@ -260,7 +300,7 @@ const Sales = () => {
                   </p>
                 ) : (
                   <div className="space-y-3 max-h-[50vh] overflow-y-auto">
-                    {filteredCustomers.map(c => (
+                    {filteredCustomers.map((c) => (
                       <div
                         key={c._id}
                         onClick={() => {
@@ -303,10 +343,8 @@ const Sales = () => {
                   type="text"
                   placeholder="Search medicine..."
                   value={productSearch}
-                  onChange={e => setProductSearch(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-white border border-gray-400 rounded-2xl 
-                             text-gray-900 placeholder:text-gray-500
-                             focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 bg-white border border-gray-400 rounded-2xl text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                 />
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               </div>
@@ -320,7 +358,7 @@ const Sales = () => {
               <p className="text-center text-gray-500 py-12">No medicines found</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {filteredProducts.map(p => (
+                {filteredProducts.map((p) => (
                   <div
                     key={p._id}
                     className="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-lg hover:border-teal-300 transition-all cursor-pointer"
@@ -349,7 +387,8 @@ const Sales = () => {
                   onClick={() => window.confirm("Clear entire bill?") && setCart([])}
                   className="text-red-600 hover:text-red-800 flex items-center gap-1 text-sm font-medium"
                 >
-                  <Trash2 size={18} /> Clear
+                  <Trash2 size={18} />
+                  Clear
                 </button>
               )}
             </div>
@@ -362,7 +401,7 @@ const Sales = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {cart.map(item => (
+                {cart.map((item) => (
                   <div
                     key={item.product}
                     className="flex items-center justify-between bg-gray-50 p-4 rounded-2xl border border-gray-200"
@@ -411,7 +450,8 @@ const Sales = () => {
                   onClick={previewBill}
                   className="py-4 bg-gray-100 text-gray-800 rounded-xl font-medium hover:bg-gray-200 transition flex items-center justify-center gap-2"
                 >
-                  <Printer size={20} /> Preview
+                  <Printer size={20} />
+                  Preview
                 </button>
                 <button
                   onClick={submitSale}
