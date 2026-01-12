@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Search, Loader2, CheckCircle, AlertCircle, IndianRupee } from "lucide-react";
+import { useNavigate } from "react-router-dom"; // ← Added for navigation
+import { Search, Loader2, CheckCircle, AlertCircle, IndianRupee, RefreshCw, ArrowLeft } from "lucide-react";
 import api from "../utils/api";
 
 const ProductEdit = () => {
+  const navigate = useNavigate(); // ← For back button
+
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -12,7 +15,7 @@ const ProductEdit = () => {
   const [error, setError] = useState(null);
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
-  // Calculate total stock value (medical stock worth)
+  // Calculate total stock value
   const totalStockValue = products.reduce((sum, product) => {
     const purchasePrice = Number(product.purchasePrice) || 0;
     const quantity = Number(product.quantity) || 0;
@@ -84,7 +87,6 @@ const ProductEdit = () => {
 
       await api.put(`/api/fetch/${editId}`, updateData);
 
-      // Update products list
       const updatedProducts = products.map((p) =>
         p._id === editId ? { ...p, ...updateData } : p
       );
@@ -93,10 +95,10 @@ const ProductEdit = () => {
       setFilteredProducts(updatedProducts);
 
       showToast("Product updated successfully!", "success");
-      cancelEdit(); // Reset edit mode
+      cancelEdit();
     } catch (err) {
       console.error("Save error:", err);
-      showToast("Failed to save changes. Please try again.", "error");
+      showToast("Failed to save changes.", "error");
     }
   };
 
@@ -137,7 +139,7 @@ const ProductEdit = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
-      {/* Toast Notification */}
+      {/* Toast */}
       {toast.show && (
         <div className="fixed top-4 right-4 z-50 animate-fade-in">
           <div
@@ -153,23 +155,43 @@ const ProductEdit = () => {
         </div>
       )}
 
-      {/* Header + Total Stock Value */}
+      {/* Header with Back + Refresh + Total Value */}
       <header className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold text-gray-800">Edit Products</h1>
-              <p className="text-gray-600 text-sm">Manage medicine inventory</p>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate("/")} // ← Change this path if your first page is different
+                className="p-2 hover:bg-gray-100 rounded-full transition"
+                title="Go Back"
+              >
+                <ArrowLeft size={28} className="text-gray-700 hover:text-teal-600" />
+              </button>
+              <div>
+                <h1 className="text-xl md:text-2xl font-bold text-gray-800">Edit Products</h1>
+                <p className="text-gray-600 text-sm">Manage medicine inventory</p>
+              </div>
             </div>
 
-            <div className="bg-teal-50 px-5 py-3 rounded-xl border border-teal-200 shadow-sm">
-              <div className="flex items-center gap-2 text-teal-800">
-                <IndianRupee size={20} className="text-teal-600" />
-                <div>
-                  <p className="text-xs font-medium">Total Stock Value</p>
-                  <p className="text-xl font-bold">
-                    ₹{totalStockValue.toLocaleString("en-IN")}
-                  </p>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={fetchProducts}
+                className="flex items-center gap-2 px-5 py-2.5 bg-teal-50 text-teal-700 rounded-lg hover:bg-teal-100 transition font-medium"
+                title="Refresh Products"
+              >
+                <RefreshCw size={18} />
+                Refresh
+              </button>
+
+              <div className="bg-teal-50 px-5 py-3 rounded-xl border border-teal-200 shadow-sm">
+                <div className="flex items-center gap-2 text-teal-800">
+                  <IndianRupee size={20} className="text-teal-600" />
+                  <div>
+                    <p className="text-xs font-medium">Total Stock Value</p>
+                    <p className="text-xl font-bold">
+                      ₹{totalStockValue.toLocaleString("en-IN")}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -191,6 +213,7 @@ const ProductEdit = () => {
         </div>
       </div>
 
+      {/* Products Grid */}
       <main className="max-w-6xl mx-auto px-4">
         {filteredProducts.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl shadow-md">
@@ -210,7 +233,7 @@ const ProductEdit = () => {
                     isEditing ? "border-teal-500" : "border-gray-200"
                   }`}
                 >
-                  {/* Header */}
+                  {/* Product content remains the same */}
                   <div className="p-5 bg-gray-50 border-b">
                     {isEditing ? (
                       <input
@@ -232,7 +255,6 @@ const ProductEdit = () => {
                     )}
                   </div>
 
-                  {/* Content */}
                   <div className="p-6 space-y-6">
                     <div className="grid grid-cols-2 gap-6">
                       <div className="text-center">
@@ -292,7 +314,6 @@ const ProductEdit = () => {
                     </div>
                   </div>
 
-                  {/* Buttons */}
                   <div className="p-5 bg-gray-50 border-t flex justify-end gap-3">
                     {isEditing ? (
                       <>
