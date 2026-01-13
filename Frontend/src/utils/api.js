@@ -1,19 +1,20 @@
 // src/utils/api.js
 import axios from 'axios';
 
-// Use environment variable for flexibility (local vs production)
+// Base URL setup - uses environment variable first, falls back to production URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://bill-inventory-backend.onrender.com';
 
-// Add /api to baseURL so frontend calls can be clean (api.get('/allproducts'))
+// Create Axios instance with /api appended to baseURL
+// This makes frontend calls clean: api.get('/allproducts') → hits /api/allproducts automatically
 const api = axios.create({
-  baseURL: `${API_BASE_URL}/api`,  // ← FIXED: Add /api here
-  timeout: 60000,
+  baseURL: `${API_BASE_URL}/api`,
+  timeout: 60000, // 60 seconds timeout
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor (add token if exists)
+// Request interceptor - adds Bearer token if available
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -25,13 +26,13 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor (handle common errors like 401)
+// Response interceptor - handles common errors (like 401 Unauthorized)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       console.warn('Unauthorized - token might be invalid or expired');
-      // Optional: You can redirect to login here later
+      // Optional future improvement: redirect to login
       // window.location.href = '/login';
     }
     return Promise.reject(error);
