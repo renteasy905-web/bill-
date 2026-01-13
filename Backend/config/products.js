@@ -1,48 +1,57 @@
-// config/prodcts.js
+// config/products.js
 const mongoose = require("mongoose");
 
 // =====================
 // PRODUCT MODEL
 // =====================
-const productSchema = new mongoose.Schema({
-  itemName: {
-    type: String,
-    required: [true, "Item name is required"],
-    trim: true,
-    unique: true,
+const productSchema = new mongoose.Schema(
+  {
+    itemName: {
+      type: String,
+      required: [true, "Item name is required"],
+      trim: true,
+      unique: true,
+    },
+    salePrice: {
+      type: Number,
+      required: [true, "Sale price is required"],
+      min: [0, "Sale price cannot be negative"],
+    },
+    purchasePrice: {
+      type: Number,
+      required: [true, "Purchase price is required"],
+      min: [0, "Purchase price cannot be negative"],
+    },
+    quantity: {
+      type: Number,
+      required: [true, "Quantity is required"],
+      min: [0, "Quantity cannot be negative"],
+      default: 0,
+    },
+    description: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    expiryDate: {
+      type: Date,
+      default: null,
+    },
+    stockBroughtBy: {
+      type: String,
+      required: [true, "Stock brought by / Supplier name is required"],
+      trim: true,
+      minlength: [2, "Supplier name too short"],
+    },
+    latestUpdated: {
+      type: Date,
+      default: Date.now,
+    },
   },
-  salePrice: {
-    type: Number,
-    required: [true, "Sale price is required"],
-    min: [0, "Sale price cannot be negative"],
-  },
-  purchasePrice: {
-    type: Number,
-    required: [true, "Purchase price is required"],
-    min: [0, "Purchase price cannot be negative"],
-  },
-  quantity: {
-    type: Number,
-    required: [true, "Quantity is required"],
-    min: [0, "Quantity cannot be negative"],
-    default: 0,
-  },
-  description: {
-    type: String,
-    trim: true,
-    default: "",
-  },
-  expiryDate: {
-    type: Date,
-    default: null,
-  },
-  latestUpdated: {
-    type: Date,
-    default: Date.now,
-  },
-}, { timestamps: true });
+  { timestamps: true }
+);
 
-// Auto-update latestUpdated
+// Auto-update latestUpdated timestamp
 productSchema.pre("save", function (next) {
   this.latestUpdated = Date.now();
   next();
@@ -58,61 +67,77 @@ const Product = mongoose.model("Product", productSchema);
 // =====================
 // CUSTOMER MODEL
 // =====================
-const customerSchema = new mongoose.Schema({
-  name: { type: String, required: [true, "Name is required"], trim: true },
-  phone: {
-    type: String,
-    required: [true, "Phone is required"],
-    unique: true,
-    trim: true,
+const customerSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, "Name is required"],
+      trim: true,
+    },
+    phone: {
+      type: String,
+      required: [true, "Phone is required"],
+      unique: true,
+      trim: true,
+    },
+    address: {
+      type: String,
+      trim: true,
+      default: "",
+    },
   },
-  address: { type: String, default: "", trim: true },
-}, { timestamps: true });
+  { timestamps: true }
+);
 
 const Customer = mongoose.model("Customer", customerSchema);
 
 // =====================
 // SALE MODEL
 // =====================
-const saleSchema = new mongoose.Schema({
-  customer: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Customer",
-    required: false, // ← CHANGED: Optional for regular/walk-in sales
-    default: null,
-  },
-  items: [{
-    product: {
+const saleSchema = new mongoose.Schema(
+  {
+    customer: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Product",
-      required: [true, "Product is required"],
+      ref: "Customer",
+      required: false,
+      default: null,
     },
-    quantity: {
+    items: [
+      {
+        product: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Product",
+          required: [true, "Product is required"],
+        },
+        quantity: {
+          type: Number,
+          required: [true, "Quantity is required"],
+          min: [1, "Quantity must be at least 1"],
+        },
+        price: {
+          type: Number,
+          required: [true, "Price is required"],
+          min: [0, "Price cannot be negative"],
+        },
+      },
+    ],
+    totalAmount: {
       type: Number,
-      required: [true, "Quantity is required"],
-      min: [1, "Quantity must be at least 1"],
+      required: [true, "Total amount is required"],
+      min: [0, "Total amount cannot be negative"],
     },
-    price: {
-      type: Number,
-      required: [true, "Price is required"],
-      min: [0, "Price cannot be negative"],
+    paymentMode: {
+      type: String,
+      enum: ["Cash", "UPI", "Card", "Other"],
+      default: "Cash",
     },
-  }],
-  totalAmount: {
-    type: Number,
-    required: [true, "Total amount is required"],
-    min: [0, "Total amount cannot be negative"],
+    date: {
+      type: Date,
+      default: Date.now,
+    },
   },
-  paymentMode: {
-    type: String,
-    enum: ["Cash", "UPI", "Card", "Other"],
-    default: "Cash",
-  },
-  date: {
-    type: Date,
-    default: Date.now,
-  },
-}, { timestamps: true });
+  { timestamps: true }
+);
 
 const Sale = mongoose.model("Sale", saleSchema);
 
@@ -180,7 +205,7 @@ const getAllCustomers = async (req, res) => {
   }
 };
 
-// Sale Controllers (with stock management)
+// Sale Controllers (with transaction safety)
 const createSale = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -191,27 +216,38 @@ const createSale = async (req, res) => {
     if (!items || !Array.isArray(items) || items.length === 0) {
       throw new Error("Items are required");
     }
+
     if (totalAmount === undefined || totalAmount === null) {
-      throw new Error("totalAmount is required");
+      throw new Error("Total amount is required");
     }
 
-    // Validate stock and deduct
+    // Validate stock
     for (const item of items) {
       const product = await Product.findById(item.product).session(session);
       if (!product) throw new Error(`Product not found: ${item.product}`);
       if (product.quantity < item.quantity) {
         throw new Error(`Insufficient stock for ${product.itemName}`);
       }
-      product.quantity -= item.quantity;
-      await product.save({ session });
     }
 
-    const sale = await Sale.create([{
-      customer: customer || null, // Allow null for regular sales
-      items,
-      totalAmount,
-      paymentMode: paymentMode || "Cash",
-    }], { session });
+    // Deduct stock
+    for (const item of items) {
+      await Product.findByIdAndUpdate(
+        item.product,
+        { $inc: { quantity: -item.quantity } },
+        { session }
+      );
+    }
+
+    const sale = await Sale.create(
+      [{
+        customer: customer || null,
+        items,
+        totalAmount,
+        paymentMode: paymentMode || "Cash",
+      }],
+      { session }
+    );
 
     await session.commitTransaction();
     res.status(201).json({ success: true, sale: sale[0] });
@@ -325,6 +361,9 @@ const deleteSale = async (req, res) => {
   }
 };
 
+// =====================
+// EXPORTS
+// =====================
 module.exports = {
   createProduct,
   getAllProducts,
