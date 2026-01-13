@@ -5,15 +5,19 @@ import { ArrowLeft, RefreshCw } from "lucide-react";
 
 const CreateProducts = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
+
+  // Initial form state
+  const initialFormData = {
     Name: "",
     Mrp: "",
     purchasePrice: "",
     Quantity: "",
     Description: "",
     Expiry: "",
-    stockBroughtBy: "", // NEW FIELD
-  });
+    stockBroughtBy: "",
+  };
+
+  const [formData, setFormData] = useState(initialFormData);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
@@ -58,21 +62,20 @@ const CreateProducts = () => {
       await api.post("/api/products", payload);
 
       setSuccess("Product added successfully!");
-      setFormData({
-        Name: "",
-        Mrp: "",
-        purchasePrice: "",
-        Quantity: "",
-        Description: "",
-        Expiry: "",
-        stockBroughtBy: "",
-      });
+      setFormData(initialFormData); // Reset form after success
     } catch (err) {
       setError(err.response?.data?.message || "Failed to add product. Please try again.");
       console.error(err);
     } finally {
       setLoading(false);
     }
+  };
+
+  // NEW: Reset form only (no page reload)
+  const handleRefresh = () => {
+    setFormData(initialFormData);
+    setSuccess("");
+    setError("");
   };
 
   return (
@@ -96,13 +99,13 @@ const CreateProducts = () => {
             <p className="text-lg text-slate-300">Add New Product to Inventory</p>
           </div>
 
-          {/* Refresh Button */}
+          {/* Refresh Button - NOW ONLY RESETS FORM CONTENT */}
           <button
-            onClick={() => window.location.reload()}
+            onClick={handleRefresh}
             className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600/70 hover:bg-indigo-600 rounded-lg text-white transition-all shadow-md"
           >
             <RefreshCw size={18} />
-            Refresh Page
+            Refresh Form
           </button>
         </div>
 
@@ -126,7 +129,7 @@ const CreateProducts = () => {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-7">
-              {/* Item Name */}
+              {/* Product Name */}
               <div>
                 <label className="block text-slate-300 font-medium mb-2">
                   Product Name <span className="text-red-400">*</span>
@@ -142,7 +145,7 @@ const CreateProducts = () => {
                 />
               </div>
 
-              {/* Supplier - NEW */}
+              {/* Supplier */}
               <div>
                 <label className="block text-slate-300 font-medium mb-2">
                   Stock Brought By / Supplier <span className="text-red-400">*</span>
