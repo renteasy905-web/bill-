@@ -1,13 +1,14 @@
+// models/Products.js  (or config/products.js - your choice)
 const mongoose = require("mongoose");
 
 // ────────────────────────────────
-// PRODUCT MODEL
+// PRODUCT SCHEMA
 // ────────────────────────────────
 const productSchema = new mongoose.Schema(
   {
     Name: {
       type: String,
-      required: [true, "Item name is required"],
+      required: [true, "Product name is required"],
       trim: true,
       unique: true,
     },
@@ -18,8 +19,13 @@ const productSchema = new mongoose.Schema(
     },
     Mrp: {
       type: Number,
-      required: [true, "MRP/Sale price is required"],
-      min: [0, "Price cannot be negative"],
+      required: [true, "MRP / Sale price is required"],
+      min: [0, "MRP cannot be negative"],
+    },
+    purchasePrice: {  // ← Added for better tracking (was missing in original)
+      type: Number,
+      required: [true, "Purchase price is required"],
+      min: [0, "Purchase price cannot be negative"],
     },
     Quantity: {
       type: Number,
@@ -39,13 +45,26 @@ const productSchema = new mongoose.Schema(
 const Product = mongoose.model("Product", productSchema);
 
 // ────────────────────────────────
-// CUSTOMER MODEL
+// CUSTOMER SCHEMA
 // ────────────────────────────────
 const customerSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true, trim: true },
-    phone: { type: String, required: true, unique: true, trim: true },
-    address: { type: String, trim: true, default: "" },
+    name: {
+      type: String,
+      required: [true, "Name is required"],
+      trim: true,
+    },
+    phone: {
+      type: String,
+      required: [true, "Phone number is required"],
+      unique: true,
+      trim: true,
+    },
+    address: {
+      type: String,
+      trim: true,
+      default: "",
+    },
   },
   { timestamps: true }
 );
@@ -53,7 +72,7 @@ const customerSchema = new mongoose.Schema(
 const Customer = mongoose.model("Customer", customerSchema);
 
 // ────────────────────────────────
-// SALE MODEL
+// SALE SCHEMA
 // ────────────────────────────────
 const saleSchema = new mongoose.Schema(
   {
@@ -68,23 +87,23 @@ const saleSchema = new mongoose.Schema(
         product: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "Product",
-          required: true,
+          required: [true, "Product is required"],
         },
         quantity: {
           type: Number,
-          required: true,
+          required: [true, "Quantity is required"],
           min: [1, "Quantity must be at least 1"],
         },
         price: {
           type: Number,
-          required: true,
+          required: [true, "Price is required"],
           min: [0, "Price cannot be negative"],
         },
       },
     ],
     totalAmount: {
       type: Number,
-      required: true,
+      required: [true, "Total amount is required"],
       min: [0, "Total cannot be negative"],
     },
     paymentMode: {
@@ -103,7 +122,7 @@ const saleSchema = new mongoose.Schema(
 const Sale = mongoose.model("Sale", saleSchema);
 
 // ────────────────────────────────
-// CONTROLLERS
+// CONTROLLERS (with improved stock handling using transactions)
 // ────────────────────────────────
 
 // Product Controllers
@@ -140,7 +159,9 @@ const updateProduct = async (req, res) => {
       new: true,
       runValidators: true,
     });
-    if (!product) return res.status(404).json({ success: false, message: "Product not found" });
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
     res.status(200).json({ success: true, product });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -166,41 +187,53 @@ const getAllCustomers = async (req, res) => {
   }
 };
 
-// Sale Controllers (with basic stock management)
+// Sale Controllers - with TRANSACTION for safe stock management
 const createSale = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { customer, items, totalAmount, paymentMode } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ success: false, message: "Items are required" });
+      throw new Error("Items are required");
     }
 
-    // Check stock
+    // Validate stock
     for (const item of items) {
-      const product = await Product.findById(item.product);
+      const product = await Product.findById(item.product).session(session);
       if (!product) throw new Error(`Product not found: ${item.product}`);
       if (product.Quantity < item.quantity) {
-        throw new Error(`Insufficient stock for product ID ${item.product}`);
+        throw new Error(`Insufficient stock for ${product.Name}`);
       }
     }
 
     // Deduct stock
     for (const item of items) {
-      await Product.findByIdAndUpdate(item.product, {
-        $inc: { Quantity: -item.quantity },
-      });
+      await Product.findByIdAndUpdate(
+        item.product,
+        { $inc: { Quantity: -item.quantity } },
+        { session }
+      );
     }
 
-    const sale = await Sale.create({
-      customer: customer || null,
-      items,
-      totalAmount,
-      paymentMode: paymentMode || "Cash",
-    });
+    const sale = await Sale.create(
+      [{
+        customer: customer || null,
+        items,
+        totalAmount,
+        paymentMode: paymentMode || "Cash",
+      }],
+      { session }
+    );
 
-    res.status(201).json({ success: true, sale });
+    await session.commitTransaction();
+    res.status(201).json({ success: true, sale: sale[0] });
   } catch (error) {
+    await session.abortTransaction();
     res.status(400).json({ success: false, message: error.message });
+  } finally {
+    session.endSession();
   }
 };
 
@@ -229,34 +262,83 @@ const getSaleById = async (req, res) => {
 };
 
 const updateSaleById = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    const sale = await Sale.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
-    if (!sale) return res.status(404).json({ success: false, message: "Sale not found" });
+    const sale = await Sale.findById(req.params.id).session(session);
+    if (!sale) throw new Error("Sale not found");
+
+    const { items: newItems, totalAmount, paymentMode } = req.body;
+
+    if (newItems && Array.isArray(newItems)) {
+      // Restore old stock
+      for (const oldItem of sale.items) {
+        await Product.findByIdAndUpdate(
+          oldItem.product,
+          { $inc: { Quantity: oldItem.quantity } },
+          { session }
+        );
+      }
+
+      // Validate & deduct new stock
+      for (const item of newItems) {
+        const product = await Product.findById(item.product).session(session);
+        if (!product) throw new Error(`Product not found: ${item.product}`);
+        if (product.Quantity < item.quantity) {
+          throw new Error(`Insufficient stock for ${product.Name}`);
+        }
+        await Product.findByIdAndUpdate(
+          item.product,
+          { $inc: { Quantity: -item.quantity } },
+          { session }
+        );
+      }
+
+      sale.items = newItems;
+    }
+
+    if (totalAmount !== undefined) sale.totalAmount = totalAmount;
+    if (paymentMode) sale.paymentMode = paymentMode;
+
+    await sale.save({ session });
+    await session.commitTransaction();
+
     res.status(200).json({ success: true, sale });
   } catch (error) {
+    await session.abortTransaction();
     res.status(400).json({ success: false, message: error.message });
+  } finally {
+    session.endSession();
   }
 };
 
 const deleteSale = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    const sale = await Sale.findById(req.params.id);
-    if (!sale) return res.status(404).json({ success: false, message: "Sale not found" });
+    const sale = await Sale.findById(req.params.id).session(session);
+    if (!sale) throw new Error("Sale not found");
 
     // Restore stock
     for (const item of sale.items) {
-      await Product.findByIdAndUpdate(item.product, {
-        $inc: { Quantity: item.quantity },
-      });
+      await Product.findByIdAndUpdate(
+        item.product,
+        { $inc: { Quantity: item.quantity } },
+        { session }
+      );
     }
 
-    await Sale.findByIdAndDelete(req.params.id);
+    await Sale.findByIdAndDelete(req.params.id).session(session);
+    await session.commitTransaction();
+
     res.status(200).json({ success: true, message: "Sale deleted and stock restored" });
   } catch (error) {
+    await session.abortTransaction();
     res.status(400).json({ success: false, message: error.message });
+  } finally {
+    session.endSession();
   }
 };
 
