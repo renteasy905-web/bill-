@@ -44,7 +44,7 @@ const First = () => {
   desc: "Low stock & expired items",
   icon: AlertTriangle,
   color: "orange",
-  to: "/order-stock",
+  to: "/OrderStock",
 },
   ];
   return (
