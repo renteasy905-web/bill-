@@ -1,5 +1,6 @@
 // models/sale.js
 const mongoose = require("mongoose");
+const Product = require("./product"); // ← Make sure to import your Product model
 
 // =====================
 // SALE SCHEMA
@@ -9,7 +10,7 @@ const saleSchema = new mongoose.Schema(
     customer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Customer",
-      required: false,          // ← Optional for regular/walk-in sales
+      required: false, // ← Optional for regular/walk-in sales
       default: null,
     },
     items: [
@@ -18,6 +19,10 @@ const saleSchema = new mongoose.Schema(
           type: mongoose.Schema.Types.ObjectId,
           ref: "Product",
           required: [true, "Product is required"],
+        },
+        name: {                        // ← NEW: Store product name for reliability
+          type: String,
+          required: false,
         },
         quantity: {
           type: Number,
@@ -64,11 +69,10 @@ const Sale = mongoose.model("Sale", saleSchema);
 // CONTROLLERS (exported)
 // =====================
 
-// Create Sale (with stock deduction)
+// Create Sale (with stock deduction + saving product name)
 const createSale = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
-
   try {
     const { customer, items, totalAmount, paymentMode } = req.body;
 
@@ -79,12 +83,27 @@ const createSale = async (req, res) => {
       throw new Error("totalAmount is required");
     }
 
+    // Enrich items with product name (makes frontend display reliable)
+    const enrichedItems = await Promise.all(
+      items.map(async (item) => {
+        const product = await Product.findById(item.product).select("itemName Name salePrice");
+        if (!product) throw new Error(`Product not found: ${item.product}`);
+
+        return {
+          product: item.product,
+          name: product.itemName || product.Name || "Unknown Product", // ← Saves name
+          quantity: item.quantity,
+          price: item.price || product.salePrice || product.Mrp || 0,
+        };
+      })
+    );
+
     // Validate and deduct stock
-    for (const item of items) {
+    for (const item of enrichedItems) { // Using enriched version for consistency
       const product = await Product.findById(item.product).session(session);
       if (!product) throw new Error(`Product not found: ${item.product}`);
       if (product.quantity < item.quantity) {
-        throw new Error(`Insufficient stock for ${product.itemName}`);
+        throw new Error(`Insufficient stock for ${product.itemName || product.Name}`);
       }
       product.quantity -= item.quantity;
       await product.save({ session });
@@ -93,7 +112,7 @@ const createSale = async (req, res) => {
     const sale = await Sale.create(
       [{
         customer: customer || null,
-        items,
+        items: enrichedItems,
         totalAmount,
         paymentMode: paymentMode || "Cash",
       }],
@@ -110,15 +129,27 @@ const createSale = async (req, res) => {
   }
 };
 
-// Get All Sales
+// Get All Sales (with debug log + both field names)
 const getAllSales = async (req, res) => {
   try {
     const sales = await Sale.find()
       .populate("customer", "name phone address")
-      .populate("items.product", "itemName salePrice quantity")
+      .populate("items.product", "itemName Name salePrice quantity") // ← Added Name
       .sort({ date: -1 });
+
+    // Temporary debug (remove after testing)
+    if (sales.length > 0) {
+      console.log("Sample sale - first item:", {
+        productId: sales[0].items[0]?.product?._id?.toString(),
+        itemName: sales[0].items[0]?.product?.itemName,
+        Name: sales[0].items[0]?.product?.Name,
+        savedName: sales[0].items[0]?.name
+      });
+    }
+
     res.status(200).json({ success: true, sales });
   } catch (error) {
+    console.error("getAllSales error:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -128,7 +159,7 @@ const getSaleById = async (req, res) => {
   try {
     const sale = await Sale.findById(req.params.id)
       .populate("customer", "name phone address")
-      .populate("items.product", "itemName salePrice quantity");
+      .populate("items.product", "itemName Name salePrice quantity");
     if (!sale) return res.status(404).json({ success: false, message: "Sale not found" });
     res.status(200).json({ success: true, sale });
   } catch (error) {
@@ -140,7 +171,6 @@ const getSaleById = async (req, res) => {
 const updateSaleById = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
-
   try {
     const sale = await Sale.findById(req.params.id).session(session);
     if (!sale) throw new Error("Sale not found");
@@ -157,18 +187,31 @@ const updateSaleById = async (req, res) => {
         }
       }
 
+      // Enrich new items with name (consistency)
+      const enrichedNewItems = await Promise.all(
+        newItems.map(async (item) => {
+          const product = await Product.findById(item.product).select("itemName Name salePrice");
+          return {
+            product: item.product,
+            name: product?.itemName || product?.Name || "Unknown Product",
+            quantity: item.quantity,
+            price: item.price || product?.salePrice || 0,
+          };
+        })
+      );
+
       // Deduct new stock
-      for (const item of newItems) {
+      for (const item of enrichedNewItems) {
         const product = await Product.findById(item.product).session(session);
         if (!product) throw new Error(`Product not found: ${item.product}`);
         if (product.quantity < item.quantity) {
-          throw new Error(`Insufficient stock for ${product.itemName}`);
+          throw new Error(`Insufficient stock for ${product.itemName || product.Name}`);
         }
         product.quantity -= item.quantity;
         await product.save({ session });
       }
 
-      sale.items = newItems;
+      sale.items = enrichedNewItems;
     }
 
     if (totalAmount !== undefined) sale.totalAmount = totalAmount;
@@ -190,7 +233,6 @@ const updateSaleById = async (req, res) => {
 const deleteSale = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
-
   try {
     const sale = await Sale.findById(req.params.id).session(session);
     if (!sale) throw new Error("Sale not found");
@@ -218,7 +260,7 @@ const deleteSale = async (req, res) => {
 
 // Export all controllers
 module.exports = {
-  createProduct,
+  createProduct,           // assuming these are defined elsewhere
   getAllProducts,
   getProductsSortedByName,
   updateProduct,
