@@ -12,6 +12,7 @@ import Allrproducts from './Pages/Allproducts';
 import ListofSales from './Pages/ListofSales';
 import EditSale from './Pages/Editsales';
 import Notifications from './Pages/Notifications';
+import OrderStock from './Pages/OrderStock'; // ← NEW PAGE ADDED
 
 const App = () => {
   return (
@@ -35,6 +36,9 @@ const App = () => {
 
         {/* Notifications */}
         <Route path="/notifications" element={<Notifications />} />
+
+        {/* NEW: Stock Order Planning Page */}
+        <Route path="/order-stock" element={<OrderStock />} />
 
         {/* 404 - Catch-all for invalid URLs */}
         <Route
