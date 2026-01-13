@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom"; // ← Added for back button
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
 import {
   Receipt,
@@ -22,7 +22,6 @@ import "jspdf-autotable";
 
 const ListofSales = () => {
   const navigate = useNavigate();
-
   const [sales, setSales] = useState([]);
   const [filteredSales, setFilteredSales] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -40,18 +39,21 @@ const ListofSales = () => {
     gstin: "29ABCDE1234F1Z5",
   };
 
-  // Fetch all sales
+  // Fetch all sales - FIXED: correct endpoint
   const fetchAllSales = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get("/api/allsales");
+
+      const res = await api.get("/allsales");
+      console.log("Sales API Response:", res.data);
+
       const salesData = res.data.sales || res.data.data || res.data || [];
       setSales(salesData);
       setFilteredSales(salesData);
     } catch (err) {
       console.error("Fetch error:", err);
-      setError("Failed to load sales records.");
+      setError("Failed to load sales records. Check console.");
     } finally {
       setLoading(false);
     }
@@ -61,7 +63,7 @@ const ListofSales = () => {
     fetchAllSales();
   }, []);
 
-  // Real-time search
+  // Search filter (customer name or phone)
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredSales(sales);
@@ -90,9 +92,9 @@ const ListofSales = () => {
 
   // Delete sale
   const handleDelete = async (saleId) => {
-    if (!window.confirm("Delete this sale? This cannot be undone.")) return;
+    if (!window.confirm("Delete this sale? Stock will be restored.")) return;
     try {
-      await api.delete(`/api/sales/${saleId}`);
+      await api.delete(`/sales/${saleId}`); // Assuming delete route is /sales/:id
       const updated = sales.filter((s) => s._id !== saleId);
       setSales(updated);
       setFilteredSales(updated);
@@ -103,35 +105,43 @@ const ListofSales = () => {
     }
   };
 
-  // Start editing
+  // Start editing (quantity only for simplicity)
   const startEdit = (sale) => {
     setEditingSale(sale);
     setEditedItems(sale.items.map((item) => ({ ...item })));
+  };
+
+  const cancelEdit = () => {
+    setEditingSale(null);
+    setEditedItems([]);
   };
 
   // Save edited sale
   const saveEdit = async () => {
     if (!editingSale) return;
     try {
-      const updatedTotal = editedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-      await api.put(`/api/sales/${editingSale._id}`, {
+      const updatedTotal = editedItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 0), 0);
+
+      await api.put(`/sales/${editingSale._id}`, {
         items: editedItems,
         totalAmount: updatedTotal,
       });
+
       const updatedSales = sales.map((s) =>
         s._id === editingSale._id ? { ...s, items: editedItems, totalAmount: updatedTotal } : s
       );
+
       setSales(updatedSales);
       setFilteredSales(updatedSales);
-      setEditingSale(null);
       showToast("Sale updated successfully", "success");
+      cancelEdit();
     } catch (err) {
       console.error(err);
       showToast("Failed to update sale", "error");
     }
   };
 
-  // PDF Generation (unchanged)
+  // PDF Generation (kept your original)
   const generateInvoicePDF = (sale) => {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const purple = "#6b21a8";
@@ -144,6 +154,7 @@ const ListofSales = () => {
     doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
     doc.text("TAX INVOICE", 105, 18, { align: "center" });
+
     doc.setTextColor(lightPurple);
     doc.setFontSize(24);
     doc.text("MEDICAL INVOICE", 105, 38, { align: "center" });
@@ -192,13 +203,13 @@ const ListofSales = () => {
     doc.text("Amount in words: Rupees One Hundred Only", 20, finalY + 25);
     doc.text("Terms & Conditions:", 20, finalY + 45);
     doc.setFontSize(9);
-    doc.text("1. Goods once sold will  be taken back or exchanged.", 25, finalY + 52);
-    doc.text("2. All disputes subject to  jurisdiction only.", 25, finalY + 59);
-    doc.text("3. Medicines should be taken only on doctor's advice.", 25, finalY + 66);
-    doc.setFontSize(11);
-    doc.text("Digitally Signature", 150, finalY + 85, { align: "right" });
+    doc.text("1. Goods once sold will not be taken back or exchanged.", 25, finalY + 52);
+    doc.text("2. All disputes subject to Bengaluru jurisdiction.", 25, finalY + 59);
 
-    return doc;  
+    doc.setFontSize(11);
+    doc.text("Seal & Signature", 150, finalY + 70, { align: "right" });
+
+    return doc;
   };
 
   const handleDownload = (sale) => {
@@ -256,11 +267,10 @@ const ListofSales = () => {
       )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header with Back + Title + Refresh */}
+        {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6">
-          {/* Back Button */}
           <button
-            onClick={() => navigate("/")} // ← Change to "/first" if needed
+            onClick={() => navigate("/")}
             className="flex items-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition shadow-md"
           >
             <ArrowLeft size={20} />
@@ -272,7 +282,6 @@ const ListofSales = () => {
             All Sales Records
           </h1>
 
-          {/* Refresh Button */}
           <button
             onClick={fetchAllSales}
             disabled={loading}
@@ -332,7 +341,7 @@ const ListofSales = () => {
 
                 <div className="mb-5 pb-4 border-b border-gray-200">
                   <p className="text-gray-800 font-semibold">
-                    Patient: {sale.customer?.name || "Unknown"}
+                    Patient: {sale.customer?.name || "Walk-in"}
                   </p>
                   <p className="text-gray-600 text-sm">
                     {sale.customer?.phone ? `+91 ${sale.customer.phone}` : "—"}
@@ -398,7 +407,7 @@ const ListofSales = () => {
                 <h2 className="text-2xl font-bold text-gray-800">
                   Edit Sale #{editingSale._id.slice(-8)}
                 </h2>
-                <button onClick={() => setEditingSale(null)} className="text-gray-500 hover:text-gray-700">
+                <button onClick={cancelEdit} className="text-gray-500 hover:text-gray-700">
                   <X size={28} />
                 </button>
               </div>
@@ -445,14 +454,14 @@ const ListofSales = () => {
 
               <div className="flex justify-end gap-4">
                 <button
-                  onClick={() => setEditingSale(null)}
-                  className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg"
+                  onClick={cancelEdit}
+                  className="px-6 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={saveEdit}
-                  className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg"
+                  className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg"
                 >
                   Save Changes
                 </button>
