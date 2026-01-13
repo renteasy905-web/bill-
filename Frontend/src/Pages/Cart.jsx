@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom"; // ← Added for navigation
-import { Search, Loader2, CheckCircle, AlertCircle, IndianRupee, RefreshCw, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Search, Loader2, CheckCircle, AlertCircle, IndianRupee, RefreshCw, ArrowLeft, Pencil } from "lucide-react";
 import api from "../utils/api";
 
 const ProductEdit = () => {
-  const navigate = useNavigate(); // ← For back button
-
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,7 +29,8 @@ const ProductEdit = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get("/api/fetch");
+      const res = await api.get("/allproducts"); // ← FIXED: Use correct endpoint
+      console.log("Products API Response:", res.data);
       const data = res.data.products || [];
       setProducts(data);
       setFilteredProducts(data);
@@ -42,14 +42,19 @@ const ProductEdit = () => {
     }
   };
 
-  // Search filter
+  // Search filter (product name + supplier)
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredProducts(products);
       return;
     }
     const term = searchTerm.toLowerCase();
-    setFilteredProducts(products.filter((p) => p.itemName?.toLowerCase().includes(term)));
+    setFilteredProducts(
+      products.filter((p) =>
+        (p.itemName || "").toLowerCase().includes(term) ||
+        (p.stockBroughtBy || "").toLowerCase().includes(term)
+      )
+    );
   }, [searchTerm, products]);
 
   // Toast auto-hide
@@ -76,16 +81,18 @@ const ProductEdit = () => {
 
   const saveEdit = async () => {
     if (!editId) return;
-
     try {
       const updateData = {
         itemName: editedProduct.itemName?.trim() || "",
         salePrice: Number(editedProduct.salePrice) || 0,
         purchasePrice: Number(editedProduct.purchasePrice) || 0,
         quantity: Number(editedProduct.quantity) || 0,
+        description: editedProduct.description?.trim() || "",
+        stockBroughtBy: editedProduct.stockBroughtBy?.trim() || "",
+        expiryDate: editedProduct.expiryDate || null,
       };
 
-      await api.put(`/api/fetch/${editId}`, updateData);
+      await api.put(`/products/${editId}`, updateData); // ← Assuming your update route is /products/:id
 
       const updatedProducts = products.map((p) =>
         p._id === editId ? { ...p, ...updateData } : p
@@ -93,7 +100,6 @@ const ProductEdit = () => {
 
       setProducts(updatedProducts);
       setFilteredProducts(updatedProducts);
-
       showToast("Product updated successfully!", "success");
       cancelEdit();
     } catch (err) {
@@ -161,7 +167,7 @@ const ProductEdit = () => {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => navigate("/")} // ← Change this path if your first page is different
+                onClick={() => navigate("/")}
                 className="p-2 hover:bg-gray-100 rounded-full transition"
                 title="Go Back"
               >
@@ -172,7 +178,6 @@ const ProductEdit = () => {
                 <p className="text-gray-600 text-sm">Manage medicine inventory</p>
               </div>
             </div>
-
             <div className="flex items-center gap-4">
               <button
                 onClick={fetchProducts}
@@ -182,7 +187,6 @@ const ProductEdit = () => {
                 <RefreshCw size={18} />
                 Refresh
               </button>
-
               <div className="bg-teal-50 px-5 py-3 rounded-xl border border-teal-200 shadow-sm">
                 <div className="flex items-center gap-2 text-teal-800">
                   <IndianRupee size={20} className="text-teal-600" />
@@ -204,7 +208,7 @@ const ProductEdit = () => {
         <div className="relative">
           <input
             type="text"
-            placeholder="Search product name..."
+            placeholder="Search product name or supplier..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full px-5 py-4 pl-12 rounded-2xl border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 text-lg focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none shadow-sm"
@@ -223,7 +227,7 @@ const ProductEdit = () => {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredProducts.map((product) => {
               const isEditing = editId === product._id;
-              const lowStock = product.quantity <= 10;
+              const lowStock = (product.quantity || 0) <= 10;
               const profit = (product.salePrice || 0) - (product.purchasePrice || 0);
 
               return (
@@ -233,7 +237,7 @@ const ProductEdit = () => {
                     isEditing ? "border-teal-500" : "border-gray-200"
                   }`}
                 >
-                  {/* Product content remains the same */}
+                  {/* Header */}
                   <div className="p-5 bg-gray-50 border-b">
                     {isEditing ? (
                       <input
@@ -248,13 +252,14 @@ const ProductEdit = () => {
                         <h2 className="text-xl font-bold text-gray-900">{product.itemName || "Unnamed"}</h2>
                         {lowStock && (
                           <span className="bg-red-100 text-red-700 text-xs font-bold px-3 py-1 rounded-full">
-                            Low ({product.quantity})
+                            Low ({product.quantity || 0})
                           </span>
                         )}
                       </div>
                     )}
                   </div>
 
+                  {/* Main Content */}
                   <div className="p-6 space-y-6">
                     <div className="grid grid-cols-2 gap-6">
                       <div className="text-center">
@@ -264,13 +269,12 @@ const ProductEdit = () => {
                             type="number"
                             value={editedProduct.salePrice ?? ""}
                             onChange={(e) => handleChange("salePrice", e.target.value)}
-                            className="w-full px-4 py-3 text-2xl font-bold text-teal-700 bg-white border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                            className="w-full px-4 py-3 text-2xl font-bold text-teal-700 bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400"
                           />
                         ) : (
                           <p className="text-3xl font-bold text-teal-700">₹{product.salePrice ?? "0"}</p>
                         )}
                       </div>
-
                       <div className="text-center">
                         <p className="text-sm text-gray-600 mb-1">Stock</p>
                         {isEditing ? (
@@ -278,7 +282,7 @@ const ProductEdit = () => {
                             type="number"
                             value={editedProduct.quantity ?? ""}
                             onChange={(e) => handleChange("quantity", e.target.value)}
-                            className="w-full px-4 py-3 text-2xl font-bold text-indigo-700 bg-white border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                            className="w-full px-4 py-3 text-2xl font-bold text-indigo-700 bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400"
                           />
                         ) : (
                           <p className="text-3xl font-bold text-indigo-700">{product.quantity ?? 0}</p>
@@ -300,7 +304,6 @@ const ProductEdit = () => {
                           <p className="font-medium text-gray-900">₹{product.purchasePrice ?? "0"}</p>
                         )}
                       </div>
-
                       <div>
                         <p className="text-gray-600">Profit</p>
                         <p
@@ -308,12 +311,68 @@ const ProductEdit = () => {
                             profit > 0 ? "text-green-600" : profit < 0 ? "text-red-600" : "text-gray-600"
                           }`}
                         >
-                          ₹{profit}
+                          ₹{profit.toFixed(2)}
                         </p>
                       </div>
                     </div>
+
+                    {/* Supplier & Expiry */}
+                    <div className="grid grid-cols-2 gap-6 text-base">
+                      <div>
+                        <p className="text-gray-600">Supplier</p>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editedProduct.stockBroughtBy ?? ""}
+                            onChange={(e) => handleChange("stockBroughtBy", e.target.value)}
+                            className="mt-1 w-full px-3 py-2 text-lg font-medium border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                            placeholder="Supplier name"
+                          />
+                        ) : (
+                          <p className="font-medium text-gray-900">{product.stockBroughtBy || "Unknown"}</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Expiry</p>
+                        {isEditing ? (
+                          <input
+                            type="date"
+                            value={
+                              editedProduct.expiryDate
+                                ? new Date(editedProduct.expiryDate).toISOString().split("T")[0]
+                                : ""
+                            }
+                            onChange={(e) => handleChange("expiryDate", e.target.value)}
+                            className="mt-1 w-full px-3 py-2 text-lg font-medium border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                          />
+                        ) : (
+                          <p className="font-medium text-gray-900">
+                            {product.expiryDate
+                              ? new Date(product.expiryDate).toLocaleDateString("en-IN")
+                              : "No Expiry"}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                      <p className="text-gray-600">Description</p>
+                      {isEditing ? (
+                        <textarea
+                          value={editedProduct.description ?? ""}
+                          onChange={(e) => handleChange("description", e.target.value)}
+                          className="mt-1 w-full px-3 py-2 text-base border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                          rows={2}
+                          placeholder="Product description"
+                        />
+                      ) : (
+                        <p className="font-medium text-gray-900">{product.description || "—"}</p>
+                      )}
+                    </div>
                   </div>
 
+                  {/* Action Buttons */}
                   <div className="p-5 bg-gray-50 border-t flex justify-end gap-3">
                     {isEditing ? (
                       <>
@@ -333,9 +392,10 @@ const ProductEdit = () => {
                     ) : (
                       <button
                         onClick={() => startEdit(product)}
-                        className="px-8 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-md"
+                        className="px-8 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-md flex items-center gap-2"
                       >
-                        ✏️ Edit
+                        <Pencil size={18} />
+                        Edit
                       </button>
                     )}
                   </div>
