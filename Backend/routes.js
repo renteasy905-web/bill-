@@ -1,9 +1,8 @@
-// routes.js  — clean & working version without controllers folder
-
+// routes.js
 const express = require("express");
 const router = express.Router();
 
-// Import ALL functions from your current main file (choose one!)
+// FIXED IMPORT - Capital P is important!
 const {
   createProduct,
   getAllProducts,
@@ -16,19 +15,25 @@ const {
   getSaleById,
   updateSaleById,
   deleteSale,
-} = require("./models/products");   // ← CHANGE THIS PATH to your actual file!
+} = require("./models/Products");
 
+// =====================
 // PRODUCT ROUTES
+// =====================
 router.post("/products", createProduct);
 router.get("/allproducts", getAllProducts);
 router.get("/fetch", getProductsSortedByName);
-router.put("/fetch/:id", updateProduct);   // consider changing to /products/:id
+router.put("/fetch/:id", updateProduct);  // ← consider renaming to "/products/:id" later
 
+// =====================
 // CUSTOMER ROUTES
+// =====================
 router.post("/create", createCustomer);
 router.get("/getcustomers", getAllCustomers);
 
+// =====================
 // SALE ROUTES
+// =====================
 router.post("/sale", createSale);
 router.get("/allsales", getAllSales);
 router.get("/sales/:id", getSaleById);
