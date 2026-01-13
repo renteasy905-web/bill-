@@ -1,8 +1,6 @@
 // routes.js
 const express = require("express");
-const router = express.Router();
 
-// FIXED IMPORT - Capital P is important!
 const {
   createProduct,
   getAllProducts,
@@ -15,7 +13,9 @@ const {
   getSaleById,
   updateSaleById,
   deleteSale,
-} = require("./models/Products");
+} = require("./models/Products");   // ← Important: Capital P !!
+
+const router = express.Router();
 
 // =====================
 // PRODUCT ROUTES
@@ -23,7 +23,7 @@ const {
 router.post("/products", createProduct);
 router.get("/allproducts", getAllProducts);
 router.get("/fetch", getProductsSortedByName);
-router.put("/fetch/:id", updateProduct);  // ← consider renaming to "/products/:id" later
+router.put("/fetch/:id", updateProduct);
 
 // =====================
 // CUSTOMER ROUTES
