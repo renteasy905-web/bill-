@@ -1,6 +1,5 @@
 // routes.js
 const express = require("express");
-
 const {
   createProduct,
   getAllProducts,
@@ -13,27 +12,21 @@ const {
   getSaleById,
   updateSaleById,
   deleteSale,
-} = require("./models/Products");   // ← Important: Capital P !!
+} = require("./models/Products");   // ← This must match your actual filename!
 
 const router = express.Router();
 
-// =====================
 // PRODUCT ROUTES
-// =====================
 router.post("/products", createProduct);
 router.get("/allproducts", getAllProducts);
 router.get("/fetch", getProductsSortedByName);
 router.put("/fetch/:id", updateProduct);
 
-// =====================
 // CUSTOMER ROUTES
-// =====================
 router.post("/create", createCustomer);
 router.get("/getcustomers", getAllCustomers);
 
-// =====================
 // SALE ROUTES
-// =====================
 router.post("/sale", createSale);
 router.get("/allsales", getAllSales);
 router.get("/sales/:id", getSaleById);
