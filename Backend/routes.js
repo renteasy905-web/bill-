@@ -1,43 +1,37 @@
-// routes.js
+// routes.js (or routes/index.js)
+const express = require('express');
+const router = express.Router();
 
-const express = require("express");
 const {
   createProduct,
   getAllProducts,
-  getProductsSortedByName,
-  updateProduct,
+  // ...
+} = require('../controllers/productController');
+
+const {
   createCustomer,
   getAllCustomers,
+} = require('../controllers/customerController');
+
+const {
   createSale,
   getAllSales,
-  getSaleById,
-  updateSaleById,
-  deleteSale,
-} = require("./config/products");
+  // ...
+} = require('../controllers/saleController');
 
-const router = express.Router();
+// ── Product routes ──
+router.post('/products', createProduct);
+router.get('/products', getAllProducts);     // ← better name than /allproducts
 
-// =====================
-// PRODUCT ROUTES
-// =====================
-router.post("/products", createProduct);                  
-router.get("/allproducts", getAllProducts);              
-router.get("/fetch", getProductsSortedByName);            
-router.put("/fetch/:id", updateProduct);                  
+// ── Customer routes ──
+router.post('/customers', createCustomer);
+router.get('/customers', getAllCustomers);
 
-// =====================
-// CUSTOMER ROUTES
-// =====================
-router.post("/create", createCustomer);                   
-router.get("/getcustomers", getAllCustomers);              
-
-// =====================
-// SALE ROUTES
-// =====================
-router.post("/sale", createSale);                       
-router.get("/allsales", getAllSales);                   
-router.get("/sales/:id", getSaleById);                     
-router.put("/sales/:id", updateSaleById);                   
-router.delete("/sales/:id", deleteSale);              
+// ── Sale routes ──
+router.post('/sales', createSale);
+router.get('/sales', getAllSales);
+router.get('/sales/:id', getSaleById);
+router.put('/sales/:id', updateSaleById);
+router.delete('/sales/:id', deleteSale);
 
 module.exports = router;
