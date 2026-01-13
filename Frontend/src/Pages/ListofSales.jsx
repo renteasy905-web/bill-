@@ -39,21 +39,24 @@ const ListofSales = () => {
     gstin: "29ABCDE1234F1Z5",
   };
 
-  // Fetch all sales - FIXED: correct endpoint
+  // Fetch all sales
   const fetchAllSales = async () => {
     try {
       setLoading(true);
       setError(null);
-
       const res = await api.get("/allsales");
       console.log("Sales API Response:", res.data);
 
-      const salesData = res.data.sales || res.data.data || res.data || [];
+      const salesData = res.data.sales || res.data.data || [];
       setSales(salesData);
       setFilteredSales(salesData);
     } catch (err) {
       console.error("Fetch error:", err);
-      setError("Failed to load sales records. Check console.");
+      setError(
+        err.response?.status === 404
+          ? "Sales endpoint not found. Check backend route."
+          : "Failed to load sales records. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -63,7 +66,7 @@ const ListofSales = () => {
     fetchAllSales();
   }, []);
 
-  // Search filter (customer name or phone)
+  // Search filter
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredSales(sales);
@@ -94,7 +97,7 @@ const ListofSales = () => {
   const handleDelete = async (saleId) => {
     if (!window.confirm("Delete this sale? Stock will be restored.")) return;
     try {
-      await api.delete(`/sales/${saleId}`); // Assuming delete route is /sales/:id
+      await api.delete(`/sales/${saleId}`);
       const updated = sales.filter((s) => s._id !== saleId);
       setSales(updated);
       setFilteredSales(updated);
@@ -105,7 +108,7 @@ const ListofSales = () => {
     }
   };
 
-  // Start editing (quantity only for simplicity)
+  // Start editing
   const startEdit = (sale) => {
     setEditingSale(sale);
     setEditedItems(sale.items.map((item) => ({ ...item })));
@@ -120,8 +123,10 @@ const ListofSales = () => {
   const saveEdit = async () => {
     if (!editingSale) return;
     try {
-      const updatedTotal = editedItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 0), 0);
-
+      const updatedTotal = editedItems.reduce(
+        (sum, item) => sum + (item.price || 0) * (item.quantity || 0),
+        0
+      );
       await api.put(`/sales/${editingSale._id}`, {
         items: editedItems,
         totalAmount: updatedTotal,
@@ -130,7 +135,6 @@ const ListofSales = () => {
       const updatedSales = sales.map((s) =>
         s._id === editingSale._id ? { ...s, items: editedItems, totalAmount: updatedTotal } : s
       );
-
       setSales(updatedSales);
       setFilteredSales(updatedSales);
       showToast("Sale updated successfully", "success");
@@ -141,7 +145,7 @@ const ListofSales = () => {
     }
   };
 
-  // PDF Generation (kept your original)
+  // PDF Generation
   const generateInvoicePDF = (sale) => {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const purple = "#6b21a8";
@@ -150,6 +154,7 @@ const ListofSales = () => {
 
     doc.setFillColor(purple);
     doc.rect(0, 0, 210, 30, "F");
+
     doc.setTextColor(255);
     doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
@@ -177,9 +182,20 @@ const ListofSales = () => {
 
     const tableColumn = ["S.No", "Item", "Qty", "Rate", "Amount"];
     const tableRows = sale.items.map((item, index) => {
-      const prod = item.product || {};
+      const prodName =
+        item.name ||
+        item.product?.itemName ||
+        item.product?.Name ||
+        "Unknown Medicine";
+
       const amount = (item.price * item.quantity).toFixed(2);
-      return [index + 1, prod.itemName || "Unknown Item", item.quantity, `₹${item.price.toFixed(2)}`, `₹${amount}`];
+      return [
+        index + 1,
+        prodName,
+        item.quantity,
+        `₹${item.price.toFixed(2)}`,
+        `₹${amount}`,
+      ];
     });
 
     doc.autoTable({
@@ -276,12 +292,10 @@ const ListofSales = () => {
             <ArrowLeft size={20} />
             Back
           </button>
-
           <h1 className="text-4xl font-extrabold text-rose-800 flex items-center gap-4 flex-1 justify-center">
             <Receipt className="text-rose-600" size={40} />
             All Sales Records
           </h1>
-
           <button
             onClick={fetchAllSales}
             disabled={loading}
@@ -353,7 +367,13 @@ const ListofSales = () => {
                   <div className="space-y-2 text-sm text-gray-600">
                     {sale.items?.map((item, idx) => (
                       <div key={idx} className="flex justify-between">
-                        <span>{item.product?.itemName || "Item"} × {item.quantity}</span>
+                        <span>
+                          {item.name ||
+                            item.product?.itemName ||
+                            item.product?.Name ||
+                            "Unnamed Medicine"}{" "}
+                          × {item.quantity}
+                        </span>
                         <span>₹{(item.price * item.quantity).toLocaleString("en-IN")}</span>
                       </div>
                     ))}
@@ -414,9 +434,17 @@ const ListofSales = () => {
 
               <div className="space-y-4 mb-8">
                 {editedItems.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <div
+                    key={idx}
+                    className="flex items-center gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200"
+                  >
                     <div className="flex-1">
-                      <p className="text-gray-800 font-medium">{item.product?.itemName || "Item"}</p>
+                      <p className="text-gray-800 font-medium">
+                        {item.name ||
+                          item.product?.itemName ||
+                          item.product?.Name ||
+                          "Unknown Medicine"}
+                      </p>
                       <p className="text-gray-600 text-sm">₹{item.price} each</p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -430,7 +458,9 @@ const ListofSales = () => {
                       >
                         <Minus size={16} />
                       </button>
-                      <span className="w-12 text-center font-medium text-gray-800">{item.quantity}</span>
+                      <span className="w-12 text-center font-medium text-gray-800">
+                        {item.quantity}
+                      </span>
                       <button
                         onClick={() => {
                           const newItems = [...editedItems];
