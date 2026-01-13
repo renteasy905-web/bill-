@@ -1,6 +1,7 @@
 // routes.js
 const express = require("express");
 
+// Import all controllers from your model file
 const {
   createProduct,
   getAllProducts,
@@ -13,7 +14,7 @@ const {
   getSaleById,
   updateSaleById,
   deleteSale,
-} = require("./models/Products");   // ← Important: Capital P !!
+} = require("./models/Products"); // ← This is the correct path (capital P)
 
 const router = express.Router();
 
@@ -23,13 +24,13 @@ const router = express.Router();
 router.post("/products", createProduct);
 router.get("/allproducts", getAllProducts);
 router.get("/fetch", getProductsSortedByName);
-router.put("/fetch/:id", updateProduct);
+router.put("/fetch/:id", updateProduct); // Suggestion: change to "/products/:id" later
 
 // =====================
 // CUSTOMER ROUTES
 // =====================
 router.post("/create", createCustomer);
-router.get("/getcustomers", getAllCustomers);
+router.get("/getcustomers", getAllCustomers); // Suggestion: change to "/customers" later
 
 // =====================
 // SALE ROUTES
