@@ -39,13 +39,14 @@ const First = () => {
       color: "cyan",
       to: "/createProducts",
     },
-    {
+  // In quickActions array (already correct in my last code)
+{
   title: "Order Stock",
   desc: "Low stock & expired items",
   icon: AlertTriangle,
   color: "orange",
-  to: "/OrderStock",
-},
+  to: "/order-stock",  // ← this is correct (lowercase + hyphen)
+}
   ];
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-950 text-white overflow-hidden">
