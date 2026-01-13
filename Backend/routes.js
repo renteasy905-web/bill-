@@ -1,37 +1,38 @@
-// routes.js (or routes/index.js)
-const express = require('express');
+// routes.js  — clean & working version without controllers folder
+
+const express = require("express");
 const router = express.Router();
 
+// Import ALL functions from your current main file (choose one!)
 const {
   createProduct,
   getAllProducts,
-  // ...
-} = require('../controllers/productController');
-
-const {
+  getProductsSortedByName,
+  updateProduct,
   createCustomer,
   getAllCustomers,
-} = require('../controllers/customerController');
-
-const {
   createSale,
   getAllSales,
-  // ...
-} = require('../controllers/saleController');
+  getSaleById,
+  updateSaleById,
+  deleteSale,
+} = require("./models/products");   // ← CHANGE THIS PATH to your actual file!
 
-// ── Product routes ──
-router.post('/products', createProduct);
-router.get('/products', getAllProducts);     // ← better name than /allproducts
+// PRODUCT ROUTES
+router.post("/products", createProduct);
+router.get("/allproducts", getAllProducts);
+router.get("/fetch", getProductsSortedByName);
+router.put("/fetch/:id", updateProduct);   // consider changing to /products/:id
 
-// ── Customer routes ──
-router.post('/customers', createCustomer);
-router.get('/customers', getAllCustomers);
+// CUSTOMER ROUTES
+router.post("/create", createCustomer);
+router.get("/getcustomers", getAllCustomers);
 
-// ── Sale routes ──
-router.post('/sales', createSale);
-router.get('/sales', getAllSales);
-router.get('/sales/:id', getSaleById);
-router.put('/sales/:id', updateSaleById);
-router.delete('/sales/:id', deleteSale);
+// SALE ROUTES
+router.post("/sale", createSale);
+router.get("/allsales", getAllSales);
+router.get("/sales/:id", getSaleById);
+router.put("/sales/:id", updateSaleById);
+router.delete("/sales/:id", deleteSale);
 
 module.exports = router;
