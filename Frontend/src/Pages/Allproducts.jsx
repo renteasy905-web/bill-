@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom"; // ← Added for back button
+// src/Pages/Allproducts.jsx
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
-import { Search, RefreshCw, ArrowLeft } from "lucide-react";
+import { Search, RefreshCw, ArrowLeft, AlertTriangle } from "lucide-react";
 
 const AllProducts = () => {
-  const navigate = useNavigate(); // ← For back button
-
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,30 +22,36 @@ const AllProducts = () => {
     day: "numeric",
   });
 
-  // Fetch products
+  // Fetch products from backend
   const fetchProducts = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get("/api/allproducts"); // or "/api/fetch" if you prefer sorted
+
+      const res = await api.get("/api/allproducts");
       console.log("API Response:", res.data);
-      const productList = res.data.data || res.data.products || res.data.allproducts || res.data || [];
-      setProducts(Array.isArray(productList) ? productList : []);
+
+      const productList = res.data.products || res.data.data || res.data || [];
+      const validProducts = Array.isArray(productList) ? productList : [];
+
+      setProducts(validProducts);
       setLastRefreshed(new Date());
     } catch (err) {
       console.error("Fetch error:", err);
-      setError("Failed to load products. Please try again.");
+      setError("Failed to load products. Please check your connection or try refreshing.");
     } finally {
       setLoading(false);
     }
   };
 
+  // Initial fetch + auto-refresh every 2 minutes
   useEffect(() => {
     fetchProducts();
-    // Auto-refresh every 2 minutes
+
     const interval = setInterval(() => {
       fetchProducts();
-    }, 120000);
+    }, 120000); // 2 minutes
+
     return () => clearInterval(interval);
   }, []);
 
@@ -55,6 +61,7 @@ const AllProducts = () => {
       setFilteredProducts(products);
       return;
     }
+
     const term = searchTerm.toLowerCase().trim();
     const filtered = products.filter((p) =>
       (p.itemName || "").toLowerCase().includes(term)
@@ -69,18 +76,20 @@ const AllProducts = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Expiry status
+  // Get expiry status with color
   const getExpiryInfo = (expiryDate) => {
     if (!expiryDate) return { color: "#9ca3af", label: "No Expiry" };
+
     const expiry = new Date(expiryDate);
     const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+
     if (diffDays < 0) return { color: "#ef4444", label: "EXPIRED" };
     if (diffDays <= 90) return { color: "#f97316", label: "≤ 3 Months" };
     if (diffDays <= 180) return { color: "#eab308", label: "≤ 6 Months" };
     return { color: "#22c55e", label: "Safe" };
   };
 
-  // Sort by nearest expiry
+  // Sort by nearest expiry first
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     const da = a.expiryDate ? new Date(a.expiryDate) : new Date("9999-12-31");
     const db = b.expiryDate ? new Date(b.expiryDate) : new Date("9999-12-31");
@@ -90,50 +99,55 @@ const AllProducts = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="text-2xl text-indigo-400 animate-pulse">Loading inventory...</div>
+        <div className="text-2xl text-indigo-400 animate-pulse flex items-center gap-3">
+          <RefreshCw className="animate-spin" size={28} />
+          Loading inventory...
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-red-400 text-xl p-6 text-center">
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-red-400 text-xl p-6 text-center">
+        <AlertTriangle size={64} className="mb-6" />
         {error}
+        <button
+          onClick={fetchProducts}
+          className="mt-6 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white font-medium transition"
+        >
+          Try Again
+        </button>
       </div>
     );
   }
 
   return (
-    <div
-      className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900 text-white p-6 md:p-12"
-      style={{ touchAction: "manipulation" }}
-    >
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900 text-white p-6 md:p-12">
       <div className="max-w-7xl mx-auto">
-        {/* Header with Back + Refresh + Title */}
+        {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
-          {/* Back button */}
           <button
-            onClick={() => navigate("/")} // ← Change to "/first" if your first.jsx is at /first
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600/30 hover:bg-indigo-600/50 rounded-lg text-indigo-300 hover:text-white transition"
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 px-5 py-2.5 bg-slate-700/70 hover:bg-slate-600 rounded-lg text-white transition-all shadow-md"
           >
             <ArrowLeft size={20} />
-            Back
+            Back to Dashboard
           </button>
 
           <div className="text-center md:text-left flex-1">
             <h1 className="text-4xl md:text-5xl font-extrabold text-indigo-400 mb-3">
-              Vishwas Medical Inventory
+              All Products Inventory
             </h1>
-            <p className="text-lg md:text-xl text-slate-300">
+            <p className="text-lg text-slate-300">
               Current Date: <strong className="text-white">{todayFormatted}</strong>
             </p>
           </div>
 
-          {/* Refresh button */}
           <button
             onClick={fetchProducts}
             disabled={loading}
-            className="flex items-center gap-2 px-5 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-white transition disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600/70 hover:bg-indigo-600 rounded-lg text-white transition-all shadow-md disabled:opacity-50"
           >
             <RefreshCw size={18} className={`${loading ? "animate-spin" : ""}`} />
             {loading ? "Refreshing..." : "Refresh"}
@@ -152,14 +166,14 @@ const AllProducts = () => {
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
         </div>
 
-        {/* Last Refreshed */}
+        {/* Last Refreshed Info */}
         <div className="text-right text-sm text-slate-400 mb-6 flex items-center justify-end gap-2">
           <RefreshCw size={16} className="text-indigo-400" />
           Last updated: {lastRefreshed.toLocaleTimeString("en-IN")}
         </div>
 
         {sortedProducts.length === 0 ? (
-          <div className="text-center py-20 text-xl text-slate-400 bg-slate-800/50 rounded-2xl">
+          <div className="text-center py-20 text-xl text-slate-400 bg-slate-800/50 rounded-2xl border border-slate-700">
             {searchTerm ? "No matching products found" : "No products in inventory yet"}
           </div>
         ) : (
@@ -170,13 +184,13 @@ const AllProducts = () => {
                 <table className="w-full text-left">
                   <thead className="bg-slate-700/80">
                     <tr>
-                      <th className="px-8 py-6 font-semibold text-indigo-300">Item Name</th>
-                      <th className="px-8 py-6 font-semibold text-indigo-300">Description</th>
-                      <th className="px-8 py-6 font-semibold text-indigo-300">Current Qty</th>
-                      <th className="px-8 py-6 font-semibold text-indigo-300">Sale Price</th>
-                      <th className="px-8 py-6 font-semibold text-indigo-300">Purchase Price</th>
-                      <th className="px-8 py-6 font-semibold text-indigo-300">Expiry Date</th>
-                      <th className="px-8 py-6 font-semibold text-indigo-300">Status</th>
+                      <th className="px-6 py-5 font-semibold text-indigo-300">Item Name</th>
+                      <th className="px-6 py-5 font-semibold text-indigo-300">Description</th>
+                      <th className="px-6 py-5 font-semibold text-indigo-300">Quantity</th>
+                      <th className="px-6 py-5 font-semibold text-indigo-300">Sale Price</th>
+                      <th className="px-6 py-5 font-semibold text-indigo-300">Purchase Price</th>
+                      <th className="px-6 py-5 font-semibold text-indigo-300">Expiry Date</th>
+                      <th className="px-6 py-5 font-semibold text-indigo-300">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -187,15 +201,15 @@ const AllProducts = () => {
                           key={p._id}
                           className="border-b border-slate-700 hover:bg-slate-700/50 transition-all duration-200"
                         >
-                          <td className="px-8 py-6 font-medium">{p.itemName}</td>
-                          <td className="px-8 py-6 text-slate-300">{p.description || "—"}</td>
-                          <td className="px-8 py-6 font-bold text-white">{p.quantity}</td>
-                          <td className="px-8 py-6">₹{p.salePrice?.toFixed(2) || "—"}</td>
-                          <td className="px-8 py-6">₹{p.purchasePrice?.toFixed(2) || "—"}</td>
-                          <td className="px-8 py-6">
+                          <td className="px-6 py-5 font-medium">{p.itemName || "—"}</td>
+                          <td className="px-6 py-5 text-slate-300">{p.description || "—"}</td>
+                          <td className="px-6 py-5 font-bold text-white">{p.quantity || 0}</td>
+                          <td className="px-6 py-5">₹{p.salePrice?.toFixed(2) || "—"}</td>
+                          <td className="px-6 py-5">₹{p.purchasePrice?.toFixed(2) || "—"}</td>
+                          <td className="px-6 py-5">
                             {p.expiryDate ? new Date(p.expiryDate).toLocaleDateString("en-IN") : "No Expiry"}
                           </td>
-                          <td className="px-8 py-6 font-bold" style={{ color: exp.color }}>
+                          <td className="px-6 py-5 font-bold" style={{ color: exp.color }}>
                             {exp.label}
                           </td>
                         </tr>
@@ -205,7 +219,7 @@ const AllProducts = () => {
                 </table>
               </div>
             ) : (
-              // Mobile Cards
+              // Mobile Card View
               <div className="space-y-6">
                 {sortedProducts.map((p) => {
                   const exp = getExpiryInfo(p.expiryDate);
@@ -215,11 +229,11 @@ const AllProducts = () => {
                       className="bg-slate-800/80 backdrop-blur-md rounded-xl p-6 shadow-xl border border-slate-700"
                       style={{ borderLeft: `6px solid ${exp.color}` }}
                     >
-                      <h3 className="text-xl font-bold mb-4 text-white">{p.itemName}</h3>
+                      <h3 className="text-xl font-bold mb-4 text-white">{p.itemName || "Unnamed Product"}</h3>
                       <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                         <div>
                           <span className="text-slate-400 block">Qty</span>
-                          <span className="font-bold">{p.quantity}</span>
+                          <span className="font-bold text-white">{p.quantity || 0}</span>
                         </div>
                         <div>
                           <span className="text-slate-400 block">Sale</span>
