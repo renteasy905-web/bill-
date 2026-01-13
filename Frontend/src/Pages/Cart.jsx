@@ -16,8 +16,8 @@ const ProductEdit = () => {
 
   // Calculate total stock value
   const totalStockValue = products.reduce((sum, product) => {
-    const purchasePrice = Number(product.purchasePrice) || 0;
-    const quantity = Number(product.quantity) || 0;
+    const purchasePrice = Number(product.purchasePrice || product.purchasePrice) || 0;
+    const quantity = Number(product.quantity || product.Quantity) || 0;
     return sum + purchasePrice * quantity;
   }, 0);
 
@@ -29,9 +29,10 @@ const ProductEdit = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get("/allproducts"); // ← FIXED: Use correct endpoint
-      console.log("Products API Response:", res.data);
-      const data = res.data.products || [];
+      const res = await api.get("/allproducts"); // FIXED: correct endpoint
+      console.log("Edit Page API Response:", res.data);
+
+      const data = res.data.products || res.data.data || [];
       setProducts(data);
       setFilteredProducts(data);
     } catch (err) {
@@ -51,7 +52,7 @@ const ProductEdit = () => {
     const term = searchTerm.toLowerCase();
     setFilteredProducts(
       products.filter((p) =>
-        (p.itemName || "").toLowerCase().includes(term) ||
+        (p.itemName || p.Name || "").toLowerCase().includes(term) ||
         (p.stockBroughtBy || "").toLowerCase().includes(term)
       )
     );
@@ -81,18 +82,20 @@ const ProductEdit = () => {
 
   const saveEdit = async () => {
     if (!editId) return;
+
     try {
       const updateData = {
-        itemName: editedProduct.itemName?.trim() || "",
-        salePrice: Number(editedProduct.salePrice) || 0,
+        itemName: editedProduct.itemName?.trim() || editedProduct.Name?.trim() || "",
+        salePrice: Number(editedProduct.salePrice || editedProduct.Mrp) || 0,
         purchasePrice: Number(editedProduct.purchasePrice) || 0,
-        quantity: Number(editedProduct.quantity) || 0,
-        description: editedProduct.description?.trim() || "",
+        quantity: Number(editedProduct.quantity || editedProduct.Quantity) || 0,
+        description: editedProduct.description?.trim() || editedProduct.Description?.trim() || "",
         stockBroughtBy: editedProduct.stockBroughtBy?.trim() || "",
-        expiryDate: editedProduct.expiryDate || null,
+        expiryDate: editedProduct.expiryDate || editedProduct.Expiry || null,
       };
 
-      await api.put(`/products/${editId}`, updateData); // ← Assuming your update route is /products/:id
+      // Assuming your update route is /products/:id - change if different
+      await api.put(`/products/${editId}`, updateData);
 
       const updatedProducts = products.map((p) =>
         p._id === editId ? { ...p, ...updateData } : p
@@ -104,7 +107,7 @@ const ProductEdit = () => {
       cancelEdit();
     } catch (err) {
       console.error("Save error:", err);
-      showToast("Failed to save changes.", "error");
+      showToast("Failed to save changes. Check console.", "error");
     }
   };
 
@@ -161,7 +164,7 @@ const ProductEdit = () => {
         </div>
       )}
 
-      {/* Header with Back + Refresh + Total Value */}
+      {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -182,7 +185,6 @@ const ProductEdit = () => {
               <button
                 onClick={fetchProducts}
                 className="flex items-center gap-2 px-5 py-2.5 bg-teal-50 text-teal-700 rounded-lg hover:bg-teal-100 transition font-medium"
-                title="Refresh Products"
               >
                 <RefreshCw size={18} />
                 Refresh
@@ -227,8 +229,8 @@ const ProductEdit = () => {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredProducts.map((product) => {
               const isEditing = editId === product._id;
-              const lowStock = (product.quantity || 0) <= 10;
-              const profit = (product.salePrice || 0) - (product.purchasePrice || 0);
+              const lowStock = (product.quantity || product.Quantity || 0) <= 10;
+              const profit = (product.salePrice || product.Mrp || 0) - (product.purchasePrice || 0);
 
               return (
                 <div
@@ -242,17 +244,19 @@ const ProductEdit = () => {
                     {isEditing ? (
                       <input
                         type="text"
-                        value={editedProduct.itemName || ""}
+                        value={editedProduct.itemName || editedProduct.Name || ""}
                         onChange={(e) => handleChange("itemName", e.target.value)}
                         className="w-full px-4 py-3 text-xl font-bold bg-white border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
                         placeholder="Product Name"
                       />
                     ) : (
                       <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-bold text-gray-900">{product.itemName || "Unnamed"}</h2>
+                        <h2 className="text-xl font-bold text-gray-900">
+                          {product.itemName || product.Name || "Unnamed"}
+                        </h2>
                         {lowStock && (
                           <span className="bg-red-100 text-red-700 text-xs font-bold px-3 py-1 rounded-full">
-                            Low ({product.quantity || 0})
+                            Low ({product.quantity || product.Quantity || 0})
                           </span>
                         )}
                       </div>
@@ -267,12 +271,14 @@ const ProductEdit = () => {
                         {isEditing ? (
                           <input
                             type="number"
-                            value={editedProduct.salePrice ?? ""}
+                            value={editedProduct.salePrice ?? editedProduct.Mrp ?? ""}
                             onChange={(e) => handleChange("salePrice", e.target.value)}
                             className="w-full px-4 py-3 text-2xl font-bold text-teal-700 bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400"
                           />
                         ) : (
-                          <p className="text-3xl font-bold text-teal-700">₹{product.salePrice ?? "0"}</p>
+                          <p className="text-3xl font-bold text-teal-700">
+                            ₹{(product.salePrice ?? product.Mrp ?? 0).toFixed(2)}
+                          </p>
                         )}
                       </div>
                       <div className="text-center">
@@ -280,12 +286,14 @@ const ProductEdit = () => {
                         {isEditing ? (
                           <input
                             type="number"
-                            value={editedProduct.quantity ?? ""}
+                            value={editedProduct.quantity ?? editedProduct.Quantity ?? ""}
                             onChange={(e) => handleChange("quantity", e.target.value)}
                             className="w-full px-4 py-3 text-2xl font-bold text-indigo-700 bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400"
                           />
                         ) : (
-                          <p className="text-3xl font-bold text-indigo-700">{product.quantity ?? 0}</p>
+                          <p className="text-3xl font-bold text-indigo-700">
+                            {product.quantity ?? product.Quantity ?? 0}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -329,7 +337,9 @@ const ProductEdit = () => {
                             placeholder="Supplier name"
                           />
                         ) : (
-                          <p className="font-medium text-gray-900">{product.stockBroughtBy || "Unknown"}</p>
+                          <p className="font-medium text-gray-900">
+                            {product.stockBroughtBy || "Unknown"}
+                          </p>
                         )}
                       </div>
                       <div>
@@ -338,8 +348,10 @@ const ProductEdit = () => {
                           <input
                             type="date"
                             value={
-                              editedProduct.expiryDate
-                                ? new Date(editedProduct.expiryDate).toISOString().split("T")[0]
+                              editedProduct.Expiry || editedProduct.expiryDate
+                                ? new Date(editedProduct.Expiry || editedProduct.expiryDate)
+                                    .toISOString()
+                                    .split("T")[0]
                                 : ""
                             }
                             onChange={(e) => handleChange("expiryDate", e.target.value)}
@@ -347,8 +359,8 @@ const ProductEdit = () => {
                           />
                         ) : (
                           <p className="font-medium text-gray-900">
-                            {product.expiryDate
-                              ? new Date(product.expiryDate).toLocaleDateString("en-IN")
+                            {product.Expiry || product.expiryDate
+                              ? new Date(product.Expiry || product.expiryDate).toLocaleDateString("en-IN")
                               : "No Expiry"}
                           </p>
                         )}
@@ -360,14 +372,16 @@ const ProductEdit = () => {
                       <p className="text-gray-600">Description</p>
                       {isEditing ? (
                         <textarea
-                          value={editedProduct.description ?? ""}
+                          value={editedProduct.description ?? editedProduct.Description ?? ""}
                           onChange={(e) => handleChange("description", e.target.value)}
                           className="mt-1 w-full px-3 py-2 text-base border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-400"
                           rows={2}
                           placeholder="Product description"
                         />
                       ) : (
-                        <p className="font-medium text-gray-900">{product.description || "—"}</p>
+                        <p className="font-medium text-gray-900">
+                          {product.description || product.Description || "—"}
+                        </p>
                       )}
                     </div>
                   </div>
