@@ -22,49 +22,40 @@ const AllProducts = () => {
     day: "numeric",
   });
 
-  // Fetch products from backend
+  // Fetch products
   const fetchProducts = async () => {
     try {
       setLoading(true);
       setError(null);
-
       const res = await api.get("/api/allproducts");
       console.log("API Response:", res.data);
-
       const productList = res.data.products || res.data.data || res.data || [];
-      const validProducts = Array.isArray(productList) ? productList : [];
-
-      setProducts(validProducts);
+      setProducts(Array.isArray(productList) ? productList : []);
       setLastRefreshed(new Date());
     } catch (err) {
       console.error("Fetch error:", err);
-      setError("Failed to load products. Please check your connection or try refreshing.");
+      setError("Failed to load products. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Initial fetch + auto-refresh every 2 minutes
   useEffect(() => {
     fetchProducts();
-
-    const interval = setInterval(() => {
-      fetchProducts();
-    }, 120000); // 2 minutes
-
+    const interval = setInterval(fetchProducts, 120000);
     return () => clearInterval(interval);
   }, []);
 
-  // Search filter
+  // Search filter (now also searches supplier name)
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredProducts(products);
       return;
     }
-
     const term = searchTerm.toLowerCase().trim();
     const filtered = products.filter((p) =>
-      (p.itemName || "").toLowerCase().includes(term)
+      (p.itemName || "").toLowerCase().includes(term) ||
+      (p.stockBroughtBy || "").toLowerCase().includes(term)
     );
     setFilteredProducts(filtered);
   }, [searchTerm, products]);
@@ -76,20 +67,18 @@ const AllProducts = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Get expiry status with color
+  // Expiry status
   const getExpiryInfo = (expiryDate) => {
     if (!expiryDate) return { color: "#9ca3af", label: "No Expiry" };
-
     const expiry = new Date(expiryDate);
     const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-
     if (diffDays < 0) return { color: "#ef4444", label: "EXPIRED" };
     if (diffDays <= 90) return { color: "#f97316", label: "≤ 3 Months" };
     if (diffDays <= 180) return { color: "#eab308", label: "≤ 6 Months" };
     return { color: "#22c55e", label: "Safe" };
   };
 
-  // Sort by nearest expiry first
+  // Sort by nearest expiry
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     const da = a.expiryDate ? new Date(a.expiryDate) : new Date("9999-12-31");
     const db = b.expiryDate ? new Date(b.expiryDate) : new Date("9999-12-31");
@@ -99,25 +88,15 @@ const AllProducts = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="text-2xl text-indigo-400 animate-pulse flex items-center gap-3">
-          <RefreshCw className="animate-spin" size={28} />
-          Loading inventory...
-        </div>
+        <div className="text-2xl text-indigo-400 animate-pulse">Loading inventory...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-red-400 text-xl p-6 text-center">
-        <AlertTriangle size={64} className="mb-6" />
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-red-400 text-xl p-6 text-center">
         {error}
-        <button
-          onClick={fetchProducts}
-          className="mt-6 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white font-medium transition"
-        >
-          Try Again
-        </button>
       </div>
     );
   }
@@ -158,7 +137,7 @@ const AllProducts = () => {
         <div className="relative w-full mb-8">
           <input
             type="text"
-            placeholder="Search by product name..."
+            placeholder="Search by product name or supplier..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-600 rounded-full text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
@@ -166,14 +145,14 @@ const AllProducts = () => {
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
         </div>
 
-        {/* Last Refreshed Info */}
+        {/* Last Refreshed */}
         <div className="text-right text-sm text-slate-400 mb-6 flex items-center justify-end gap-2">
           <RefreshCw size={16} className="text-indigo-400" />
           Last updated: {lastRefreshed.toLocaleTimeString("en-IN")}
         </div>
 
         {sortedProducts.length === 0 ? (
-          <div className="text-center py-20 text-xl text-slate-400 bg-slate-800/50 rounded-2xl border border-slate-700">
+          <div className="text-center py-20 text-xl text-slate-400 bg-slate-800/50 rounded-2xl">
             {searchTerm ? "No matching products found" : "No products in inventory yet"}
           </div>
         ) : (
@@ -184,13 +163,14 @@ const AllProducts = () => {
                 <table className="w-full text-left">
                   <thead className="bg-slate-700/80">
                     <tr>
-                      <th className="px-6 py-5 font-semibold text-indigo-300">Item Name</th>
-                      <th className="px-6 py-5 font-semibold text-indigo-300">Description</th>
-                      <th className="px-6 py-5 font-semibold text-indigo-300">Quantity</th>
-                      <th className="px-6 py-5 font-semibold text-indigo-300">Sale Price</th>
-                      <th className="px-6 py-5 font-semibold text-indigo-300">Purchase Price</th>
-                      <th className="px-6 py-5 font-semibold text-indigo-300">Expiry Date</th>
-                      <th className="px-6 py-5 font-semibold text-indigo-300">Status</th>
+                      <th className="px-8 py-6 font-semibold text-indigo-300">Item Name</th>
+                      <th className="px-8 py-6 font-semibold text-indigo-300">Supplier</th> {/* ← NEW */}
+                      <th className="px-8 py-6 font-semibold text-indigo-300">Description</th>
+                      <th className="px-8 py-6 font-semibold text-indigo-300">Current Qty</th>
+                      <th className="px-8 py-6 font-semibold text-indigo-300">Sale Price</th>
+                      <th className="px-8 py-6 font-semibold text-indigo-300">Purchase Price</th>
+                      <th className="px-8 py-6 font-semibold text-indigo-300">Expiry Date</th>
+                      <th className="px-8 py-6 font-semibold text-indigo-300">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -201,15 +181,16 @@ const AllProducts = () => {
                           key={p._id}
                           className="border-b border-slate-700 hover:bg-slate-700/50 transition-all duration-200"
                         >
-                          <td className="px-6 py-5 font-medium">{p.itemName || "—"}</td>
-                          <td className="px-6 py-5 text-slate-300">{p.description || "—"}</td>
-                          <td className="px-6 py-5 font-bold text-white">{p.quantity || 0}</td>
-                          <td className="px-6 py-5">₹{p.salePrice?.toFixed(2) || "—"}</td>
-                          <td className="px-6 py-5">₹{p.purchasePrice?.toFixed(2) || "—"}</td>
-                          <td className="px-6 py-5">
+                          <td className="px-8 py-6 font-medium">{p.itemName || "—"}</td>
+                          <td className="px-8 py-6">{p.stockBroughtBy || "Unknown Supplier"}</td> {/* ← NEW */}
+                          <td className="px-8 py-6 text-slate-300">{p.description || "—"}</td>
+                          <td className="px-8 py-6 font-bold text-white">{p.quantity}</td>
+                          <td className="px-8 py-6">₹{p.salePrice?.toFixed(2) || "—"}</td>
+                          <td className="px-8 py-6">₹{p.purchasePrice?.toFixed(2) || "—"}</td>
+                          <td className="px-8 py-6">
                             {p.expiryDate ? new Date(p.expiryDate).toLocaleDateString("en-IN") : "No Expiry"}
                           </td>
-                          <td className="px-6 py-5 font-bold" style={{ color: exp.color }}>
+                          <td className="px-8 py-6 font-bold" style={{ color: exp.color }}>
                             {exp.label}
                           </td>
                         </tr>
@@ -219,7 +200,7 @@ const AllProducts = () => {
                 </table>
               </div>
             ) : (
-              // Mobile Card View
+              // Mobile Cards
               <div className="space-y-6">
                 {sortedProducts.map((p) => {
                   const exp = getExpiryInfo(p.expiryDate);
@@ -232,8 +213,12 @@ const AllProducts = () => {
                       <h3 className="text-xl font-bold mb-4 text-white">{p.itemName || "Unnamed Product"}</h3>
                       <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                         <div>
+                          <span className="text-slate-400 block">Supplier</span>
+                          <span className="font-medium">{p.stockBroughtBy || "Unknown"}</span>
+                        </div>
+                        <div>
                           <span className="text-slate-400 block">Qty</span>
-                          <span className="font-bold text-white">{p.quantity || 0}</span>
+                          <span className="font-bold text-white">{p.quantity}</span>
                         </div>
                         <div>
                           <span className="text-slate-400 block">Sale</span>
