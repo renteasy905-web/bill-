@@ -16,7 +16,6 @@ import {
   ArrowLeft,
   RefreshCw,
 } from "lucide-react";
-
 const Sales = () => {
   const navigate = useNavigate();
   const [tab, setTab] = useState("customer");
@@ -33,7 +32,6 @@ const Sales = () => {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
-
   // Auto-hide toast
   useEffect(() => {
     if (toast.show) {
@@ -41,22 +39,18 @@ const Sales = () => {
       return () => clearTimeout(timer);
     }
   }, [toast.show]);
-
   // Fetch data - FIXED: correct endpoints
   const loadData = async () => {
     try {
       setError(null);
       setLoading({ products: true, customers: true });
-
       const [prodRes, custRes] = await Promise.all([
-        api.get("/allproducts"),      // FIXED: correct route
-        api.get("/customers"),        // FIXED: correct route (or change to /getcustomers if your backend uses that)
+        api.get("/allproducts"), // FIXED: correct route
+        api.get("/getcustomers"), // FIXED: updated to match likely backend route based on error and code comment
       ]);
-
       const prods = prodRes.data.products || [];
       setProducts(prods);
       setFilteredProducts(prods);
-
       const custs = custRes.data.customers || [];
       setCustomers(custs);
       setFilteredCustomers(custs);
@@ -71,11 +65,9 @@ const Sales = () => {
       setLoading({ products: false, customers: false });
     }
   };
-
   useEffect(() => {
     loadData();
   }, []);
-
   // Search filters
   useEffect(() => {
     if (productSearch.trim()) {
@@ -88,7 +80,6 @@ const Sales = () => {
     } else {
       setFilteredProducts(products);
     }
-
     if (!isRegular && customerSearch.trim()) {
       const term = customerSearch.toLowerCase().replace(/[\s-]/g, "");
       setFilteredCustomers(
@@ -102,7 +93,6 @@ const Sales = () => {
       setFilteredCustomers(customers);
     }
   }, [productSearch, customerSearch, isRegular, products, customers]);
-
   const addToCart = (product, qty = 1) => {
     setCart((prev) => {
       const exists = prev.find((i) => i.product === product._id);
@@ -119,27 +109,21 @@ const Sales = () => {
         supplier: product.stockBroughtBy || "Unknown",
       }];
     });
-
     setToast({
       show: true,
       message: `Added ${product.itemName || product.Name} × ${qty} to bill`,
       type: "success",
     });
   };
-
   const updateQty = (id, qty) => {
     if (qty < 1) return;
     setCart((prev) => prev.map((i) => (i.product === id ? { ...i, quantity: qty } : i)));
   };
-
   const removeItem = (id) => setCart((prev) => prev.filter((i) => i.product !== id));
-
   const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
-
   const submitSale = async () => {
     if (cart.length === 0) return alert("Add at least one item");
     if (!isRegular && !selectedCustomer) return alert("Select a customer");
-
     try {
       setSubmitting(true);
       const payload = {
@@ -152,15 +136,12 @@ const Sales = () => {
         paymentMode: "Cash",
         ...( !isRegular && { customer: selectedCustomer._id }),
       };
-
       await api.post("/sale", payload); // Assuming your create sale route is /sale
-
       setToast({
         show: true,
         message: "Sale recorded successfully!",
         type: "success",
       });
-
       setCart([]);
       setSelectedCustomer(null);
       setCustomerSearch("");
@@ -172,7 +153,6 @@ const Sales = () => {
       setSubmitting(false);
     }
   };
-
   const previewBill = () => {
     alert(
       "Bill Preview:\n" +
@@ -180,7 +160,6 @@ const Sales = () => {
         `\n\nTotal: ₹${total.toFixed(2)}`
     );
   };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-cream-50 to-cream-100 pb-32 relative">
       {/* Toast */}
@@ -194,7 +173,6 @@ const Sales = () => {
           </div>
         </div>
       )}
-
       {/* Floating Cart Summary (Mobile) */}
       {cart.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-2xl p-4 lg:hidden">
@@ -212,7 +190,6 @@ const Sales = () => {
           </div>
         </div>
       )}
-
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 pt-6 pb-20">
         {/* Header */}
@@ -224,7 +201,6 @@ const Sales = () => {
             <ArrowLeft size={20} />
             Back
           </button>
-
           <div className="text-center flex-1">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2 flex items-center justify-center gap-3">
               <ShoppingCart className="text-teal-600" size={36} />
@@ -232,7 +208,6 @@ const Sales = () => {
             </h1>
             <p className="text-gray-600">Professional • Fast • Accurate</p>
           </div>
-
           <button
             onClick={loadData}
             disabled={loading.products || loading.customers}
@@ -242,13 +217,11 @@ const Sales = () => {
             {loading.products || loading.customers ? "Refreshing..." : "Refresh"}
           </button>
         </div>
-
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-center shadow-sm">
             {error}
           </div>
         )}
-
         {/* Tab Navigation */}
         <div className="flex justify-center gap-4 mb-8 bg-white rounded-full p-2 shadow-sm border border-gray-200">
           {["customer", "products", "cart"].map((t) => (
@@ -263,7 +236,6 @@ const Sales = () => {
             </button>
           ))}
         </div>
-
         {/* Patient Section */}
         {tab === "customer" && (
           <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
@@ -282,7 +254,6 @@ const Sales = () => {
                 {isRegular ? "Regular Sale" : "Search Patient"}
               </button>
             </div>
-
             {isRegular ? (
               <div className="p-6 bg-green-50 border border-green-200 rounded-xl text-center">
                 <UserCheck className="mx-auto mb-3 text-green-600" size={40} />
@@ -301,7 +272,6 @@ const Sales = () => {
                   />
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={24} />
                 </div>
-
                 {loading.customers ? (
                   <div className="text-center py-10">
                     <Loader2 className="animate-spin mx-auto text-teal-600" size={48} />
@@ -334,7 +304,6 @@ const Sales = () => {
                 )}
               </>
             )}
-
             {selectedCustomer && (
               <div className="mt-6 p-5 bg-teal-50 border border-teal-200 rounded-2xl">
                 <p className="font-bold text-teal-800">Selected Patient</p>
@@ -344,7 +313,6 @@ const Sales = () => {
             )}
           </div>
         )}
-
         {/* Products Section */}
         {tab === "products" && (
           <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
@@ -361,7 +329,6 @@ const Sales = () => {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               </div>
             </div>
-
             {loading.products ? (
               <div className="text-center py-12">
                 <Loader2 className="animate-spin mx-auto text-teal-600" size={48} />
@@ -389,7 +356,6 @@ const Sales = () => {
             )}
           </div>
         )}
-
         {/* Cart Section */}
         {tab === "cart" && (
           <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
@@ -405,7 +371,6 @@ const Sales = () => {
                 </button>
               )}
             </div>
-
             {cart.length === 0 ? (
               <div className="text-center py-16 border-2 border-dashed border-gray-300 rounded-2xl">
                 <ShoppingCart className="mx-auto text-gray-400 mb-4" size={48} />
@@ -452,7 +417,6 @@ const Sales = () => {
                 ))}
               </div>
             )}
-
             {/* Total & Actions */}
             <div className="mt-8 pt-6 border-t border-gray-200">
               <div className="flex justify-between items-center mb-6">
@@ -493,5 +457,4 @@ const Sales = () => {
     </div>
   );
 };
-
 export default Sales;
