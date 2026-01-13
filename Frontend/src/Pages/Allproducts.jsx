@@ -21,16 +21,13 @@ const AllProducts = () => {
     day: "numeric",
   });
 
-  // Fetch products - no extra /api prefix
+  // Fetch products
   const fetchProducts = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      console.log("Fetching from:", api.defaults.baseURL + "/allproducts");
-
       const res = await api.get("/allproducts");
-
       console.log("API Response Status:", res.status);
       console.log("Full API Response:", res.data);
 
@@ -67,7 +64,7 @@ const AllProducts = () => {
 
     const term = searchTerm.toLowerCase().trim();
     const filtered = products.filter((p) =>
-      (p.itemName || "").toLowerCase().includes(term) ||
+      (p.itemName || p.Name || "").toLowerCase().includes(term) ||
       (p.stockBroughtBy || "").toLowerCase().includes(term)
     );
 
@@ -81,11 +78,14 @@ const AllProducts = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Expiry status - FIXED: uses p.Expiry (capital E)
-  const getExpiryInfo = (Expiry) => {
-    if (!Expiry) return { color: "#9ca3af", label: "No Expiry" };
-    const expiry = new Date(Expiry);
-    const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+  // Expiry status (handles both Expiry and expiryDate)
+  const getExpiryInfo = (expiry) => {
+    const expiryDate = expiry || null;
+    if (!expiryDate) return { color: "#9ca3af", label: "No Expiry" };
+
+    const exp = new Date(expiryDate);
+    const diffDays = Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
+
     if (diffDays < 0) return { color: "#ef4444", label: "EXPIRED" };
     if (diffDays <= 90) return { color: "#f97316", label: "≤ 3 Months" };
     if (diffDays <= 180) return { color: "#eab308", label: "≤ 6 Months" };
@@ -94,8 +94,8 @@ const AllProducts = () => {
 
   // Sort by nearest expiry
   const sortedProducts = [...filteredProducts].sort((a, b) => {
-    const da = a.Expiry ? new Date(a.Expiry) : new Date("9999-12-31");
-    const db = b.Expiry ? new Date(b.Expiry) : new Date("9999-12-31");
+    const da = (a.Expiry || a.expiryDate) ? new Date(a.Expiry || a.expiryDate) : new Date("9999-12-31");
+    const db = (b.Expiry || b.expiryDate) ? new Date(b.Expiry || b.expiryDate) : new Date("9999-12-31");
     return da - db;
   });
 
@@ -199,20 +199,22 @@ const AllProducts = () => {
                   </thead>
                   <tbody>
                     {sortedProducts.map((p) => {
-                      const exp = getExpiryInfo(p.Expiry);
+                      const exp = getExpiryInfo(p.Expiry || p.expiryDate);
                       return (
                         <tr
                           key={p._id}
                           className="border-b border-slate-700 hover:bg-slate-700/50 transition-all duration-200"
                         >
-                          <td className="px-8 py-6 font-medium">{p.itemName || "—"}</td>
+                          <td className="px-8 py-6 font-medium">{p.itemName || p.Name || "—"}</td>
                           <td className="px-8 py-6">{p.stockBroughtBy || "Unknown Supplier"}</td>
-                          <td className="px-8 py-6 text-slate-300">{p.description || "—"}</td>
-                          <td className="px-8 py-6 font-bold text-white">{p.quantity || 0}</td>
-                          <td className="px-8 py-6">₹{p.salePrice?.toFixed(2) || "—"}</td>
+                          <td className="px-8 py-6 text-slate-300">{p.description || p.Description || "—"}</td>
+                          <td className="px-8 py-6 font-bold text-white">{p.quantity || p.Quantity || 0}</td>
+                          <td className="px-8 py-6">₹{p.salePrice?.toFixed(2) || p.Mrp?.toFixed(2) || "—"}</td>
                           <td className="px-8 py-6">₹{p.purchasePrice?.toFixed(2) || "—"}</td>
                           <td className="px-8 py-6">
-                            {p.Expiry ? new Date(p.Expiry).toLocaleDateString("en-IN") : "No Expiry"}
+                            {p.Expiry || p.expiryDate
+                              ? new Date(p.Expiry || p.expiryDate).toLocaleDateString("en-IN")
+                              : "No Expiry"}
                           </td>
                           <td className="px-8 py-6 font-bold" style={{ color: exp.color }}>
                             {exp.label}
@@ -226,14 +228,14 @@ const AllProducts = () => {
             ) : (
               <div className="space-y-6">
                 {sortedProducts.map((p) => {
-                  const exp = getExpiryInfo(p.Expiry);
+                  const exp = getExpiryInfo(p.Expiry || p.expiryDate);
                   return (
                     <div
                       key={p._id}
                       className="bg-slate-800/80 backdrop-blur-md rounded-xl p-6 shadow-xl border border-slate-700"
                       style={{ borderLeft: `6px solid ${exp.color}` }}
                     >
-                      <h3 className="text-xl font-bold mb-4 text-white">{p.itemName || "Unnamed Product"}</h3>
+                      <h3 className="text-xl font-bold mb-4 text-white">{p.itemName || p.Name || "Unnamed Product"}</h3>
                       <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                         <div>
                           <span className="text-slate-400 block">Supplier</span>
@@ -241,11 +243,11 @@ const AllProducts = () => {
                         </div>
                         <div>
                           <span className="text-slate-400 block">Qty</span>
-                          <span className="font-bold text-white">{p.quantity || 0}</span>
+                          <span className="font-bold text-white">{p.quantity || p.Quantity || 0}</span>
                         </div>
                         <div>
                           <span className="text-slate-400 block">Sale Price</span>
-                          ₹{p.salePrice?.toFixed(2) || "—"}
+                          ₹{p.salePrice?.toFixed(2) || p.Mrp?.toFixed(2) || "—"}
                         </div>
                         <div>
                           <span className="text-slate-400 block">Purchase Price</span>
@@ -253,17 +255,19 @@ const AllProducts = () => {
                         </div>
                         <div>
                           <span className="text-slate-400 block">Expiry</span>
-                          {p.Expiry ? new Date(p.Expiry).toLocaleDateString("en-IN") : "No Expiry"}
+                          {p.Expiry || p.expiryDate
+                            ? new Date(p.Expiry || p.expiryDate).toLocaleDateString("en-IN")
+                            : "No Expiry"}
                         </div>
                       </div>
                       <div className="font-bold text-lg" style={{ color: exp.color }}>
                         {exp.label}
                       </div>
-                      {p.description && (
+                      {p.description || p.Description ? (
                         <p className="mt-4 text-slate-300 text-sm border-t border-slate-700 pt-3">
-                          {p.description}
+                          {p.description || p.Description}
                         </p>
-                      )}
+                      ) : null}
                     </div>
                   );
                 })}
