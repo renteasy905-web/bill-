@@ -1,3 +1,4 @@
+// src/Pages/OrderStock.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
@@ -10,7 +11,6 @@ const OrderStock = () => {
   const [orderItems, setOrderItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
   const today = new Date();
 
   useEffect(() => {
@@ -23,23 +23,19 @@ const OrderStock = () => {
       const res = await api.get("/api/allproducts");
       const allProducts = res.data.products || res.data || [];
       setProducts(allProducts);
-
       // Auto populate problematic items
       const needsAttention = allProducts.filter((p) => {
         const qty = Number(p.Quantity) || 0;
         const exp = p.Expiry ? new Date(p.Expiry) : null;
         const daysLeft = exp ? Math.ceil((exp - today) / (1000 * 60 * 60 * 24)) : 9999;
-
         return qty <= 20 || (daysLeft <= 90 && daysLeft >= -30) || daysLeft < 0;
       });
-
       setOrderItems(
         needsAttention.map((p) => ({
           ...p,
           suggestedQty: Math.max(50, Math.ceil((100 - p.Quantity) / 10) * 10),
         }))
       );
-
       setLoading(false);
     } catch (err) {
       setError("Failed to load inventory. Please try again.");
@@ -66,29 +62,24 @@ const OrderStock = () => {
       alert("No items in the order list!");
       return;
     }
-
     try {
       const pdfBlob = await generateOrderPDF(orderItems, {
         name: "Vishwas Medical",
         address: "Shivamogga, Karnataka",
         phone: "Your Phone Number Here",
       });
-
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement("a");
       link.href = url;
       link.download = `Stock_Order_${new Date().toLocaleDateString("en-IN").replace(/\//g, "-")}.pdf`;
       link.click();
-
       const message = encodeURIComponent(
         `Urgent Stock Order Request from Vishwas Medical\n\n` +
-        `Please find attached order list PDF.\n` +
-        `Kindly supply the mentioned quantities at the earliest.\n` +
-        `Thank you!`
+          `Please find attached order list PDF.\n` +
+          `Kindly supply the mentioned quantities at the earliest.\n` +
+          `Thank you!`
       );
-
       const whatsappUrl = `https://wa.me/?text=${message}`;
-
       setTimeout(() => {
         window.open(whatsappUrl, "_blank");
         alert("PDF downloaded!\n\n1. Open WhatsApp\n2. Attach the downloaded PDF\n3. Send to supplier");
@@ -118,8 +109,6 @@ const OrderStock = () => {
               Stock Order Planning
             </h1>
           </div>
-
-          {/* Refresh Button - restored */}
           <button
             onClick={fetchProducts}
             disabled={loading}
@@ -133,7 +122,6 @@ const OrderStock = () => {
             {loading ? "Refreshing..." : "Refresh"}
           </button>
         </div>
-
         {/* Order Summary & Generate Button */}
         <div className="bg-slate-800/90 rounded-2xl p-6 mb-10 border border-slate-700 shadow-xl">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-6 mb-6">
@@ -153,7 +141,6 @@ const OrderStock = () => {
               Generate Order & Share via WhatsApp
             </button>
           </div>
-
           {orderItems.length === 0 ? (
             <p className="text-center text-slate-400 py-10 text-lg">
               No products need attention yet
@@ -171,7 +158,6 @@ const OrderStock = () => {
                       Supplier: <span className="text-white">{item.stockBroughtBy || "Unknown"}</span>
                     </p>
                   </div>
-
                   <div className="flex items-center gap-6">
                     <div>
                       <label className="text-sm text-slate-400 block mb-1">Order Qty</label>
@@ -183,7 +169,6 @@ const OrderStock = () => {
                         className="w-24 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-center"
                       />
                     </div>
-
                     <button
                       onClick={() => removeFromOrder(item._id)}
                       className="text-red-400 hover:text-red-300 p-2 rounded-lg hover:bg-red-950/50 transition"
@@ -197,25 +182,20 @@ const OrderStock = () => {
             </div>
           )}
         </div>
-
         {/* Problematic Products */}
         <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
           <AlertTriangle className="text-orange-500" size={32} />
           Products Needing Attention
         </h2>
-
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {products.map((p) => {
             const qty = Number(p.Quantity) || 0;
             const exp = p.Expiry ? new Date(p.Expiry) : null;
             const daysLeft = exp ? Math.ceil((exp - today) / (1000 * 60 * 60 * 24)) : 9999;
-
             const isLow = qty <= 20;
             const isNearExpiry = daysLeft <= 90 && daysLeft >= -30;
             const isExpired = daysLeft < 0;
-
             if (!isLow && !isNearExpiry && !isExpired) return null;
-
             return (
               <div
                 key={p._id}
@@ -232,7 +212,6 @@ const OrderStock = () => {
                   {isExpired && <AlertTriangle className="text-red-500" size={28} />}
                   {isNearExpiry && !isExpired && <Clock className="text-orange-500" size={28} />}
                 </div>
-
                 <div className="space-y-2 text-sm mb-5">
                   <p>
                     Supplier: <strong className="text-white">{p.stockBroughtBy || "—"}</strong>
@@ -246,7 +225,6 @@ const OrderStock = () => {
                     </p>
                   )}
                 </div>
-
                 <button
                   onClick={() => {
                     if (!orderItems.some((o) => o._id === p._id)) {
