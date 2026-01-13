@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom"; // ← Added for back button
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
 import {
   Search,
@@ -12,13 +12,13 @@ import {
   Printer,
   ChevronRight,
   CheckCircle,
+  AlertCircle,
   ArrowLeft,
   RefreshCw,
 } from "lucide-react";
 
 const Sales = () => {
   const navigate = useNavigate();
-
   const [tab, setTab] = useState("customer");
   const [customers, setCustomers] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
@@ -42,15 +42,15 @@ const Sales = () => {
     }
   }, [toast.show]);
 
-  // Fetch data
+  // Fetch data - FIXED: correct endpoints
   const loadData = async () => {
     try {
       setError(null);
       setLoading({ products: true, customers: true });
 
       const [prodRes, custRes] = await Promise.all([
-        api.get("/api/fetch"),
-        api.get("/api/getcustomers"),
+        api.get("/allproducts"),      // FIXED: correct route
+        api.get("/customers"),        // FIXED: correct route (or change to /getcustomers if your backend uses that)
       ]);
 
       const prods = prodRes.data.products || [];
@@ -61,8 +61,12 @@ const Sales = () => {
       setCustomers(custs);
       setFilteredCustomers(custs);
     } catch (err) {
-      console.error(err);
-      setError("Failed to load data. Please check connection.");
+      console.error("Fetch error:", err);
+      setError(
+        err.response?.status === 404
+          ? "Data endpoints not found (404). Check backend routes."
+          : "Failed to load data. Please check connection."
+      );
     } finally {
       setLoading({ products: false, customers: false });
     }
@@ -76,7 +80,11 @@ const Sales = () => {
   useEffect(() => {
     if (productSearch.trim()) {
       const term = productSearch.toLowerCase();
-      setFilteredProducts(products.filter((p) => p.itemName?.toLowerCase().includes(term)));
+      setFilteredProducts(
+        products.filter((p) =>
+          (p.itemName || p.Name || "").toLowerCase().includes(term)
+        )
+      );
     } else {
       setFilteredProducts(products);
     }
@@ -95,7 +103,6 @@ const Sales = () => {
     }
   }, [productSearch, customerSearch, isRegular, products, customers]);
 
-  // Show toast when adding to cart
   const addToCart = (product, qty = 1) => {
     setCart((prev) => {
       const exists = prev.find((i) => i.product === product._id);
@@ -106,15 +113,16 @@ const Sales = () => {
       }
       return [...prev, {
         product: product._id,
-        name: product.itemName,
-        price: product.salePrice,
+        name: product.itemName || product.Name,
+        price: product.salePrice || product.Mrp || 0,
         quantity: qty,
+        supplier: product.stockBroughtBy || "Unknown",
       }];
     });
 
     setToast({
       show: true,
-      message: `Added ${product.itemName} × ${qty} to bill`,
+      message: `Added ${product.itemName || product.Name} × ${qty} to bill`,
       type: "success",
     });
   };
@@ -135,13 +143,17 @@ const Sales = () => {
     try {
       setSubmitting(true);
       const payload = {
-        items: cart.map((i) => ({ product: i.product, quantity: i.quantity, price: i.price })),
+        items: cart.map((i) => ({
+          product: i.product,
+          quantity: i.quantity,
+          price: i.price,
+        })),
         totalAmount: total,
         paymentMode: "Cash",
-        ...(!isRegular && { customer: selectedCustomer._id }),
+        ...( !isRegular && { customer: selectedCustomer._id }),
       };
 
-      await api.post("/api/sale", payload);
+      await api.post("/sale", payload); // Assuming your create sale route is /sale
 
       setToast({
         show: true,
@@ -171,12 +183,14 @@ const Sales = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cream-50 to-cream-100 pb-32 relative">
-      {/* Toast Notification */}
+      {/* Toast */}
       {toast.show && (
         <div className="fixed top-4 right-4 z-50 animate-slide-in">
-          <div className="bg-green-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 max-w-xs">
-            <CheckCircle size={24} />
-            <span className="font-medium">{toast.message}</span>
+          <div className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 max-w-xs text-white font-medium ${
+            toast.type === "success" ? "bg-green-600" : "bg-red-600"
+          }`}>
+            {toast.type === "success" ? <CheckCircle size={24} /> : <AlertCircle size={24} />}
+            <span>{toast.message}</span>
           </div>
         </div>
       )}
@@ -201,11 +215,10 @@ const Sales = () => {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 pt-6 pb-20">
-        {/* Header with Back + Title + Refresh */}
+        {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6">
-          {/* Back Button */}
           <button
-            onClick={() => navigate("/")} // ← Change to "/first" if first.jsx is at /first
+            onClick={() => navigate("/")}
             className="flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition shadow-md"
           >
             <ArrowLeft size={20} />
@@ -220,7 +233,6 @@ const Sales = () => {
             <p className="text-gray-600">Professional • Fast • Accurate</p>
           </div>
 
-          {/* Refresh Button */}
           <button
             onClick={loadData}
             disabled={loading.products || loading.customers}
@@ -364,9 +376,10 @@ const Sales = () => {
                     className="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-lg hover:border-teal-300 transition-all cursor-pointer"
                     onClick={() => addToCart(p)}
                   >
-                    <h3 className="font-bold text-gray-900 text-lg mb-1">{p.itemName}</h3>
-                    <p className="text-teal-700 font-semibold">₹{p.salePrice}</p>
-                    <p className="text-sm text-gray-600">Stock: {p.quantity}</p>
+                    <h3 className="font-bold text-gray-900 text-lg mb-1">{p.itemName || p.Name || "Unnamed"}</h3>
+                    <p className="text-teal-700 font-semibold">₹{p.salePrice || p.Mrp || 0}</p>
+                    <p className="text-sm text-gray-600">Stock: {p.quantity || p.Quantity || 0}</p>
+                    <p className="text-sm text-gray-500">Supplier: {p.stockBroughtBy || "Unknown"}</p>
                     <button className="mt-4 w-full bg-teal-600 text-white py-2 rounded-xl hover:bg-teal-700 transition">
                       Add to Bill
                     </button>
@@ -409,6 +422,7 @@ const Sales = () => {
                     <div className="flex-1">
                       <p className="font-medium text-gray-900">{item.name}</p>
                       <p className="text-sm text-gray-600">₹{item.price} × {item.quantity}</p>
+                      <p className="text-sm text-gray-500">Supplier: {item.supplier}</p>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="flex items-center bg-white border border-gray-300 rounded-lg">
