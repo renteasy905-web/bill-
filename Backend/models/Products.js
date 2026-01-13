@@ -1,4 +1,4 @@
-// models/Products.js  (or config/products.js - your choice)
+// models/Products.js
 const mongoose = require("mongoose");
 
 // ────────────────────────────────
@@ -22,7 +22,7 @@ const productSchema = new mongoose.Schema(
       required: [true, "MRP / Sale price is required"],
       min: [0, "MRP cannot be negative"],
     },
-    purchasePrice: {  // ← Added for better tracking (was missing in original)
+    purchasePrice: {
       type: Number,
       required: [true, "Purchase price is required"],
       min: [0, "Purchase price cannot be negative"],
@@ -37,6 +37,12 @@ const productSchema = new mongoose.Schema(
       type: Date,
       required: false,
       default: null,
+    },
+    stockBroughtBy: {
+      type: String,
+      required: [true, "Stock brought by / Supplier name is required"],
+      trim: true,
+      minlength: [2, "Supplier name is too short"],
     },
   },
   { timestamps: true }
@@ -122,7 +128,7 @@ const saleSchema = new mongoose.Schema(
 const Sale = mongoose.model("Sale", saleSchema);
 
 // ────────────────────────────────
-// CONTROLLERS (with improved stock handling using transactions)
+// CONTROLLERS
 // ────────────────────────────────
 
 // Product Controllers
@@ -187,7 +193,7 @@ const getAllCustomers = async (req, res) => {
   }
 };
 
-// Sale Controllers - with TRANSACTION for safe stock management
+// Sale Controllers - with transactions for atomic stock updates
 const createSale = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -199,7 +205,7 @@ const createSale = async (req, res) => {
       throw new Error("Items are required");
     }
 
-    // Validate stock
+    // Validate stock availability
     for (const item of items) {
       const product = await Product.findById(item.product).session(session);
       if (!product) throw new Error(`Product not found: ${item.product}`);
@@ -281,7 +287,7 @@ const updateSaleById = async (req, res) => {
         );
       }
 
-      // Validate & deduct new stock
+      // Validate and deduct new stock
       for (const item of newItems) {
         const product = await Product.findById(item.product).session(session);
         if (!product) throw new Error(`Product not found: ${item.product}`);
