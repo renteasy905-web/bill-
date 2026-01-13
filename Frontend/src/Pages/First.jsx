@@ -40,12 +40,12 @@ const First = () => {
       to: "/createProducts",
     },
     {
-      title: "Order Stock",
-      desc: "Low/Expired Stock Orders",
-      icon: AlertTriangle,
-      color: "orange",
-      to: "/order-stock",
-    },
+  title: "Order Stock",
+  desc: "Low stock & expired items",
+  icon: AlertTriangle,
+  color: "orange",
+  to: "/order-stock",
+},
   ];
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-950 text-white overflow-hidden">
