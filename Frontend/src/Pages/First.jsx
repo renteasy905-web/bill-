@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Bell, Plus, Package, ShoppingCart, Receipt, BarChart3, Users, Pill } from "lucide-react";
+import { Bell, Plus, Package, ShoppingCart, Receipt, BarChart3, Users, Pill, AlertTriangle } from "lucide-react";
 
 const First = () => {
   const quickActions = [
@@ -39,8 +39,14 @@ const First = () => {
       color: "cyan",
       to: "/createProducts",
     },
+    {
+      title: "Order Stock",
+      desc: "Low/Expired Stock Orders",
+      icon: AlertTriangle,
+      color: "orange",
+      to: "/order-stock",
+    },
   ];
-
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-950 text-white overflow-hidden">
       {/* Header */}
@@ -56,7 +62,6 @@ const First = () => {
                 Vishwas Medical
               </h1>
             </div>
-
             {/* Notification */}
             <Link
               to="/notifications"
@@ -70,7 +75,6 @@ const First = () => {
           </div>
         </div>
       </header>
-
       {/* Hero Section */}
       <section className="pt-24 pb-16 px-4 text-center">
         <h1 className="text-5xl md:text-7xl font-extrabold bg-gradient-to-r from-cyan-300 via-indigo-400 to-purple-400 bg-clip-text text-transparent mb-6 tracking-tight">
@@ -80,7 +84,6 @@ const First = () => {
           Fast billing • Smart stock • Expiry alerts • Loyal customers
         </p>
       </section>
-
       {/* Quick Action Cards */}
       <section className="max-w-7xl mx-auto px-4 pb-32">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -93,7 +96,6 @@ const First = () => {
             >
               {/* Subtle gradient overlay */}
               <div className={`absolute inset-0 bg-gradient-to-br from-${action.color}-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-
               <div className="relative z-10 flex flex-col items-center text-center">
                 <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br from-${action.color}-700/50 to-${action.color}-900/50 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
                   <action.icon size={40} className={`text-${action.color}-300`} />
@@ -105,7 +107,6 @@ const First = () => {
           ))}
         </div>
       </section>
-
       {/* Floating Action Button - New Customer */}
       <Link
         to="/createCustomer"
@@ -117,5 +118,4 @@ const First = () => {
     </div>
   );
 };
-
 export default First;
