@@ -1,10 +1,10 @@
 const express = require("express");
 const router = express.Router();
 
-// Correct relative paths (assuming controllers/ is sibling folder to routes.js)
-const productController   = require("../controllers/productController");
-const customerController  = require("../controllers/customerController");
-const saleController      = require("../controllers/saleController");
+// Correct relative paths: ./controllers/ from routes.js location
+const productController   = require("./controllers/productController");
+const customerController  = require("./controllers/customerController");
+const saleController      = require("./controllers/saleController");
 
 // PRODUCT ROUTES
 router.post("/products",        productController.createProduct);
