@@ -2,7 +2,7 @@
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 
-// Your original invoice PDF function (unchanged - keeping it as is)
+// Original invoice PDF (unchanged)
 export const generateInvoicePDF = (sale, pharmacyDetails) => {
   const doc = new jsPDF({
     orientation: "portrait",
@@ -92,7 +92,7 @@ export const generateInvoicePDF = (sale, pharmacyDetails) => {
   return doc.output("blob");
 };
 
-// Updated & Fully Matched Order PDF function (no Current Stock, exact formatting from your sample)
+// Fixed Order PDF - No Current Stock, exact formatting from your sample
 export const generateOrderPDF = (orderItems, pharmacyDetails = {}) => {
   const doc = new jsPDF({
     orientation: "portrait",
@@ -113,7 +113,7 @@ export const generateOrderPDF = (orderItems, pharmacyDetails = {}) => {
   doc.setFontSize(12);
   doc.text("Vishwas Medical", 105, 32, { align: "center" });
 
-  // From section - exact match to your sample
+  // From section - matched your sample
   doc.setTextColor(darkText);
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
@@ -123,7 +123,7 @@ export const generateOrderPDF = (orderItems, pharmacyDetails = {}) => {
   doc.text("Phone: Your Phone Number Here", 20, 72);
   doc.text(`Date: ${new Date().toLocaleDateString("en-IN")}`, 20, 79);
 
-  // Table - Only 4 columns (S.No, Product Name, Supplier, Order Qty)
+  // Table - Only 4 columns (removed Current Stock)
   const tableColumn = ["S.No", "Product Name", "Supplier", "Order Qty"];
 
   const tableRows = orderItems.map((item, index) => [
@@ -151,17 +151,18 @@ export const generateOrderPDF = (orderItems, pharmacyDetails = {}) => {
       overflow: "linebreak",
       lineColor: [0, 0, 0],
       lineWidth: 0.3,
+      halign: "left",
     },
     columnStyles: {
       0: { cellWidth: 15, halign: "center" },
-      1: { cellWidth: 90, halign: "left" },
-      2: { cellWidth: 55, halign: "left" },
+      1: { cellWidth: 90 },
+      2: { cellWidth: 55 },
       3: { cellWidth: 30, halign: "center" },
     },
     margin: { top: 90, left: 20, right: 20 },
   });
 
-  // Footer text - exact wording from your sample
+  // Footer - exact text from your sample
   const finalY = doc.lastAutoTable.finalY + 15;
 
   doc.setFontSize(11);
