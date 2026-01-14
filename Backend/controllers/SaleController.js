@@ -1,6 +1,8 @@
-const mongoose = require('mongoose');
-const Sale = require('../models/Sale');
-const Product = require('../models/Product');
+const mongoose = require("mongoose");
+const Sale = require("../models/Sales");      // ✅ matches Sales.js
+const Product = require("../models/Products"); // ✅ matches Products.js
+
+
 
 exports.createSale = async (req, res) => {
   const session = await mongoose.startSession();
