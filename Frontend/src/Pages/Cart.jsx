@@ -1,4 +1,3 @@
-// src/pages/Cart.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -23,7 +22,11 @@ const Cart = () => {
   const [editedProduct, setEditedProduct] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+  const [toast, setToast] = useState({
+    show: false,
+    message: "",
+    type: "success",
+  });
 
   /* ---------------- FETCH PRODUCTS ---------------- */
   const fetchProducts = async () => {
@@ -32,6 +35,7 @@ const Cart = () => {
       const res = await api.get("/allproducts");
       setProducts(res.data.products);
       setFilteredProducts(res.data.products);
+      setError("");
     } catch (err) {
       setError("Failed to load products");
     } finally {
@@ -45,17 +49,18 @@ const Cart = () => {
 
   /* ---------------- SEARCH ---------------- */
   useEffect(() => {
-    if (!searchTerm.trim()) {
+    const term = searchTerm.trim().toLowerCase();
+
+    if (!term) {
       setFilteredProducts(products);
       return;
     }
 
-    const term = searchTerm.toLowerCase();
     setFilteredProducts(
       products.filter(
         (p) =>
-          p.itemName.toLowerCase().includes(term) ||
-          p.stockBroughtBy.toLowerCase().includes(term)
+          p.itemName?.toLowerCase().includes(term) ||
+          (p.stockBroughtBy || "").toLowerCase().includes(term)
       )
     );
   }, [searchTerm, products]);
@@ -63,7 +68,10 @@ const Cart = () => {
   /* ---------------- TOAST ---------------- */
   useEffect(() => {
     if (!toast.show) return;
-    const t = setTimeout(() => setToast({ show: false }), 3000);
+    const t = setTimeout(
+      () => setToast({ show: false, message: "", type: "success" }),
+      3000
+    );
     return () => clearTimeout(t);
   }, [toast.show]);
 
@@ -90,7 +98,7 @@ const Cart = () => {
   const saveEdit = async () => {
     try {
       const payload = {
-        itemName: editedProduct.itemName.trim(),
+        itemName: editedProduct.itemName?.trim(),
         salePrice: Number(editedProduct.salePrice),
         purchasePrice: Number(editedProduct.purchasePrice),
         quantity: Number(editedProduct.quantity),
@@ -202,7 +210,9 @@ const Cart = () => {
                 {isEditing ? (
                   <input
                     value={editedProduct.itemName}
-                    onChange={(e) => handleChange("itemName", e.target.value)}
+                    onChange={(e) =>
+                      handleChange("itemName", e.target.value)
+                    }
                     className="w-full border rounded px-2 py-1"
                   />
                 ) : (
@@ -214,16 +224,28 @@ const Cart = () => {
                 <input
                   type="number"
                   disabled={!isEditing}
-                  value={isEditing ? editedProduct.salePrice : product.salePrice}
-                  onChange={(e) => handleChange("salePrice", e.target.value)}
+                  value={
+                    isEditing
+                      ? editedProduct.salePrice
+                      : product.salePrice
+                  }
+                  onChange={(e) =>
+                    handleChange("salePrice", e.target.value)
+                  }
                   className="w-full border rounded px-2 py-1"
                 />
 
                 <input
                   type="number"
                   disabled={!isEditing}
-                  value={isEditing ? editedProduct.quantity : product.quantity}
-                  onChange={(e) => handleChange("quantity", e.target.value)}
+                  value={
+                    isEditing
+                      ? editedProduct.quantity
+                      : product.quantity
+                  }
+                  onChange={(e) =>
+                    handleChange("quantity", e.target.value)
+                  }
                   className="w-full border rounded px-2 py-1"
                 />
               </div>

@@ -4,9 +4,9 @@ const router = express.Router();
 /* =====================
    CONTROLLERS
 ===================== */
-const productController  = require("../controllers/productController");
+const productController = require("../controllers/productController");
 const customerController = require("../controllers/CustomerController");
-const saleController     = require("../controllers/SaleController");
+const saleController = require("../controllers/SaleController");
 
 /* =====================
    PRODUCT ROUTES
@@ -15,7 +15,7 @@ const saleController     = require("../controllers/SaleController");
 router.post("/products", productController.createProduct);
 
 // Get all products
-router.get("/allproducts", productController.getAllProducts);
+router.get("/products", productController.getAllProducts);
 
 // Update product by ID
 router.put("/products/:id", productController.updateProduct);
