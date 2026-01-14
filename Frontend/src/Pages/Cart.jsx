@@ -1,3 +1,4 @@
+// src/Pages/ProductEdit.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Loader2, CheckCircle, AlertCircle, IndianRupee, RefreshCw, ArrowLeft, Pencil } from "lucide-react";
@@ -14,7 +15,7 @@ const ProductEdit = () => {
   const [error, setError] = useState(null);
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
-  // Calculate total stock value
+  // Total stock value calculation
   const totalStockValue = products.reduce((sum, product) => {
     const purchasePrice = Number(product.purchasePrice || product.purchasePrice) || 0;
     const quantity = Number(product.quantity || product.Quantity) || 0;
@@ -29,9 +30,8 @@ const ProductEdit = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get("/allproducts"); // FIXED: correct endpoint
+      const res = await api.get("/allproducts");
       console.log("Edit Page API Response:", res.data);
-
       const data = res.data.products || res.data.data || [];
       setProducts(data);
       setFilteredProducts(data);
@@ -43,7 +43,7 @@ const ProductEdit = () => {
     }
   };
 
-  // Search filter (product name + supplier)
+  // Search filter
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredProducts(products);
@@ -82,7 +82,6 @@ const ProductEdit = () => {
 
   const saveEdit = async () => {
     if (!editId) return;
-
     try {
       const updateData = {
         itemName: editedProduct.itemName?.trim() || editedProduct.Name?.trim() || "",
@@ -94,13 +93,12 @@ const ProductEdit = () => {
         expiryDate: editedProduct.expiryDate || editedProduct.Expiry || null,
       };
 
-      // Assuming your update route is /products/:id - change if different
+      // FIXED: Correct endpoint (no extra /api)
       await api.put(`/products/${editId}`, updateData);
 
       const updatedProducts = products.map((p) =>
         p._id === editId ? { ...p, ...updateData } : p
       );
-
       setProducts(updatedProducts);
       setFilteredProducts(updatedProducts);
       showToast("Product updated successfully!", "success");
@@ -324,7 +322,6 @@ const ProductEdit = () => {
                       </div>
                     </div>
 
-                    {/* Supplier & Expiry */}
                     <div className="grid grid-cols-2 gap-6 text-base">
                       <div>
                         <p className="text-gray-600">Supplier</p>
@@ -367,7 +364,6 @@ const ProductEdit = () => {
                       </div>
                     </div>
 
-                    {/* Description */}
                     <div>
                       <p className="text-gray-600">Description</p>
                       {isEditing ? (
