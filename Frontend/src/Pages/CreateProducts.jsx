@@ -1,3 +1,4 @@
+// src/Pages/CreateProducts.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
@@ -5,6 +6,8 @@ import { ArrowLeft, RefreshCw } from "lucide-react";
 
 const CreateProducts = () => {
   const navigate = useNavigate();
+
+  // Initial form state
   const initialFormData = {
     Name: "",
     Mrp: "",
@@ -14,6 +17,7 @@ const CreateProducts = () => {
     Expiry: "",
     stockBroughtBy: "",
   };
+
   const [formData, setFormData] = useState(initialFormData);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
@@ -32,6 +36,7 @@ const CreateProducts = () => {
     setSuccess("");
     setError("");
 
+    // Basic validation
     if (
       !formData.Name.trim() ||
       !formData.Mrp ||
@@ -44,6 +49,7 @@ const CreateProducts = () => {
     }
 
     setLoading(true);
+
     try {
       const payload = {
         Name: formData.Name.trim(),
@@ -55,19 +61,24 @@ const CreateProducts = () => {
         stockBroughtBy: formData.stockBroughtBy.trim(),
       };
 
-      // FIXED: correct endpoint (remove extra /api)
+      // FIXED: Correct endpoint (no extra /api prefix)
       await api.post("/products", payload);
 
       setSuccess("Product added successfully!");
-      setFormData(initialFormData);
+      setFormData(initialFormData); // Reset form
     } catch (err) {
-      console.error("Add product error:", err);
-      setError(err.response?.data?.message || "Failed to add product. Check console.");
+      console.error("Error adding product:", err);
+      const errMsg =
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to add product. Please check your connection or try again.";
+      setError(errMsg);
     } finally {
       setLoading(false);
     }
   };
 
+  // Reset form only (no page reload)
   const handleRefresh = () => {
     setFormData(initialFormData);
     setSuccess("");
@@ -77,7 +88,7 @@ const CreateProducts = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white py-12 px-6">
       <div className="max-w-3xl mx-auto">
-        {/* Top Bar */}
+        {/* Top Bar: Back + Title + Refresh */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6">
           <button
             onClick={() => navigate("/")}
@@ -103,7 +114,7 @@ const CreateProducts = () => {
           </button>
         </div>
 
-        {/* Form Card */}
+        {/* Main Form Card */}
         <div className="bg-slate-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-8 md:p-12 border border-slate-700">
           {success && (
             <div className="mb-8 p-4 bg-green-900/40 border border-green-600 text-green-300 rounded-lg text-center">
@@ -124,7 +135,119 @@ const CreateProducts = () => {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-7">
-              {/* ... rest of your form fields remain exactly the same ... */}
+              {/* Product Name */}
+              <div>
+                <label className="block text-slate-300 font-medium mb-2">
+                  Product Name <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="Name"
+                  value={formData.Name}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                  placeholder="Paracetamol 500mg"
+                />
+              </div>
+
+              {/* Supplier */}
+              <div>
+                <label className="block text-slate-300 font-medium mb-2">
+                  Stock Brought By / Supplier <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="stockBroughtBy"
+                  value={formData.stockBroughtBy}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                  placeholder="Distributor XYZ / Mr. Ramesh"
+                />
+              </div>
+
+              {/* Prices */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-slate-300 font-medium mb-2">
+                    Sale Price (MRP ₹) <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="Mrp"
+                    value={formData.Mrp}
+                    onChange={handleChange}
+                    required
+                    min="0"
+                    step="0.01"
+                    className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                    placeholder="50.00"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-medium mb-2">
+                    Purchase Price (₹) <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="purchasePrice"
+                    value={formData.purchasePrice}
+                    onChange={handleChange}
+                    required
+                    min="0"
+                    step="0.01"
+                    className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                    placeholder="35.00"
+                  />
+                </div>
+              </div>
+
+              {/* Quantity */}
+              <div>
+                <label className="block text-slate-300 font-medium mb-2">
+                  Quantity <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="number"
+                  name="Quantity"
+                  value={formData.Quantity}
+                  onChange={handleChange}
+                  required
+                  min="0"
+                  className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                  placeholder="500"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-slate-300 font-medium mb-2">
+                  Description (Optional)
+                </label>
+                <textarea
+                  name="Description"
+                  value={formData.Description}
+                  onChange={handleChange}
+                  rows={3}
+                  className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                  placeholder="Pain relief tablets, 10 strips..."
+                />
+              </div>
+
+              {/* Expiry Date */}
+              <div>
+                <label className="block text-slate-300 font-medium mb-2">
+                  Expiry Date (Optional)
+                </label>
+                <input
+                  type="date"
+                  name="Expiry"
+                  value={formData.Expiry}
+                  onChange={handleChange}
+                  className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                />
+              </div>
 
               {/* Submit Button */}
               <button
