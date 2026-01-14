@@ -4,14 +4,14 @@ const router = express.Router();
 /* =====================
    CONTROLLERS
 ===================== */
-const productController = require("../controllers/productController");
-const customerController = require("../controllers/CustomerController");
-const saleController = require("../controllers/SaleController");
+const productController = require("./controllers/productController");
+const customerController = require("./controllers/CustomerController");
+const saleController = require("./controllers/SaleController");
 
 /* =====================
    PRODUCT ROUTES
 ===================== */
-// Create product
+// Create a new product
 router.post("/products", productController.createProduct);
 
 // Get all products
@@ -23,7 +23,7 @@ router.put("/products/:id", productController.updateProduct);
 /* =====================
    CUSTOMER ROUTES
 ===================== */
-// Create customer
+// Create a new customer
 router.post("/customers", customerController.createCustomer);
 
 // Get all customers
@@ -32,7 +32,7 @@ router.get("/customers", customerController.getAllCustomers);
 /* =====================
    SALE ROUTES
 ===================== */
-// Create sale
+// Create a new sale
 router.post("/sales", saleController.createSale);
 
 // Get all sales
