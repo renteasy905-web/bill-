@@ -34,8 +34,8 @@ export const generateOrderPDF = (orderItems, pharmacyDetails = {}) => {
   doc.setFont("helvetica", "normal");
   doc.text("From:", 20, 50);
   doc.text(pharmacyDetails.name || "Vishwas Medical", 20, 58);
-  doc.text(pharmacyDetails.address || "Shivamogga, Karnataka", 20, 65);
-  doc.text(`Phone: ${pharmacyDetails.phone || "Your Phone Number Here"}`, 20, 72);
+  doc.text(pharmacyDetails.address || "sindagi", 20, 65);
+  doc.text(`Phone: ${pharmacyDetails.phone || " 63610 27924"}`, 20, 72);
   doc.text(`Date: ${new Date().toLocaleDateString("en-IN")}`, 20, 79);
 
   // Table - Only relevant columns
