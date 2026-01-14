@@ -15,7 +15,7 @@ const ProductEdit = () => {
   const [error, setError] = useState(null);
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
-  // Calculate total stock value
+  // Total stock value calculation
   const totalStockValue = products.reduce((sum, product) => {
     const purchasePrice = Number(product.purchasePrice || product.purchasePrice) || 0;
     const quantity = Number(product.quantity || product.Quantity) || 0;
@@ -94,7 +94,7 @@ const ProductEdit = () => {
         expiryDate: editedProduct.expiryDate || editedProduct.Expiry || null,
       };
 
-      // FIXED: Correct endpoint (no extra /api prefix)
+      // FIXED: Correct endpoint - no extra /api (baseURL already includes /api)
       await api.put(`/products/${editId}`, updateData);
 
       const updatedProducts = products.map((p) =>
@@ -107,7 +107,8 @@ const ProductEdit = () => {
     } catch (err) {
       console.error("Save error:", err);
       showToast(
-        err.response?.data?.message || "Failed to save changes. Check console.",
+        err.response?.data?.message ||
+        "Failed to save changes. Please check backend route or console.",
         "error"
       );
     }
