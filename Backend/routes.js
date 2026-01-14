@@ -1,44 +1,31 @@
-// routes.js
 const express = require("express");
-
-// Import all controllers from your model file
-const {
-  createProduct,
-  getAllProducts,
-  getProductsSortedByName,
-  updateProduct,
-  createCustomer,
-  getAllCustomers,
-  createSale,
-  getAllSales,
-  getSaleById,
-  updateSaleById,
-  deleteSale,
-} = require("./models/Products"); // ← This is the correct path (capital P)
-
 const router = express.Router();
+
+// Correct imports – make sure these paths are accurate from routes.js location
+const productController   = require("../controllers/productController");
+const customerController  = require("../controllers/customerController");
+const saleController      = require("../controllers/saleController");
 
 // =====================
 // PRODUCT ROUTES
 // =====================
-router.post("/products", createProduct);
-router.get("/allproducts", getAllProducts);
-router.get("/fetch", getProductsSortedByName);
-router.put("/fetch/:id", updateProduct); // Suggestion: change to "/products/:id" later
+router.post("/products",        productController.createProduct);
+router.get("/allproducts",      productController.getAllProducts);
+router.put("/products/:id",     productController.updateProduct); // must be here
 
 // =====================
 // CUSTOMER ROUTES
 // =====================
-router.post("/create", createCustomer);
-router.get("/getcustomers", getAllCustomers); // Suggestion: change to "/customers" later
+router.post("/customers",       customerController.createCustomer);
+router.get("/customers",        customerController.getAllCustomers);
 
 // =====================
 // SALE ROUTES
 // =====================
-router.post("/sale", createSale);
-router.get("/allsales", getAllSales);
-router.get("/sales/:id", getSaleById);
-router.put("/sales/:id", updateSaleById);
-router.delete("/sales/:id", deleteSale);
+router.post("/sales",           saleController.createSale);
+router.get("/sales",            saleController.getAllSales);
+router.get("/sales/:id",        saleController.getSaleById);
+router.put("/sales/:id",        saleController.updateSaleById);
+router.delete("/sales/:id",     saleController.deleteSale);
 
 module.exports = router;
