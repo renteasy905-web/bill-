@@ -1,24 +1,25 @@
-// models/customer.js (or whatever the file name is)
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
-const CustomerSchema = new mongoose.Schema(
+const customerSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true,
-      trim: true
+      required: [true, 'Name is required'],
+      trim: true,
     },
     phone: {
       type: String,
-      required: true,
-      trim: true
+      required: [true, 'Phone is required'],
+      unique: true,
+      trim: true,
     },
     address: {
       type: String,
-      trim: true
-    }
+      trim: true,
+      default: '',
+    },
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Customer", CustomerSchema);
+module.exports = mongoose.model('Customer', customerSchema);
