@@ -15,7 +15,6 @@ const ProductEdit = () => {
   const [error, setError] = useState(null);
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
-  // Total stock value calculation
   const totalStockValue = products.reduce((sum, product) => {
     const purchasePrice = Number(product.purchasePrice || product.purchasePrice) || 0;
     const quantity = Number(product.quantity || product.Quantity) || 0;
@@ -43,7 +42,6 @@ const ProductEdit = () => {
     }
   };
 
-  // Search filter (product name + supplier)
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredProducts(products);
@@ -58,7 +56,6 @@ const ProductEdit = () => {
     );
   }, [searchTerm, products]);
 
-  // Toast auto-hide
   useEffect(() => {
     if (toast.show) {
       const timer = setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
@@ -94,7 +91,7 @@ const ProductEdit = () => {
         expiryDate: editedProduct.expiryDate || editedProduct.Expiry || null,
       };
 
-      // FINAL FIXED ENDPOINT - this will work with your current api.js baseURL
+      // THIS IS THE CORRECT LINE - DO NOT ADD /api HERE
       await api.put(`/products/${editId}`, updateData);
 
       const updatedProducts = products.map((p) =>
