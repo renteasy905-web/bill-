@@ -4,7 +4,7 @@ const router = express.Router();
 /* =====================
    CONTROLLERS
 ===================== */
-const productController  = require("../controllers/ProductController");
+const productController  = require("../controllers/productController");
 const customerController = require("../controllers/CustomerController");
 const saleController     = require("../controllers/SaleController");
 
