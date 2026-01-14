@@ -4,9 +4,9 @@ const router = express.Router();
 /* =====================
    CONTROLLERS
 ===================== */
-const productController  = require("../controllers/productController");
-const customerController = require("../controllers/customerController");
-const saleController     = require("../controllers/saleController");
+const productController  = require("../controllers/ProductController");
+const customerController = require("../controllers/CustomerController");
+const saleController     = require("../controllers/SaleController");
 
 /* =====================
    PRODUCT ROUTES
