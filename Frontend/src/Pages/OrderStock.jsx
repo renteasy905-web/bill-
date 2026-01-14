@@ -16,7 +16,7 @@ const OrderStock = () => {
 
   // For manual item addition
   const [newItemName, setNewItemName] = useState("");
-  const [newItemQty, setNewItemQty] = useState(50);
+  const [newItemQty, setNewItemQty] = useState("");
 
   useEffect(() => {
     fetchProducts();
@@ -42,25 +42,19 @@ const OrderStock = () => {
     }
   };
 
-  // Filter products for selected supplier only
   const filteredProducts = selectedSupplier
     ? products.filter((p) => (p.stockBroughtBy || "Unknown") === selectedSupplier)
     : [];
 
   const changeSupplier = (supplier) => {
     if (supplier !== selectedSupplier) {
-      if (
-        orderItems.length > 0 &&
-        !window.confirm(
-          "Changing supplier will clear current order list. Continue?"
-        )
-      ) {
+      if (orderItems.length > 0 && !window.confirm("Changing supplier will clear current order list. Continue?")) {
         return;
       }
       setSelectedSupplier(supplier);
-      setOrderItems([]); // Clear order when changing supplier
+      setOrderItems([]);
       setNewItemName("");
-      setNewItemQty(50);
+      setNewItemQty("");
     }
   };
 
@@ -68,7 +62,7 @@ const OrderStock = () => {
     if (!orderItems.some((item) => item._id === product._id)) {
       setOrderItems((prev) => [
         ...prev,
-        { ...product, orderQty: 50 },
+        { ...product, orderQty: "" }, // start empty - no forced default
       ]);
     }
   };
@@ -84,22 +78,23 @@ const OrderStock = () => {
     }
 
     const manualItem = {
-      _id: `manual_${Date.now()}`, // temporary unique id
+      _id: `manual_${Date.now()}`,
       Name: newItemName.trim(),
       stockBroughtBy: selectedSupplier,
-      orderQty: Math.max(1, Number(newItemQty) || 50),
+      orderQty: newItemQty.trim() === "" ? "" : Number(newItemQty),
       isManual: true,
     };
 
     setOrderItems((prev) => [...prev, manualItem]);
     setNewItemName("");
-    setNewItemQty(50);
+    setNewItemQty("");
   };
 
   const updateOrderQty = (id, value) => {
+    // Allow completely empty, zero, negative, etc.
     setOrderItems((prev) =>
       prev.map((item) =>
-        item._id === id ? { ...item, orderQty: Math.max(1, Number(value) || 1) } : item
+        item._id === id ? { ...item, orderQty: value } : item
       )
     );
   };
@@ -131,26 +126,22 @@ const OrderStock = () => {
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `Order_${selectedSupplier}_${new Date()
-        .toLocaleDateString("en-IN")
-        .replace(/\//g, "-")}.pdf`;
+      link.download = `Order_${selectedSupplier}_${new Date().toLocaleDateString("en-IN").replace(/\//g, "-")}.pdf`;
       link.click();
 
       const message = encodeURIComponent(
         `Urgent Stock Order Request from Vishwas Medical\n\n` +
-          `To: ${selectedSupplier}\n` +
-          `Please find attached order list PDF.\n` +
-          `Kindly supply the mentioned quantities at the earliest.\n` +
-          `Thank you!`
+        `To: ${selectedSupplier}\n` +
+        `Please find attached order list PDF.\n` +
+        `Kindly supply the mentioned quantities at the earliest.\n` +
+        `Thank you!`
       );
 
       const whatsappUrl = `https://wa.me/?text=${message}`;
 
       setTimeout(() => {
         window.open(whatsappUrl, "_blank");
-        alert(
-          "PDF downloaded!\n\n1. Open WhatsApp\n2. Attach the downloaded PDF\n3. Send to supplier"
-        );
+        alert("PDF downloaded!\n\n1. Open WhatsApp\n2. Attach the downloaded PDF\n3. Send to supplier");
       }, 1200);
     } catch (err) {
       console.error("Order PDF error:", err);
@@ -175,7 +166,7 @@ const OrderStock = () => {
           <button
             onClick={fetchProducts}
             className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium ${
-              loading ? "bg-slate-700 text-slate-500" : "bg-indigo-600 hover:bg-indigo-700"
+              loading ? "bg-slate-700 text-slate-500 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
             }`}
           >
             <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
@@ -183,13 +174,12 @@ const OrderStock = () => {
           </button>
         </div>
 
-        {/* Supplier Selection - Required */}
+        {/* Supplier Selection */}
         <div className="mb-10">
           <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
             <FileText size={28} className="text-indigo-400" />
             Select Supplier (Required for Ordering)
           </h2>
-
           <div className="flex flex-wrap gap-3">
             {suppliers.map((sup) => (
               <button
@@ -207,7 +197,6 @@ const OrderStock = () => {
           </div>
         </div>
 
-        {/* Only show content when supplier is selected */}
         {selectedSupplier ? (
           <>
             {/* Manual Add Item */}
@@ -228,9 +217,9 @@ const OrderStock = () => {
                     <label className="text-sm text-slate-400 block mb-1">Qty</label>
                     <input
                       type="number"
-                      min="1"
                       value={newItemQty}
                       onChange={(e) => setNewItemQty(e.target.value)}
+                      placeholder="Qty"
                       className="w-24 px-3 py-3 bg-slate-900 border border-slate-600 rounded-xl text-white text-center"
                     />
                   </div>
@@ -251,11 +240,10 @@ const OrderStock = () => {
                   <FileText size={28} className="text-indigo-400" />
                   Order for {selectedSupplier} ({orderItems.length} items)
                 </h2>
-
                 <button
                   onClick={generateOrderAndShare}
                   disabled={orderItems.length === 0}
-                  className={`px-8 py-4 rounded-xl font-bold text-lg ${
+                  className={`px-8 py-4 rounded-xl font-bold text-lg transition-all ${
                     orderItems.length === 0
                       ? "bg-slate-700 text-slate-500 cursor-not-allowed"
                       : "bg-green-600 hover:bg-green-700 shadow-lg shadow-green-900/40"
@@ -287,15 +275,15 @@ const OrderStock = () => {
                           <label className="text-sm text-slate-400 block mb-1">Order Qty</label>
                           <input
                             type="number"
-                            min="1"
                             value={item.orderQty}
                             onChange={(e) => updateOrderQty(item._id, e.target.value)}
+                            placeholder="Qty"
                             className="w-24 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-center"
                           />
                         </div>
                         <button
                           onClick={() => removeFromOrder(item._id)}
-                          className="text-red-400 hover:text-red-300 p-2 rounded-lg hover:bg-red-950/50"
+                          className="text-red-400 hover:text-red-300 p-2 rounded-lg hover:bg-red-950/50 transition"
                         >
                           <Trash2 size={24} />
                         </button>
@@ -306,7 +294,7 @@ const OrderStock = () => {
               )}
             </div>
 
-            {/* Existing Products from this Supplier */}
+            {/* Existing Products */}
             <h2 className="text-3xl font-bold mb-6">
               Available Products from {selectedSupplier}
             </h2>
