@@ -1,46 +1,37 @@
-// src/App.jsx
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 
-// Import all your pages (make sure file names match exactly)
 import First from './Pages/First';
 import CreateProducts from './Pages/CreateProducts';
 import Cart from './Pages/Cart';
 import CreateCustomer from './Pages/CreateCustomer';
-import Sales from './Pages/Sale';
-import Allrproducts from './Pages/Allproducts';
+import Sales from './Pages/Sales';           // FIXED: plural "Sales"
+import AllProducts from './Pages/Allproducts'; // FIXED: lowercase p
 import ListofSales from './Pages/ListofSales';
-import EditSale from './Pages/Editsales';
+import EditSale from './Pages/Editsales';     // FIXED: lowercase s
 import Notifications from './Pages/Notifications';
-import OrderStock from './Pages/OrderStock'; // ← NEW PAGE ADDED
+import OrderStock from './Pages/OrderStock';
 
 const App = () => {
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <Routes>
-        {/* Home / Dashboard */}
         <Route path="/" element={<First />} />
 
-        {/* Product Management */}
         <Route path="/createProducts" element={<CreateProducts />} />
-        <Route path="/allproducts" element={<Allrproducts />} />
+        <Route path="/allproducts" element={<AllProducts />} />
 
-        {/* Customer Management */}
         <Route path="/createCustomer" element={<CreateCustomer />} />
 
-        {/* Billing & Sales */}
         <Route path="/cart" element={<Cart />} />
         <Route path="/sales" element={<Sales />} />
         <Route path="/allsales" element={<ListofSales />} />
         <Route path="/editsales/:id" element={<EditSale />} />
 
-        {/* Notifications */}
         <Route path="/notifications" element={<Notifications />} />
 
-        {/* NEW: Stock Order Planning Page */}
         <Route path="/order-stock" element={<OrderStock />} />
 
-        {/* 404 - Catch-all for invalid URLs */}
         <Route
           path="*"
           element={

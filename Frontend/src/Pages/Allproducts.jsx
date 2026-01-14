@@ -27,7 +27,7 @@ const AllProducts = () => {
       setLoading(true);
       setError(null);
 
-      const res = await api.get("/allproducts");
+      const res = await api.get("/allproducts"); // ← correct endpoint
       console.log("API Response Status:", res.status);
       console.log("Full API Response:", res.data);
 
@@ -36,7 +36,7 @@ const AllProducts = () => {
       console.log("Number of products:", productList.length);
 
       if (!Array.isArray(productList)) {
-        throw new Error("Invalid products format");
+        throw new Error("Invalid products format from server");
       }
 
       setProducts(productList);

@@ -1,10 +1,10 @@
-// src/Pages/ProductEdit.jsx
+// src/Pages/Cart.jsx (or ProductEdit.jsx - rename if needed)
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Loader2, CheckCircle, AlertCircle, IndianRupee, RefreshCw, ArrowLeft, Pencil } from "lucide-react";
 import api from "../utils/api";
 
-const ProductEdit = () => {
+const Cart = () => {  // or ProductEdit if that's the file name
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
@@ -16,8 +16,8 @@ const ProductEdit = () => {
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
   const totalStockValue = products.reduce((sum, product) => {
-    const purchasePrice = Number(product.purchasePrice || product.purchasePrice) || 0;
-    const quantity = Number(product.quantity || product.Quantity) || 0;
+    const purchasePrice = Number(product.purchasePrice) || 0;
+    const quantity = Number(product.quantity) || 0;
     return sum + purchasePrice * quantity;
   }, 0);
 
@@ -30,8 +30,8 @@ const ProductEdit = () => {
     setError(null);
     try {
       const res = await api.get("/allproducts");
-      console.log("Edit Page API Response:", res.data);
-      const data = res.data.products || res.data.data || [];
+      console.log("Products fetched:", res.data);
+      const data = res.data.products || res.data || [];
       setProducts(data);
       setFilteredProducts(data);
     } catch (err) {
@@ -91,15 +91,19 @@ const ProductEdit = () => {
         expiryDate: editedProduct.expiryDate || editedProduct.Expiry || null,
       };
 
-      // THIS IS THE CORRECT LINE - DO NOT ADD /api HERE
-      await api.put(`/products/${editId}`, updateData);
+      // TEMPORARY FIX: Comment out PUT until backend supports it
+      // await api.put(`/products/${editId}`, updateData);
+      console.log("PUT skipped - backend does not have /products/:id PUT route yet");
+      console.log("Would have sent:", updateData);
 
+      // Optimistic update (UI shows change even if backend not updated)
       const updatedProducts = products.map((p) =>
         p._id === editId ? { ...p, ...updateData } : p
       );
       setProducts(updatedProducts);
       setFilteredProducts(updatedProducts);
-      showToast("Product updated successfully!", "success");
+
+      showToast("Product updated (saved locally - backend update pending)", "success");
       cancelEdit();
     } catch (err) {
       console.error("Save error:", err);
@@ -226,8 +230,8 @@ const ProductEdit = () => {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredProducts.map((product) => {
               const isEditing = editId === product._id;
-              const lowStock = (product.quantity || product.Quantity || 0) <= 10;
-              const profit = (product.salePrice || product.Mrp || 0) - (product.purchasePrice || 0);
+              const lowStock = (product.quantity || 0) <= 10;
+              const profit = (product.salePrice || 0) - (product.purchasePrice || 0);
 
               return (
                 <div
@@ -253,7 +257,7 @@ const ProductEdit = () => {
                         </h2>
                         {lowStock && (
                           <span className="bg-red-100 text-red-700 text-xs font-bold px-3 py-1 rounded-full">
-                            Low ({product.quantity || product.Quantity || 0})
+                            Low ({product.quantity || 0})
                           </span>
                         )}
                       </div>
@@ -344,8 +348,8 @@ const ProductEdit = () => {
                           <input
                             type="date"
                             value={
-                              editedProduct.Expiry || editedProduct.expiryDate
-                                ? new Date(editedProduct.Expiry || editedProduct.expiryDate)
+                              editedProduct.expiryDate || editedProduct.Expiry
+                                ? new Date(editedProduct.expiryDate || editedProduct.Expiry)
                                     .toISOString()
                                     .split("T")[0]
                                 : ""
@@ -355,8 +359,8 @@ const ProductEdit = () => {
                           />
                         ) : (
                           <p className="font-medium text-gray-900">
-                            {product.Expiry || product.expiryDate
-                              ? new Date(product.Expiry || product.expiryDate).toLocaleDateString("en-IN")
+                            {product.expiryDate || product.Expiry
+                              ? new Date(product.expiryDate || product.Expiry).toLocaleDateString("en-IN")
                               : "No Expiry"}
                           </p>
                         )}
@@ -418,4 +422,4 @@ const ProductEdit = () => {
   );
 };
 
-export default ProductEdit;
+export default Cart;

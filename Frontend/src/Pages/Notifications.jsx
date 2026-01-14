@@ -28,27 +28,29 @@ const Notifications = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch all products - corrected endpoint
-      const productsRes = await api.get("/fetch"); // or "/allproducts" if that's your actual route
+      // Fetch all products
+      const productsRes = await api.get("/allproducts");
       const allProducts = productsRes.data.products || productsRes.data || [];
 
-      // Process alerts
+      // Process stock & expiry alerts
       const alerts = allProducts
         .map((product) => {
-          const expiryDate = new Date(product.Expiry || product.expiryDate);
-          const daysToExpiry = Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24));
-          const quantity = Number(product.Quantity || product.quantity || 0);
+          const expiryDate = new Date(product.expiryDate || product.Expiry || null);
+          const daysToExpiry = expiryDate
+            ? Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24))
+            : null;
+          const quantity = Number(product.quantity || 0);
           const isLowStock = quantity < 30;
-          const isNearExpiry = daysToExpiry <= 90 && daysToExpiry >= 0;
+          const isNearExpiry = daysToExpiry !== null && daysToExpiry <= 90 && daysToExpiry >= 0;
 
           if (!isLowStock && !isNearExpiry) return null;
 
           return {
             _id: product._id,
-            Name: product.Name || product.itemName || "Unnamed Product",
-            Quantity: quantity,
-            Mrp: Number(product.Mrp || product.salePrice || 0),
-            Expiry: product.Expiry || product.expiryDate,
+            itemName: product.itemName || "Unnamed Product",
+            quantity,
+            salePrice: Number(product.salePrice || 0),
+            expiryDate: product.expiryDate || product.Expiry,
             daysToExpiry: isNearExpiry ? daysToExpiry : null,
             stockLeft: quantity,
             reason: isLowStock ? "low_quantity" : "near_expiry",
@@ -58,13 +60,15 @@ const Notifications = () => {
 
       setStockAlerts(alerts);
 
-      // Fetch sales for reminders - corrected endpoint
+      // Fetch sales for refill reminders (optional - won't crash if fails)
       let allSales = [];
       try {
-        const salesRes = await api.get("/allsales");
+        const salesRes = await api.get("/allsales"); // FIXED: use /allsales (your backend route)
         allSales = salesRes.data.sales || salesRes.data || [];
+        console.log("Sales fetched successfully:", allSales.length);
       } catch (salesErr) {
-        console.log("Could not fetch sales data (optional):", salesErr.message);
+        console.warn("Could not fetch sales (optional):", salesErr.message);
+        // Continue without sales - reminders will be empty
       }
 
       const reminders = allSales
@@ -79,11 +83,11 @@ const Notifications = () => {
             daysAgo,
             customer: sale.customer || { name: "Walk-in Patient", phone: "—" },
             product: {
-              Name: item.product?.Name || item.itemName || "Unknown Medicine",
-              Mrp: Number(item.salePrice || 0),
+              itemName: item.name || item.product?.itemName || "Unknown Medicine",
+              salePrice: Number(item.price || item.salePrice || 0),
             },
             quantity: Number(item.quantity || 1),
-            price: Number(item.price || item.salePrice || 0),
+            price: Number(item.price || 0),
             reason: "purchase_reminder",
           }));
         });
@@ -91,11 +95,7 @@ const Notifications = () => {
       setPurchaseReminders(reminders);
     } catch (err) {
       console.error("Notifications fetch error:", err);
-      setError(
-        err.response?.status === 404
-          ? "Backend endpoints not found. Check /fetch and /allsales routes."
-          : "Failed to load notifications. Please try again."
-      );
+      setError("Failed to load notifications. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -105,7 +105,6 @@ const Notifications = () => {
     fetchNotifications();
   }, []);
 
-  // PDF generation remains the same (no change needed here)
   const downloadReminderPDF = (reminder) => {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const purple = "#6b21a8";
@@ -145,11 +144,11 @@ const Notifications = () => {
       body: [
         [
           1,
-          reminder.product?.Name || "Medicine",
+          reminder.product?.itemName || "Medicine",
           "—",
           "—",
           reminder.price?.toFixed(2) || "0.00",
-          `₹${reminder.product?.Mrp?.toFixed(2) || "0.00"}`,
+          `₹${reminder.product?.salePrice?.toFixed(2) || "0.00"}`,
           "—",
           `₹${(reminder.price * reminder.quantity).toFixed(2)}`,
         ],
@@ -276,21 +275,21 @@ const Notifications = () => {
                       {text}
                     </div>
                     <h3 className="text-lg font-semibold text-white mb-4 pr-28">
-                      {item.Name}
+                      {item.itemName}
                     </h3>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-slate-400">Quantity:</span>
-                        <span className="text-white font-medium">{item.Quantity}</span>
+                        <span className="text-white font-medium">{item.quantity}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-400">MRP:</span>
-                        <span className="text-white font-medium">₹{item.Mrp}</span>
+                        <span className="text-slate-400">Sale Price:</span>
+                        <span className="text-white font-medium">₹{item.salePrice.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">Expiry:</span>
                         <span className="text-white font-medium">
-                          {new Date(item.Expiry).toDateString()}
+                          {item.expiryDate ? new Date(item.expiryDate).toDateString() : "No Expiry"}
                         </span>
                       </div>
                     </div>
@@ -318,7 +317,7 @@ const Notifications = () => {
                 const { text, color } = getTagStyleAndText(rem);
                 return (
                   <div
-                    key={rem.saleId + (rem.product?.Name || "prod")}
+                    key={rem.saleId + (rem.product?.itemName || "prod")}
                     className="relative bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-xl p-6 shadow-lg hover:border-slate-500 transition-all"
                   >
                     <div
@@ -339,7 +338,7 @@ const Notifications = () => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">Product:</span>
-                        <span className="text-white font-medium">{rem.product?.Name}</span>
+                        <span className="text-white font-medium">{rem.product?.itemName}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">Qty:</span>

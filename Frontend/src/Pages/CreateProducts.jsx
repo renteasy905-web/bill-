@@ -7,14 +7,14 @@ import { ArrowLeft, RefreshCw } from "lucide-react";
 const CreateProducts = () => {
   const navigate = useNavigate();
 
-  // Initial form state
+  // Initial form state – using consistent field names matching backend
   const initialFormData = {
-    Name: "",
-    Mrp: "",
+    itemName: "",
+    salePrice: "",
     purchasePrice: "",
-    Quantity: "",
-    Description: "",
-    Expiry: "",
+    quantity: "",
+    description: "",
+    expiryDate: "",
     stockBroughtBy: "",
   };
 
@@ -38,10 +38,10 @@ const CreateProducts = () => {
 
     // Basic validation
     if (
-      !formData.Name.trim() ||
-      !formData.Mrp ||
+      !formData.itemName.trim() ||
+      !formData.salePrice ||
       !formData.purchasePrice ||
-      !formData.Quantity ||
+      !formData.quantity ||
       !formData.stockBroughtBy.trim()
     ) {
       setError("Please fill all required fields (including Supplier)");
@@ -52,17 +52,16 @@ const CreateProducts = () => {
 
     try {
       const payload = {
-        Name: formData.Name.trim(),
-        Mrp: Number(formData.Mrp),
+        itemName: formData.itemName.trim(),
+        salePrice: Number(formData.salePrice),
         purchasePrice: Number(formData.purchasePrice),
-        Quantity: Number(formData.Quantity),
-        Description: formData.Description.trim() || "",
-        Expiry: formData.Expiry || null,
+        quantity: Number(formData.quantity),
+        description: formData.description.trim() || "",
+        expiryDate: formData.expiryDate || null,
         stockBroughtBy: formData.stockBroughtBy.trim(),
       };
 
-      // FIXED: Correct endpoint (no extra /api prefix)
-      await api.post("/products", payload);
+      await api.post("/products", payload); // ← correct endpoint
 
       setSuccess("Product added successfully!");
       setFormData(initialFormData); // Reset form
@@ -142,8 +141,8 @@ const CreateProducts = () => {
                 </label>
                 <input
                   type="text"
-                  name="Name"
-                  value={formData.Name}
+                  name="itemName"
+                  value={formData.itemName}
                   onChange={handleChange}
                   required
                   className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
@@ -171,12 +170,12 @@ const CreateProducts = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-slate-300 font-medium mb-2">
-                    Sale Price (MRP ₹) <span className="text-red-400">*</span>
+                    Sale Price (₹) <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="number"
-                    name="Mrp"
-                    value={formData.Mrp}
+                    name="salePrice"
+                    value={formData.salePrice}
                     onChange={handleChange}
                     required
                     min="0"
@@ -210,8 +209,8 @@ const CreateProducts = () => {
                 </label>
                 <input
                   type="number"
-                  name="Quantity"
-                  value={formData.Quantity}
+                  name="quantity"
+                  value={formData.quantity}
                   onChange={handleChange}
                   required
                   min="0"
@@ -226,8 +225,8 @@ const CreateProducts = () => {
                   Description (Optional)
                 </label>
                 <textarea
-                  name="Description"
-                  value={formData.Description}
+                  name="description"
+                  value={formData.description}
                   onChange={handleChange}
                   rows={3}
                   className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
@@ -242,8 +241,8 @@ const CreateProducts = () => {
                 </label>
                 <input
                   type="date"
-                  name="Expiry"
-                  value={formData.Expiry}
+                  name="expiryDate"
+                  value={formData.expiryDate}
                   onChange={handleChange}
                   className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
                 />

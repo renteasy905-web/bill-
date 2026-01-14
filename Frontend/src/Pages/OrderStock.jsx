@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
 import { ArrowLeft, FileText, Trash2, RefreshCw, Plus } from "lucide-react";
-import { generateOrderPDF } from "../utils/generatePDFs";
+import { generateOrderPDF } from "../utils/generatePDFs"; // assuming this exists
 
 const OrderStock = () => {
   const navigate = useNavigate();
@@ -25,7 +25,7 @@ const OrderStock = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const res = await api.get("/allproducts");
+      const res = await api.get("/allproducts"); // ← correct endpoint
       const allProducts = res.data.products || res.data || [];
 
       const uniqueSuppliers = [
@@ -62,7 +62,7 @@ const OrderStock = () => {
     if (!orderItems.some((item) => item._id === product._id)) {
       setOrderItems((prev) => [
         ...prev,
-        { ...product, orderQty: "" }, // start empty - no forced default
+        { ...product, orderQty: "" }, // start empty
       ]);
     }
   };
@@ -79,7 +79,7 @@ const OrderStock = () => {
 
     const manualItem = {
       _id: `manual_${Date.now()}`,
-      Name: newItemName.trim(),
+      itemName: newItemName.trim(),
       stockBroughtBy: selectedSupplier,
       orderQty: newItemQty.trim() === "" ? "" : Number(newItemQty),
       isManual: true,
@@ -91,7 +91,7 @@ const OrderStock = () => {
   };
 
   const updateOrderQty = (id, value) => {
-    // Allow completely empty, zero, negative, etc.
+    // Allow empty, zero, negative etc. (you can add validation later if needed)
     setOrderItems((prev) =>
       prev.map((item) =>
         item._id === id ? { ...item, orderQty: value } : item
@@ -149,7 +149,7 @@ const OrderStock = () => {
     }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-2xl">Loading...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-2xl text-white">Loading...</div>;
   if (error) return <div className="min-h-screen flex items-center justify-center text-red-500 text-xl">{error}</div>;
 
   return (
@@ -266,7 +266,7 @@ const OrderStock = () => {
                     >
                       <div className="flex-1">
                         <h3 className="font-bold text-xl mb-1">
-                          {item.Name} {item.isManual && <span className="text-xs text-slate-500">(Manual)</span>}
+                          {item.itemName} {item.isManual && <span className="text-xs text-slate-500">(Manual)</span>}
                         </h3>
                         <p className="text-slate-400 text-sm">Supplier: {item.stockBroughtBy}</p>
                       </div>
@@ -310,10 +310,10 @@ const OrderStock = () => {
                     key={p._id}
                     className="bg-slate-900 p-6 rounded-2xl border border-slate-700 hover:border-indigo-600 transition-all flex flex-col"
                   >
-                    <h3 className="font-bold text-xl mb-4">{p.Name}</h3>
-                    {p.Expiry && (
+                    <h3 className="font-bold text-xl mb-4">{p.itemName || p.Name}</h3>
+                    {p.expiryDate && (
                       <p className="text-sm text-slate-400 mb-6">
-                        Expiry: {new Date(p.Expiry).toLocaleDateString("en-IN")}
+                        Expiry: {new Date(p.expiryDate).toLocaleDateString("en-IN")}
                       </p>
                     )}
                     <button

@@ -44,17 +44,17 @@ const ListofSales = () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get("/allsales");
+      const res = await api.get("/sales"); // ← corrected endpoint (from your backend routes)
       console.log("Sales API Response:", res.data);
 
-      const salesData = res.data.sales || res.data.data || [];
+      const salesData = res.data.sales || res.data || [];
       setSales(salesData);
       setFilteredSales(salesData);
     } catch (err) {
       console.error("Fetch error:", err);
       setError(
         err.response?.status === 404
-          ? "Sales endpoint not found. Check backend route."
+          ? "Sales endpoint not found. Check backend /sales route."
           : "Failed to load sales records. Please try again."
       );
     } finally {
@@ -97,7 +97,7 @@ const ListofSales = () => {
   const handleDelete = async (saleId) => {
     if (!window.confirm("Delete this sale? Stock will be restored.")) return;
     try {
-      await api.delete(`/sales/${saleId}`);
+      await api.delete(`/sales/${saleId}`); // ← correct DELETE endpoint
       const updated = sales.filter((s) => s._id !== saleId);
       setSales(updated);
       setFilteredSales(updated);
@@ -127,9 +127,10 @@ const ListofSales = () => {
         (sum, item) => sum + (item.price || 0) * (item.quantity || 0),
         0
       );
-      await api.put(`/sales/${editingSale._id}`, {
+      await api.put(`/sales/${editingSale._id}`, { // ← correct PUT endpoint
         items: editedItems,
         totalAmount: updatedTotal,
+        paymentMode: editingSale.paymentMode,
       });
 
       const updatedSales = sales.map((s) =>
@@ -145,7 +146,7 @@ const ListofSales = () => {
     }
   };
 
-  // PDF Generation
+  // PDF Generation (unchanged – your code was already good)
   const generateInvoicePDF = (sale) => {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const purple = "#6b21a8";

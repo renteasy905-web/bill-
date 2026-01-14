@@ -1,9 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import { ArrowLeft, RefreshCw } from "lucide-react"; // ← Added icons
-
-const BACKEND_URL = "https://bill-inventory-backend.onrender.com";
+import api from "../utils/api";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 
 const CreateCustomer = () => {
   const navigate = useNavigate();
@@ -26,18 +24,17 @@ const CreateCustomer = () => {
     setLoading(true);
 
     try {
-      await axios.post(`${BACKEND_URL}/api/create`, {
+      await api.post("/customers", {  // ← correct endpoint
         name: name.trim(),
         phone: phone.trim(),
         address: address.trim() || undefined,
       });
 
       alert("Customer created successfully!");
-
       setName("");
       setPhone("");
       setAddress("");
-      navigate("/sales");
+      navigate("/sales"); // or wherever you want after creation
     } catch (error) {
       console.error("Create customer error:", error);
 
@@ -67,7 +64,7 @@ const CreateCustomer = () => {
       <div className="w-full max-w-3xl flex items-center justify-between mb-8">
         {/* Back Button */}
         <button
-          onClick={() => navigate("/")} // ← Change to "/first" if first.jsx is at /first
+          onClick={() => navigate("/")}
           className="flex items-center gap-2 px-5 py-2.5 bg-slate-700/70 hover:bg-slate-600 rounded-lg text-white transition-all"
         >
           <ArrowLeft size={20} />

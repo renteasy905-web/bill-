@@ -1,6 +1,6 @@
 // src/Pages/First.jsx
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // ← added useNavigate for logout redirect
 import {
   Bell,
   Plus,
@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 const First = () => {
+  const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(
     localStorage.getItem("isLoggedIn") === "true"
   );
@@ -26,11 +27,10 @@ const First = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Optional: clean up any old invalid state
     if (!isLoggedIn) {
       localStorage.removeItem("isLoggedIn");
     }
-  }, []);
+  }, [isLoggedIn]);
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -41,7 +41,6 @@ const First = () => {
       if (username.trim().toUpperCase() === "VMD" && password === "vmd@104") {
         localStorage.setItem("isLoggedIn", "true");
         setIsLoggedIn(true);
-        // Attempt to replace history entry to reduce back-button issues
         window.history.replaceState({ loggedIn: true }, "", window.location.pathname);
       } else {
         setError("Invalid username or password");
@@ -56,6 +55,7 @@ const First = () => {
     setUsername("");
     setPassword("");
     setError("");
+    navigate("/"); // ← redirect to login/home after logout
   };
 
   const quickActions = [
