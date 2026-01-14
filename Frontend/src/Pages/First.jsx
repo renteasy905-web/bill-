@@ -1,6 +1,6 @@
 // src/Pages/First.jsx
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   Bell,
   Plus,
@@ -13,56 +13,51 @@ import {
   AlertTriangle,
   LogIn,
   Loader2,
+  LogOut,
 } from "lucide-react";
 
 const First = () => {
-  const navigate = useNavigate();
-
-  // Login states
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(
+    localStorage.getItem("isLoggedIn") === "true"
+  );
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
-  const [loggingIn, setLoggingIn] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // Check if already logged in when component mounts
   useEffect(() => {
-    const loggedInStatus = localStorage.getItem("isLoggedIn") === "true";
-    if (loggedInStatus) {
-      setIsLoggedIn(true);
-    } else {
-      setShowLogin(true); // show login on first visit
+    // Optional: clean up any old invalid state
+    if (!isLoggedIn) {
+      localStorage.removeItem("isLoggedIn");
     }
   }, []);
 
   const handleLogin = (e) => {
     e.preventDefault();
-    setLoginError("");
-    setLoggingIn(true);
+    setError("");
+    setLoading(true);
 
-    // Simulate quick "server" delay (looks more real)
     setTimeout(() => {
-      if (username.trim() === "VMD" && password === "vmd@104") {
+      if (username.trim().toUpperCase() === "VMD" && password === "vmd@104") {
         localStorage.setItem("isLoggedIn", "true");
         setIsLoggedIn(true);
-        setShowLogin(false);
+        // Attempt to replace history entry to reduce back-button issues
+        window.history.replaceState({ loggedIn: true }, "", window.location.pathname);
       } else {
-        setLoginError("Invalid username or password");
+        setError("Invalid username or password");
       }
-      setLoggingIn(false);
+      setLoading(false);
     }, 800);
   };
 
   const handleLogout = () => {
     localStorage.removeItem("isLoggedIn");
     setIsLoggedIn(false);
-    setShowLogin(true);
     setUsername("");
     setPassword("");
+    setError("");
   };
 
-  // Quick actions (same as before, but we'll show them only when logged in)
   const quickActions = [
     {
       title: "New Sale",
@@ -108,7 +103,7 @@ const First = () => {
     },
   ];
 
-  // If not logged in → show only login screen
+  // Show login screen if not logged in
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-950 flex items-center justify-center p-4">
@@ -120,46 +115,43 @@ const First = () => {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-300 to-purple-400 bg-clip-text text-transparent">
               Vishwas Medical
             </h1>
-            <p className="text-slate-300 mt-2">Login to continue</p>
+            <p className="text-slate-300 mt-2">Please sign in to continue</p>
           </div>
 
+          {error && (
+            <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-lg text-center mb-6 text-sm">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleLogin} className="space-y-6">
-            {loginError && (
-              <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-lg text-center text-sm">
-                {loginError}
-              </div>
-            )}
+            <input
+              type="text"
+              placeholder="Username (VMD)"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
+              required
+              autoFocus
+            />
 
-            <div>
-              <input
-                type="text"
-                placeholder="Username (VMD)"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
-                required
-              />
-            </div>
-
-            <div>
-              <input
-                type="password"
-                placeholder="Password (vmd@104)"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
-                required
-              />
-            </div>
+            <input
+              type="password"
+              placeholder="Password (vmd@104)"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
+              required
+            />
 
             <button
               type="submit"
-              disabled={loggingIn}
+              disabled={loading}
               className={`w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-3 disabled:opacity-60 ${
-                loggingIn ? "cursor-wait" : ""
+                loading ? "cursor-wait" : ""
               }`}
             >
-              {loggingIn ? (
+              {loading ? (
                 <>
                   <Loader2 className="animate-spin" size={22} />
                   Signing in...
@@ -181,7 +173,7 @@ const First = () => {
     );
   }
 
-  // Logged-in dashboard (your original content)
+  // Logged-in dashboard
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-950 text-white overflow-hidden">
       {/* Header with Logout */}
@@ -211,8 +203,9 @@ const First = () => {
 
               <button
                 onClick={handleLogout}
-                className="px-5 py-2 bg-rose-600/80 hover:bg-rose-700 text-white rounded-lg font-medium transition"
+                className="px-5 py-2 bg-rose-600/80 hover:bg-rose-700 text-white rounded-lg font-medium transition flex items-center gap-2"
               >
+                <LogOut size={18} />
                 Logout
               </button>
             </div>
