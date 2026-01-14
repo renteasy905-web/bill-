@@ -15,7 +15,7 @@ const ProductEdit = () => {
   const [error, setError] = useState(null);
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
-  // Total stock value calculation
+  // Calculate total stock value
   const totalStockValue = products.reduce((sum, product) => {
     const purchasePrice = Number(product.purchasePrice || product.purchasePrice) || 0;
     const quantity = Number(product.quantity || product.Quantity) || 0;
@@ -43,7 +43,7 @@ const ProductEdit = () => {
     }
   };
 
-  // Search filter
+  // Search filter (product name + supplier)
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredProducts(products);
@@ -82,6 +82,7 @@ const ProductEdit = () => {
 
   const saveEdit = async () => {
     if (!editId) return;
+
     try {
       const updateData = {
         itemName: editedProduct.itemName?.trim() || editedProduct.Name?.trim() || "",
@@ -93,7 +94,7 @@ const ProductEdit = () => {
         expiryDate: editedProduct.expiryDate || editedProduct.Expiry || null,
       };
 
-      // FIXED: Correct endpoint (no extra /api)
+      // FIXED: Correct endpoint (no extra /api prefix)
       await api.put(`/products/${editId}`, updateData);
 
       const updatedProducts = products.map((p) =>
@@ -105,7 +106,10 @@ const ProductEdit = () => {
       cancelEdit();
     } catch (err) {
       console.error("Save error:", err);
-      showToast("Failed to save changes. Check console.", "error");
+      showToast(
+        err.response?.data?.message || "Failed to save changes. Check console.",
+        "error"
+      );
     }
   };
 
