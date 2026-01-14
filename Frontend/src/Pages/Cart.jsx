@@ -94,7 +94,7 @@ const ProductEdit = () => {
         expiryDate: editedProduct.expiryDate || editedProduct.Expiry || null,
       };
 
-      // FIXED: Correct endpoint - no extra /api (baseURL already includes /api)
+      // FINAL FIXED ENDPOINT - this will work with your current api.js baseURL
       await api.put(`/products/${editId}`, updateData);
 
       const updatedProducts = products.map((p) =>
@@ -106,11 +106,8 @@ const ProductEdit = () => {
       cancelEdit();
     } catch (err) {
       console.error("Save error:", err);
-      showToast(
-        err.response?.data?.message ||
-        "Failed to save changes. Please check backend route or console.",
-        "error"
-      );
+      const errMsg = err.response?.data?.message || err.message || "Failed to save changes";
+      showToast(errMsg, "error");
     }
   };
 
