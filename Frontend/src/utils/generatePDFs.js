@@ -1,13 +1,3 @@
-// src/utils/generatePDFs.js
-import jsPDF from "jspdf";
-import "jspdf-autotable";
-
-// Your original Invoice PDF function (unchanged)
-export const generateInvoicePDF = (sale, pharmacyDetails) => {
-  // ... (kept as is, no changes needed)
-};
-
-// Updated & cleaned Order/Stock PDF function - NO CURRENT STOCK
 export const generateOrderPDF = (orderItems, pharmacyDetails = {}) => {
   const doc = new jsPDF({
     orientation: "portrait",
@@ -18,7 +8,6 @@ export const generateOrderPDF = (orderItems, pharmacyDetails = {}) => {
   const blue = "#1e40af";
   const darkText = "#111827";
 
-  // Header
   doc.setFillColor(blue);
   doc.rect(0, 0, 210, 35, "F");
   doc.setTextColor(255);
@@ -28,24 +17,22 @@ export const generateOrderPDF = (orderItems, pharmacyDetails = {}) => {
   doc.setFontSize(12);
   doc.text("Vishwas Medical", 105, 32, { align: "center" });
 
-  // From / Details
   doc.setTextColor(darkText);
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
   doc.text("From:", 20, 50);
-  doc.text(pharmacyDetails.name || "Vishwas Medical", 20, 58);
-  doc.text(pharmacyDetails.address || "sindagi", 20, 65);
-  doc.text(`Phone: ${pharmacyDetails.phone || " 63610 27924"}`, 20, 72);
+  doc.text("Vishwas Medical", 20, 58);
+  doc.text("Shivamogga, Karnataka", 20, 65);
+  doc.text("Phone: Your Phone Number Here", 20, 72);
   doc.text(`Date: ${new Date().toLocaleDateString("en-IN")}`, 20, 79);
 
-  // Table - Only relevant columns
   const tableColumn = ["S.No", "Product Name", "Supplier", "Order Qty"];
 
   const tableRows = orderItems.map((item, index) => [
     index + 1,
     item.Name || "—",
-    item.stockBroughtBy || pharmacyDetails.supplier || "Unknown",
-    item.orderQty || "—",
+    item.stockBroughtBy || "Unknown",
+    item.orderQty === "" || item.orderQty == null || item.orderQty === 0 ? "—" : item.orderQty,
   ]);
 
   doc.autoTable({
@@ -53,31 +40,20 @@ export const generateOrderPDF = (orderItems, pharmacyDetails = {}) => {
     head: [tableColumn],
     body: tableRows,
     theme: "grid",
-    headStyles: { 
-      fillColor: blue, 
-      textColor: [255, 255, 255], 
-      fontStyle: "bold" 
-    },
-    styles: { 
-      fontSize: 10, 
-      cellPadding: 4, 
-      overflow: "linebreak", 
-      halign: "left" 
-    },
+    headStyles: { fillColor: blue, textColor: [255, 255, 255], fontStyle: "bold", halign: "center" },
+    styles: { fontSize: 10, cellPadding: 4, overflow: "linebreak", halign: "left" },
     columnStyles: {
-      0: { cellWidth: 15 },   // S.No
-      1: { cellWidth: 90 },   // Product Name - wider
-      2: { cellWidth: 55 },   // Supplier
-      3: { cellWidth: 30 },   // Order Qty
+      0: { cellWidth: 15, halign: "center" },
+      1: { cellWidth: 90 },
+      2: { cellWidth: 55 },
+      3: { cellWidth: 30, halign: "center" },
     },
     margin: { top: 90, left: 20, right: 20 },
   });
 
-  // Footer text
   const finalY = doc.lastAutoTable.finalY + 15;
 
   doc.setFontSize(11);
-  doc.setTextColor(darkText);
   doc.text("Kindly supply the above mentioned quantities at the earliest.", 20, finalY);
   doc.text("Thank you!", 20, finalY + 10);
 
