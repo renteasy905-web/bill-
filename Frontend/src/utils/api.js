@@ -1,54 +1,50 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-const multer = require("multer");
-require("dotenv").config();
+import axios from 'axios';
 
-// Import routes from same directory level
-const routes = require("./routes");
+// Use Vite env variable or fallback to production Render URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://bill-inventory-backend.onrender.com';
 
-const app = express();
-
-// Middleware
-app.use(cors({ origin: "*" }));
-app.use(express.json());
-app.use(multer().none());
-
-// Mount all routes under /api
-app.use("/api", routes);
-
-// Root health check
-app.get("/", (req, res) => {
-  res.status(200).send("Backend running – Vishwas Medical Inventory API is live!");
+// Axios instance with /api prefix
+const api = axios.create({
+  baseURL: `${API_BASE_URL}/api`,
+  timeout: 60000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
-// MongoDB connection
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log("MongoDB connected successfully ✅");
-  })
-  .catch((err) => {
-    console.error("MongoDB connection failed ❌:", err.message);
-    process.exit(1);
-  });
+// Request interceptor: add Bearer token if exists
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
-// Start server
-const PORT = process.env.PORT || 3000;
+// Response interceptor: handle common errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      if (error.response.status === 401) {
+        console.warn('Unauthorized - clearing token');
+        localStorage.removeItem('token');
+      }
+      console.error('API Error:', {
+        status: error.response.status,
+        data: error.response.data,
+        message: error.message,
+      });
+    } else if (error.request) {
+      console.error('No response from server:', error.request);
+    } else {
+      console.error('Request setup error:', error.message);
+    }
+    return Promise.reject(error);
+  }
+);
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT} 🚀`);
-  console.log(`API URL: http://localhost:${PORT}/api`);
-  console.log(`Live on Render: https://bill-inventory-backend.onrender.com`);
-});
-
-// Graceful shutdown
-process.on("SIGTERM", () => {
-  console.log("SIGTERM received. Shutting down...");
-  process.exit(0);
-});
-
-process.on("SIGINT", () => {
-  console.log("SIGINT received. Shutting down...");
-  process.exit(0);
-});
+export default api;
