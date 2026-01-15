@@ -27,7 +27,7 @@ const AllProducts = () => {
       setLoading(true);
       setError(null);
 
-      const res = await api.get("/allproducts"); // ← correct endpoint
+      const res = await api.get("/products"); // ← updated endpoint
       console.log("API Response Status:", res.status);
       console.log("Full API Response:", res.data);
 

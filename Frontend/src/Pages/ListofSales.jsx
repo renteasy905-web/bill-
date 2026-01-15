@@ -44,7 +44,7 @@ const ListofSales = () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get("/sales"); // ← corrected endpoint (from your backend routes)
+      const res = await api.get("/sales"); // ← assuming this is correct; if backend route is /allsales, change to "/allsales"
       console.log("Sales API Response:", res.data);
 
       const salesData = res.data.sales || res.data || [];

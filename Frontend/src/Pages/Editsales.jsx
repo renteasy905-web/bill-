@@ -1,4 +1,3 @@
-// src/Pages/EditSale.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../utils/api";
@@ -22,7 +21,7 @@ const EditSale = () => {
       try {
         const [saleRes, productsRes] = await Promise.all([
           api.get(`/sales/${id}`),         // ← correct GET single sale
-          api.get("/allproducts"),         // ← correct all products endpoint
+          api.get("/products"),         // ← updated all products endpoint
         ]);
 
         const saleData = saleRes.data.sale || saleRes.data;

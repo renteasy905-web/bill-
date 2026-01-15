@@ -1,21 +1,27 @@
-import axios from 'axios';
+import axios from "axios";
 
-// Use Vite env variable or fallback to production Render URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://bill-inventory-backend.onrender.com';
+/*
+  Priority:
+  1. VITE_API_BASE_URL (local dev)
+  2. Render production URL (fallback)
+*/
 
-// Axios instance with /api prefix
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://bill-inventory-backend.onrender.com";
+
 const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
   timeout: 60000,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
-// Request interceptor: add Bearer token if exists
+/* ---------------- REQUEST INTERCEPTOR ---------------- */
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -24,24 +30,25 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor: handle common errors
+/* ---------------- RESPONSE INTERCEPTOR ---------------- */
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response) {
-      if (error.response.status === 401) {
-        console.warn('Unauthorized - clearing token');
-        localStorage.removeItem('token');
-      }
-      console.error('API Error:', {
+      console.error("API ERROR:", {
+        url: error.config?.url,
         status: error.response.status,
         data: error.response.data,
-        message: error.message,
       });
+
+      if (error.response.status === 401) {
+        console.warn("Unauthorized → token removed");
+        localStorage.removeItem("token");
+      }
     } else if (error.request) {
-      console.error('No response from server:', error.request);
+      console.error("NO RESPONSE FROM SERVER", error.request);
     } else {
-      console.error('Request setup error:', error.message);
+      console.error("REQUEST ERROR", error.message);
     }
     return Promise.reject(error);
   }

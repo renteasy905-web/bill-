@@ -1,4 +1,3 @@
-// src/Pages/Notifications.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
@@ -29,7 +28,7 @@ const Notifications = () => {
       setError(null);
 
       // Fetch all products
-      const productsRes = await api.get("/allproducts");
+      const productsRes = await api.get("/products");
       const allProducts = productsRes.data.products || productsRes.data || [];
 
       // Process stock & expiry alerts
@@ -63,7 +62,7 @@ const Notifications = () => {
       // Fetch sales for refill reminders (optional - won't crash if fails)
       let allSales = [];
       try {
-        const salesRes = await api.get("/allsales"); // FIXED: use /allsales (your backend route)
+        const salesRes = await api.get("/sales"); // FIXED: use /sales (assuming backend route is /sales)
         allSales = salesRes.data.sales || salesRes.data || [];
         console.log("Sales fetched successfully:", allSales.length);
       } catch (salesErr) {
@@ -230,7 +229,7 @@ const Notifications = () => {
             Back
           </button>
 
-          <h1 className="text-4xl font-bold text-white flex items-center gap-3 flex-1 justify-center">
+          <h1 className="text-4xl font-semibold text-white flex items-center gap-3 flex-1 justify-center">
             <AlertCircle className="text-yellow-400" size={36} />
             Notifications
           </h1>

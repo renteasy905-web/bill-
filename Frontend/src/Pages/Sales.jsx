@@ -49,8 +49,8 @@ const Sales = () => {
       setLoading({ products: true, customers: true });
 
       const [prodRes, custRes] = await Promise.all([
-        api.get("/allproducts"),     // ← correct endpoint
-        api.get("/customers"),       // ← correct endpoint
+        api.get("/products"),
+        api.get("/customers"),
       ]);
 
       const prods = prodRes.data.products || [];
@@ -153,7 +153,7 @@ const Sales = () => {
         ...( !isRegular && { customer: selectedCustomer._id }),
       };
 
-      await api.post("/sales", payload); // ← corrected endpoint
+      await api.post("/sales", payload);
 
       setToast({
         show: true,
@@ -161,11 +161,15 @@ const Sales = () => {
         type: "success",
       });
 
+      // Clear cart and reset form
       setCart([]);
       setSelectedCustomer(null);
       setCustomerSearch("");
       setIsRegular(false);
       setTab("customer");
+
+      // Immediately navigate to All Sales page
+      navigate("/allsales");
     } catch (err) {
       alert("Failed to save: " + (err.response?.data?.message || "Error"));
     } finally {
