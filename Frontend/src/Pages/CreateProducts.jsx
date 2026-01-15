@@ -7,7 +7,6 @@ import { ArrowLeft, RefreshCw } from "lucide-react";
 const CreateProducts = () => {
   const navigate = useNavigate();
 
-  // Initial form state – using consistent field names matching backend
   const initialFormData = {
     itemName: "",
     salePrice: "",
@@ -36,7 +35,6 @@ const CreateProducts = () => {
     setSuccess("");
     setError("");
 
-    // Basic validation
     if (
       !formData.itemName.trim() ||
       !formData.salePrice ||
@@ -44,15 +42,16 @@ const CreateProducts = () => {
       !formData.quantity ||
       !formData.stockBroughtBy.trim()
     ) {
-      setError("Please fill all required fields (including Supplier)");
+      setError("Please fill all required fields");
       return;
     }
 
     setLoading(true);
 
     try {
+      // ✅ IMPORTANT FIX: Map itemName ➜ Name
       const payload = {
-        itemName: formData.itemName.trim(),
+        Name: formData.itemName.trim(), // 🔥 FIX HERE
         salePrice: Number(formData.salePrice),
         purchasePrice: Number(formData.purchasePrice),
         quantity: Number(formData.quantity),
@@ -61,23 +60,21 @@ const CreateProducts = () => {
         stockBroughtBy: formData.stockBroughtBy.trim(),
       };
 
-      await api.post("/products", payload); // ← correct endpoint
+      await api.post("/products", payload);
 
       setSuccess("Product added successfully!");
-      setFormData(initialFormData); // Reset form
+      setFormData(initialFormData);
     } catch (err) {
       console.error("Error adding product:", err);
-      const errMsg =
+      setError(
         err.response?.data?.message ||
-        err.message ||
-        "Failed to add product. Please check your connection or try again.";
-      setError(errMsg);
+          "Failed to add product. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // Reset form only (no page reload)
   const handleRefresh = () => {
     setFormData(initialFormData);
     setSuccess("");
@@ -87,178 +84,117 @@ const CreateProducts = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white py-12 px-6">
       <div className="max-w-3xl mx-auto">
-        {/* Top Bar: Back + Title + Refresh */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6">
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-2 px-5 py-2.5 bg-slate-700/70 hover:bg-slate-600 rounded-lg text-white transition-all shadow-md"
+            className="flex items-center gap-2 px-5 py-2.5 bg-slate-700/70 hover:bg-slate-600 rounded-lg"
           >
-            <ArrowLeft size={20} />
-            Back
+            <ArrowLeft size={20} /> Back
           </button>
 
           <div className="text-center flex-1">
-            <h1 className="text-4xl md:text-5xl font-extrabold text-indigo-400 mb-2">
+            <h1 className="text-4xl font-extrabold text-indigo-400">
               Vishwas Medical
             </h1>
-            <p className="text-lg text-slate-300">Add New Product to Inventory</p>
+            <p className="text-slate-300">Add New Product</p>
           </div>
 
           <button
             onClick={handleRefresh}
-            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600/70 hover:bg-indigo-600 rounded-lg text-white transition-all shadow-md"
+            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600/70 hover:bg-indigo-600 rounded-lg"
           >
-            <RefreshCw size={18} />
-            Refresh Form
+            <RefreshCw size={18} /> Refresh
           </button>
         </div>
 
-        {/* Main Form Card */}
-        <div className="bg-slate-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-8 md:p-12 border border-slate-700">
+        <div className="bg-slate-800/80 rounded-2xl shadow-2xl p-8 border border-slate-700">
           {success && (
-            <div className="mb-8 p-4 bg-green-900/40 border border-green-600 text-green-300 rounded-lg text-center">
+            <div className="mb-6 p-4 bg-green-900/40 text-green-300 rounded-lg text-center">
               {success}
             </div>
           )}
 
           {error && (
-            <div className="mb-8 p-4 bg-red-900/40 border border-red-600 text-red-300 rounded-lg text-center">
+            <div className="mb-6 p-4 bg-red-900/40 text-red-300 rounded-lg text-center">
               {error}
             </div>
           )}
 
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-              <p className="text-xl text-slate-300">Adding product...</p>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-7">
-              {/* Product Name */}
-              <div>
-                <label className="block text-slate-300 font-medium mb-2">
-                  Product Name <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="itemName"
-                  value={formData.itemName}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                  placeholder="Paracetamol 500mg"
-                />
-              </div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <input
+              type="text"
+              name="itemName"
+              value={formData.itemName}
+              onChange={handleChange}
+              placeholder="Product Name"
+              required
+              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg"
+            />
 
-              {/* Supplier */}
-              <div>
-                <label className="block text-slate-300 font-medium mb-2">
-                  Stock Brought By / Supplier <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="stockBroughtBy"
-                  value={formData.stockBroughtBy}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                  placeholder="Distributor XYZ / Mr. Ramesh"
-                />
-              </div>
+            <input
+              type="text"
+              name="stockBroughtBy"
+              value={formData.stockBroughtBy}
+              onChange={handleChange}
+              placeholder="Supplier"
+              required
+              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg"
+            />
 
-              {/* Prices */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-slate-300 font-medium mb-2">
-                    Sale Price (₹) <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    name="salePrice"
-                    value={formData.salePrice}
-                    onChange={handleChange}
-                    required
-                    min="0"
-                    step="0.01"
-                    className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                    placeholder="50.00"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-300 font-medium mb-2">
-                    Purchase Price (₹) <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    name="purchasePrice"
-                    value={formData.purchasePrice}
-                    onChange={handleChange}
-                    required
-                    min="0"
-                    step="0.01"
-                    className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                    placeholder="35.00"
-                  />
-                </div>
-              </div>
+            <input
+              type="number"
+              name="salePrice"
+              value={formData.salePrice}
+              onChange={handleChange}
+              placeholder="Sale Price"
+              required
+              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg"
+            />
 
-              {/* Quantity */}
-              <div>
-                <label className="block text-slate-300 font-medium mb-2">
-                  Quantity <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="number"
-                  name="quantity"
-                  value={formData.quantity}
-                  onChange={handleChange}
-                  required
-                  min="0"
-                  className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                  placeholder="500"
-                />
-              </div>
+            <input
+              type="number"
+              name="purchasePrice"
+              value={formData.purchasePrice}
+              onChange={handleChange}
+              placeholder="Purchase Price"
+              required
+              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg"
+            />
 
-              {/* Description */}
-              <div>
-                <label className="block text-slate-300 font-medium mb-2">
-                  Description (Optional)
-                </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows={3}
-                  className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                  placeholder="Pain relief tablets, 10 strips..."
-                />
-              </div>
+            <input
+              type="number"
+              name="quantity"
+              value={formData.quantity}
+              onChange={handleChange}
+              placeholder="Quantity"
+              required
+              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg"
+            />
 
-              {/* Expiry Date */}
-              <div>
-                <label className="block text-slate-300 font-medium mb-2">
-                  Expiry Date (Optional)
-                </label>
-                <input
-                  type="date"
-                  name="expiryDate"
-                  value={formData.expiryDate}
-                  onChange={handleChange}
-                  className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                />
-              </div>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              placeholder="Description (optional)"
+              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg"
+            />
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={loading}
-                className={`w-full py-5 px-8 text-xl font-bold rounded-xl transition-all duration-300 shadow-lg
-                  ${loading ? "bg-slate-600 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 hover:shadow-indigo-500/30"}`}
-              >
-                {loading ? "Adding Product..." : "Add Product"}
-              </button>
-            </form>
-          )}
+            <input
+              type="date"
+              name="expiryDate"
+              value={formData.expiryDate}
+              onChange={handleChange}
+              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg"
+            />
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 rounded-xl font-bold"
+            >
+              {loading ? "Adding..." : "Add Product"}
+            </button>
+          </form>
         </div>
       </div>
     </div>
