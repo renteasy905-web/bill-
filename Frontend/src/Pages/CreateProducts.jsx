@@ -37,10 +37,8 @@ const CreateProducts = () => {
 
     if (
       !formData.itemName.trim() ||
-      !formData.salePrice ||
-      !formData.purchasePrice ||
       !formData.quantity ||
-      !formData.stockBroughtBy.trim()
+      !formData.salePrice
     ) {
       setError("Please fill all required fields");
       return;
@@ -49,12 +47,12 @@ const CreateProducts = () => {
     setLoading(true);
 
     try {
-      // ✅ IMPORTANT FIX: Map itemName ➜ Name
+      // ✅ BACKEND-COMPATIBLE PAYLOAD
       const payload = {
-        Name: formData.itemName.trim(), // 🔥 FIX HERE
+        itemName: formData.itemName.trim(),     // ✅ REQUIRED
+        quantity: Number(formData.quantity),    // ✅ REQUIRED
         salePrice: Number(formData.salePrice),
         purchasePrice: Number(formData.purchasePrice),
-        quantity: Number(formData.quantity),
         description: formData.description.trim() || "",
         expiryDate: formData.expiryDate || null,
         stockBroughtBy: formData.stockBroughtBy.trim(),
@@ -82,120 +80,112 @@ const CreateProducts = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white py-12 px-6">
+    <div className="min-h-screen bg-slate-900 text-white p-6">
       <div className="max-w-3xl mx-auto">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-6">
+        <div className="flex justify-between items-center mb-8">
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-2 px-5 py-2.5 bg-slate-700/70 hover:bg-slate-600 rounded-lg"
+            className="flex items-center gap-2 bg-slate-700 px-4 py-2 rounded"
           >
-            <ArrowLeft size={20} /> Back
+            <ArrowLeft size={18} /> Back
           </button>
 
-          <div className="text-center flex-1">
-            <h1 className="text-4xl font-extrabold text-indigo-400">
-              Vishwas Medical
-            </h1>
-            <p className="text-slate-300">Add New Product</p>
-          </div>
+          <h1 className="text-3xl font-bold text-indigo-400">
+            Add Product
+          </h1>
 
           <button
             onClick={handleRefresh}
-            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600/70 hover:bg-indigo-600 rounded-lg"
+            className="flex items-center gap-2 bg-indigo-600 px-4 py-2 rounded"
           >
-            <RefreshCw size={18} /> Refresh
+            <RefreshCw size={18} /> Reset
           </button>
         </div>
 
-        <div className="bg-slate-800/80 rounded-2xl shadow-2xl p-8 border border-slate-700">
-          {success && (
-            <div className="mb-6 p-4 bg-green-900/40 text-green-300 rounded-lg text-center">
-              {success}
-            </div>
-          )}
+        {success && (
+          <div className="mb-4 bg-green-800 p-3 rounded text-center">
+            {success}
+          </div>
+        )}
 
-          {error && (
-            <div className="mb-6 p-4 bg-red-900/40 text-red-300 rounded-lg text-center">
-              {error}
-            </div>
-          )}
+        {error && (
+          <div className="mb-4 bg-red-800 p-3 rounded text-center">
+            {error}
+          </div>
+        )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <input
-              type="text"
-              name="itemName"
-              value={formData.itemName}
-              onChange={handleChange}
-              placeholder="Product Name"
-              required
-              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg"
-            />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="text"
+            name="itemName"
+            value={formData.itemName}
+            onChange={handleChange}
+            placeholder="Product Name"
+            required
+            className="w-full p-3 bg-slate-800 rounded"
+          />
 
-            <input
-              type="text"
-              name="stockBroughtBy"
-              value={formData.stockBroughtBy}
-              onChange={handleChange}
-              placeholder="Supplier"
-              required
-              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg"
-            />
+          <input
+            type="number"
+            name="quantity"
+            value={formData.quantity}
+            onChange={handleChange}
+            placeholder="Quantity"
+            required
+            className="w-full p-3 bg-slate-800 rounded"
+          />
 
-            <input
-              type="number"
-              name="salePrice"
-              value={formData.salePrice}
-              onChange={handleChange}
-              placeholder="Sale Price"
-              required
-              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg"
-            />
+          <input
+            type="number"
+            name="salePrice"
+            value={formData.salePrice}
+            onChange={handleChange}
+            placeholder="Sale Price"
+            className="w-full p-3 bg-slate-800 rounded"
+          />
 
-            <input
-              type="number"
-              name="purchasePrice"
-              value={formData.purchasePrice}
-              onChange={handleChange}
-              placeholder="Purchase Price"
-              required
-              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg"
-            />
+          <input
+            type="number"
+            name="purchasePrice"
+            value={formData.purchasePrice}
+            onChange={handleChange}
+            placeholder="Purchase Price"
+            className="w-full p-3 bg-slate-800 rounded"
+          />
 
-            <input
-              type="number"
-              name="quantity"
-              value={formData.quantity}
-              onChange={handleChange}
-              placeholder="Quantity"
-              required
-              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg"
-            />
+          <input
+            type="text"
+            name="stockBroughtBy"
+            value={formData.stockBroughtBy}
+            onChange={handleChange}
+            placeholder="Supplier"
+            className="w-full p-3 bg-slate-800 rounded"
+          />
 
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              placeholder="Description (optional)"
-              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg"
-            />
+          <textarea
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            placeholder="Description"
+            className="w-full p-3 bg-slate-800 rounded"
+          />
 
-            <input
-              type="date"
-              name="expiryDate"
-              value={formData.expiryDate}
-              onChange={handleChange}
-              className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg"
-            />
+          <input
+            type="date"
+            name="expiryDate"
+            value={formData.expiryDate}
+            onChange={handleChange}
+            className="w-full p-3 bg-slate-800 rounded"
+          />
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 rounded-xl font-bold"
-            >
-              {loading ? "Adding..." : "Add Product"}
-            </button>
-          </form>
-        </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 py-3 rounded font-bold"
+          >
+            {loading ? "Adding..." : "Add Product"}
+          </button>
+        </form>
       </div>
     </div>
   );
