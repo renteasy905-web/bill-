@@ -8,13 +8,14 @@ const CreateProducts = () => {
   const navigate = useNavigate();
 
   const initialFormData = {
-    itemName: "",
+    Name: "",               // ← Changed from itemName
     salePrice: "",
     purchasePrice: "",
-    quantity: "",
-    description: "",
-    expiryDate: "",
+    Quantity: "",           // ← Capital Q to match backend
+    Description: "",        // ← Capital D
+    Expiry: "",             // ← Changed from expiryDate
     stockBroughtBy: "",
+    Mrp: "",                // ← Added (most medicine apps use MRP)
   };
 
   const [formData, setFormData] = useState(initialFormData);
@@ -36,8 +37,12 @@ const CreateProducts = () => {
     setError("");
 
     // Basic client-side validation
-    if (!formData.itemName.trim()) {
+    if (!formData.Name.trim()) {
       setError("Product name is required");
+      return;
+    }
+    if (!formData.Mrp || Number(formData.Mrp) <= 0) {
+      setError("Valid MRP (maximum retail price) is required");
       return;
     }
     if (!formData.salePrice || Number(formData.salePrice) < 0) {
@@ -48,7 +53,7 @@ const CreateProducts = () => {
       setError("Valid purchase price (≥ 0) is required");
       return;
     }
-    if (!formData.quantity || Number(formData.quantity) < 0) {
+    if (!formData.Quantity || Number(formData.Quantity) < 0) {
       setError("Valid quantity (≥ 0) is required");
       return;
     }
@@ -61,14 +66,17 @@ const CreateProducts = () => {
 
     try {
       const payload = {
-        itemName: formData.itemName.trim(),
+        Name: formData.Name.trim(),
+        Mrp: Number(formData.Mrp),
         salePrice: Number(formData.salePrice),
         purchasePrice: Number(formData.purchasePrice),
-        quantity: Number(formData.quantity),
-        description: formData.description.trim() || undefined,
-        expiryDate: formData.expiryDate ? formData.expiryDate : null,
+        Quantity: Number(formData.Quantity),
+        Description: formData.Description.trim() || undefined,
+        Expiry: formData.Expiry ? new Date(formData.Expiry) : undefined, // Convert to Date object
         stockBroughtBy: formData.stockBroughtBy.trim(),
       };
+
+      console.log("Sending payload:", payload); // ← Helpful for debugging
 
       const response = await api.post("/products", payload);
 
@@ -81,11 +89,14 @@ const CreateProducts = () => {
 
       if (err.response?.data?.message) {
         const msg = err.response.data.message;
-
         if (msg.includes("duplicate key") || msg.includes("E11000")) {
-          errorMessage = `Product "${formData.itemName}" already exists!`;
+          if (msg.includes("Name: null")) {
+            errorMessage = "Backend received null name – check field names match exactly";
+          } else {
+            errorMessage = `Product "${formData.Name}" already exists!`;
+          }
         } else if (msg.includes("required")) {
-          errorMessage = msg; // Let mongoose tell user exactly what's missing
+          errorMessage = msg;
         } else if (msg.includes("Cast to date")) {
           errorMessage = "Invalid expiry date format";
         } else {
@@ -119,14 +130,12 @@ const CreateProducts = () => {
             <ArrowLeft size={20} />
             Back
           </button>
-
           <div className="text-center flex-1">
             <h1 className="text-4xl md:text-5xl font-extrabold text-indigo-400 mb-2">
               Vishwas Medical
             </h1>
             <p className="text-lg text-slate-300">Add New Product to Inventory</p>
           </div>
-
           <button
             onClick={handleRefresh}
             className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600/70 hover:bg-indigo-600 rounded-lg text-white transition-all shadow-md"
@@ -143,7 +152,6 @@ const CreateProducts = () => {
               {success}
             </div>
           )}
-
           {error && (
             <div className="mb-8 p-4 bg-red-900/40 border border-red-600 text-red-300 rounded-lg text-center">
               {error}
@@ -164,11 +172,11 @@ const CreateProducts = () => {
                 </label>
                 <input
                   type="text"
-                  name="itemName"
-                  value={formData.itemName}
+                  name="Name"                    // ← Changed
+                  value={formData.Name}
                   onChange={handleChange}
                   className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                  placeholder="Paracetamol 500mg"
+                  placeholder="Paracetamol 500mg or Almox CV 650"
                   required
                 />
               </div>
@@ -189,8 +197,24 @@ const CreateProducts = () => {
                 />
               </div>
 
-              {/* Prices */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Prices – MRP + Sale + Purchase */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-slate-300 font-medium mb-2">
+                    MRP (₹) <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="Mrp"                     // ← Added
+                    value={formData.Mrp}
+                    onChange={handleChange}
+                    min="0"
+                    step="0.01"
+                    className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                    placeholder="48.00"
+                    required
+                  />
+                </div>
                 <div>
                   <label className="block text-slate-300 font-medium mb-2">
                     Sale Price (₹) <span className="text-red-400">*</span>
@@ -203,11 +227,10 @@ const CreateProducts = () => {
                     min="0"
                     step="0.01"
                     className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                    placeholder="50.00"
+                    placeholder="45.00"
                     required
                   />
                 </div>
-
                 <div>
                   <label className="block text-slate-300 font-medium mb-2">
                     Purchase Price (₹) <span className="text-red-400">*</span>
@@ -233,8 +256,8 @@ const CreateProducts = () => {
                 </label>
                 <input
                   type="number"
-                  name="quantity"
-                  value={formData.quantity}
+                  name="Quantity"                // ← Capital Q
+                  value={formData.Quantity}
                   onChange={handleChange}
                   min="0"
                   className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
@@ -249,8 +272,8 @@ const CreateProducts = () => {
                   Description (Optional)
                 </label>
                 <textarea
-                  name="description"
-                  value={formData.description}
+                  name="Description"            // ← Capital D
+                  value={formData.Description}
                   onChange={handleChange}
                   rows={3}
                   className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
@@ -265,8 +288,8 @@ const CreateProducts = () => {
                 </label>
                 <input
                   type="date"
-                  name="expiryDate"
-                  value={formData.expiryDate}
+                  name="Expiry"                 // ← Changed
+                  value={formData.Expiry}
                   onChange={handleChange}
                   className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
                 />
