@@ -8,14 +8,13 @@ const CreateProducts = () => {
   const navigate = useNavigate();
 
   const initialFormData = {
-    Name: "",               // ← Changed from itemName
+    itemName: "",
     salePrice: "",
     purchasePrice: "",
-    Quantity: "",           // ← Capital Q to match backend
-    Description: "",        // ← Capital D
-    Expiry: "",             // ← Changed from expiryDate
+    quantity: "",
+    description: "",
+    expiryDate: "",
     stockBroughtBy: "",
-    Mrp: "",                // ← Added (most medicine apps use MRP)
   };
 
   const [formData, setFormData] = useState(initialFormData);
@@ -36,13 +35,9 @@ const CreateProducts = () => {
     setSuccess("");
     setError("");
 
-    // Basic client-side validation
-    if (!formData.Name.trim()) {
-      setError("Product name is required");
-      return;
-    }
-    if (!formData.Mrp || Number(formData.Mrp) <= 0) {
-      setError("Valid MRP (maximum retail price) is required");
+    // Client-side validation (mirrors backend requirements)
+    if (!formData.itemName.trim()) {
+      setError("Item name is required");
       return;
     }
     if (!formData.salePrice || Number(formData.salePrice) < 0) {
@@ -53,12 +48,12 @@ const CreateProducts = () => {
       setError("Valid purchase price (≥ 0) is required");
       return;
     }
-    if (!formData.Quantity || Number(formData.Quantity) < 0) {
+    if (!formData.quantity || Number(formData.quantity) < 0) {
       setError("Valid quantity (≥ 0) is required");
       return;
     }
     if (!formData.stockBroughtBy.trim()) {
-      setError("Supplier name is required");
+      setError("Stock brought by / Supplier name is required");
       return;
     }
 
@@ -66,17 +61,16 @@ const CreateProducts = () => {
 
     try {
       const payload = {
-        Name: formData.Name.trim(),
-        Mrp: Number(formData.Mrp),
+        itemName: formData.itemName.trim(),
         salePrice: Number(formData.salePrice),
         purchasePrice: Number(formData.purchasePrice),
-        Quantity: Number(formData.Quantity),
-        Description: formData.Description.trim() || undefined,
-        Expiry: formData.Expiry ? new Date(formData.Expiry) : undefined, // Convert to Date object
+        quantity: Number(formData.quantity),
+        description: formData.description.trim() || "",
+        expiryDate: formData.expiryDate || null, // backend accepts null
         stockBroughtBy: formData.stockBroughtBy.trim(),
       };
 
-      console.log("Sending payload:", payload); // ← Helpful for debugging
+      console.log("Sending payload:", payload); // Debug – keep this
 
       const response = await api.post("/products", payload);
 
@@ -89,21 +83,26 @@ const CreateProducts = () => {
 
       if (err.response?.data?.message) {
         const msg = err.response.data.message;
+
         if (msg.includes("duplicate key") || msg.includes("E11000")) {
-          if (msg.includes("Name: null")) {
-            errorMessage = "Backend received null name – check field names match exactly";
-          } else {
-            errorMessage = `Product "${formData.Name}" already exists!`;
-          }
-        } else if (msg.includes("required")) {
-          errorMessage = msg;
+          errorMessage = `Product "${formData.itemName}" already exists!`;
+        } else if (msg.includes("Item name is required")) {
+          errorMessage = "Item name is required";
+        } else if (msg.includes("Sale price is required")) {
+          errorMessage = "Sale price is required";
+        } else if (msg.includes("Purchase price is required")) {
+          errorMessage = "Purchase price is required";
+        } else if (msg.includes("Quantity is required")) {
+          errorMessage = "Quantity is required";
+        } else if (msg.includes("Stock brought by")) {
+          errorMessage = "Supplier name is required";
         } else if (msg.includes("Cast to date")) {
           errorMessage = "Invalid expiry date format";
         } else {
           errorMessage = msg;
         }
       } else if (err.request) {
-        errorMessage = "No response from server. Is backend running?";
+        errorMessage = "No response from server. Check backend connection.";
       }
 
       setError(errorMessage);
@@ -165,18 +164,18 @@ const CreateProducts = () => {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-7">
-              {/* Product Name */}
+              {/* Item Name */}
               <div>
                 <label className="block text-slate-300 font-medium mb-2">
                   Product Name <span className="text-red-400">*</span>
                 </label>
                 <input
                   type="text"
-                  name="Name"                    // ← Changed
-                  value={formData.Name}
+                  name="itemName"
+                  value={formData.itemName}
                   onChange={handleChange}
                   className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                  placeholder="Paracetamol 500mg or Almox CV 650"
+                  placeholder="Almox CV 650"
                   required
                 />
               </div>
@@ -192,29 +191,13 @@ const CreateProducts = () => {
                   value={formData.stockBroughtBy}
                   onChange={handleChange}
                   className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                  placeholder="Distributor XYZ / Mr. Ramesh"
+                  placeholder="Siddeshwar / Kalburgi Pharma"
                   required
                 />
               </div>
 
-              {/* Prices – MRP + Sale + Purchase */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-slate-300 font-medium mb-2">
-                    MRP (₹) <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    name="Mrp"                     // ← Added
-                    value={formData.Mrp}
-                    onChange={handleChange}
-                    min="0"
-                    step="0.01"
-                    className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                    placeholder="48.00"
-                    required
-                  />
-                </div>
+              {/* Prices */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-slate-300 font-medium mb-2">
                     Sale Price (₹) <span className="text-red-400">*</span>
@@ -256,12 +239,12 @@ const CreateProducts = () => {
                 </label>
                 <input
                   type="number"
-                  name="Quantity"                // ← Capital Q
-                  value={formData.Quantity}
+                  name="quantity"
+                  value={formData.quantity}
                   onChange={handleChange}
                   min="0"
                   className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                  placeholder="500"
+                  placeholder="15"
                   required
                 />
               </div>
@@ -272,12 +255,12 @@ const CreateProducts = () => {
                   Description (Optional)
                 </label>
                 <textarea
-                  name="Description"            // ← Capital D
-                  value={formData.Description}
+                  name="description"
+                  value={formData.description}
                   onChange={handleChange}
                   rows={3}
                   className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                  placeholder="Pain relief tablets, 10 strips..."
+                  placeholder="Antibiotic tablets, 10 strips..."
                 />
               </div>
 
@@ -288,8 +271,8 @@ const CreateProducts = () => {
                 </label>
                 <input
                   type="date"
-                  name="Expiry"                 // ← Changed
-                  value={formData.Expiry}
+                  name="expiryDate"
+                  value={formData.expiryDate}
                   onChange={handleChange}
                   className="w-full px-5 py-4 bg-slate-900 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
                 />
