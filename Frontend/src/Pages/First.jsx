@@ -6,14 +6,18 @@ import {
   Package,
   ShoppingCart,
   Receipt,
-  BarChart3,
+  DollarSign,
   Users,
   Pill,
   AlertTriangle,
   LogIn,
   Loader2,
   LogOut,
-  FileText,           // ← NEW icon for notes/pending
+  Search,
+  FileText,
+  TrendingUp,
+  Clock,
+  AlertCircle,
 } from "lucide-react";
 
 const First = () => {
@@ -57,104 +61,164 @@ const First = () => {
     navigate("/");
   };
 
+  // Quick action buttons (like billing software sidebar)
   const quickActions = [
-    {
-      title: "New Bill",
-      desc: "Create bills instantly",
-      icon: Receipt,
-      color: "rose",
-      to: "/sales",
-    },
-    {
-      title: "Edit items",
-      desc: "Add items & checkout",
-      icon: ShoppingCart,
-      color: "sky",
-      to: "/cart",
-    },
-    {
-      title: "SEE All Products",
-      desc: "Manage inventory & stock",
-      icon: Package,
-      color: "emerald",
-      to: "/allproducts",
-    },
-    {
-      title: "SEE All Bills",
-      desc: "View analytics & trends",
-      icon: BarChart3,
-      color: "violet",
-      to: "/allsales",
-    },
-    {
-      title: "ADD Product",
-      desc: "Add medicines & details",
-      icon: Plus,
-      color: "cyan",
-      to: "/createProducts",
-    },
-    {
-      title: "Order items",
-      desc: "Low stock & expired items",
-      icon: AlertTriangle,
-      color: "orange",
-      to: "/order-stock",
-    },
-    // ── NEW CARD ───────────────────────────────
-    {
-      title: "Supplier Notes",
-      desc: "Pending amounts & last payments",
-      icon: FileText,
-      color: "amber",
-      to: "/supplier-notes",
-    },
+    { title: "New Bill", desc: "Create new sale", icon: Receipt, color: "blue", to: "/sales" },
+    { title: "Add Medicine", desc: "New product entry", icon: Plus, color: "green", to: "/createProducts" },
+    { title: "All Products", desc: "Manage stock", icon: Package, color: "emerald", to: "/allproducts" },
+    { title: "All Bills", desc: "Sales history", icon: Receipt, color: "indigo", to: "/allsales" },
+    { title: "Supplier Notes", desc: "Pending payments", icon: FileText, color: "amber", to: "/supplier-notes" },
+    { title: "Low Stock / Expiry", desc: "Alerts & orders", icon: AlertTriangle, color: "orange", to: "/order-stock" },
   ];
 
-  // Show login screen if not logged in
+  // Dummy stats (you'll replace with real API data later)
+  const stats = [
+    { title: "Today's Sales", value: "₹42,850", icon: DollarSign, color: "green" },
+    { title: "Pending Bills", value: "12", icon: Clock, color: "orange" },
+    { title: "Low Stock Items", value: "8", icon: AlertCircle, color: "red" },
+    { title: "Expiry Soon", value: "5", icon: Clock, color: "purple" },
+  ];
+
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-950 flex items-center justify-center p-4">
-        {/* ... login form remains the same ... */}
+      <div className="min-h-screen bg-gradient-to-br from-blue-950 via-indigo-950 to-purple-950 flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-white/5 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 p-8">
+          <div className="text-center mb-8">
+            <Pill size={64} className="mx-auto text-cyan-400 mb-4" />
+            <h1 className="text-4xl font-bold text-white">Vishwas Medical</h1>
+            <p className="text-slate-400 mt-2">Pharmacy Billing Software</p>
+          </div>
+          {error && <p className="text-red-400 text-center mb-6">{error}</p>}
+          <form onSubmit={handleLogin} className="space-y-5">
+            <input
+              type="text"
+              placeholder="Username (VMD)"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full px-5 py-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-cyan-400 transition"
+              required
+            />
+            <input
+              type="password"
+              placeholder="Password (vmd@104)"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-5 py-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-cyan-400 transition"
+              required
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl transition shadow-lg flex items-center justify-center gap-3 disabled:opacity-70"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="animate-spin" size={22} />
+                  Please wait...
+                </>
+              ) : (
+                "Login to Billing"
+              )}
+            </button>
+          </form>
+        </div>
       </div>
     );
   }
 
-  // Logged-in dashboard (rest remains almost same, just quickActions updated)
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-950 text-white overflow-hidden">
-      {/* Header, Hero Section, etc. remain the same */}
-      
-      {/* Quick Action Cards */}
-      <section className="max-w-7xl mx-auto px-4 pb-32">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {quickActions.map((action, index) => (
-            <Link
-              key={action.to}
-              to={action.to}
-              className={`group relative bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-8 shadow-2xl border border-white/10 overflow-hidden transition-all duration-500 hover:-translate-y-4 hover:shadow-3xl hover:border-${action.color}-500/50 hover:bg-gradient-to-br hover:from-slate-800 hover:to-slate-900`}
-              style={{ animationDelay: `${index * 100}ms`, animation: "fadeInUp 0.8s ease-out forwards" }}
-            >
-              <div className={`absolute inset-0 bg-gradient-to-br from-${action.color}-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-              <div className="relative z-10 flex flex-col items-center text-center">
-                <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br from-${action.color}-700/50 to-${action.color}-900/50 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-                  <action.icon size={40} className={`text-${action.color}-300`} />
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-3">{action.title}</h3>
-                <p className="text-gray-400 group-hover:text-gray-200 transition-colors">{action.desc}</p>
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 to-slate-900 text-white">
+      {/* Header */}
+      <header className="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-4">
+              <Pill size={32} className="text-cyan-400" />
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                Vishwas Medical
+              </h1>
+            </div>
+
+            <div className="flex items-center gap-6">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search medicines, bills..."
+                  className="w-64 pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm focus:outline-none focus:border-cyan-500 transition"
+                />
+                <Search size={18} className="absolute left-3 top-2.5 text-slate-400" />
               </div>
-            </Link>
+
+              <button className="relative p-2 hover:bg-slate-800 rounded-full transition">
+                <Bell size={22} className="text-cyan-400" />
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5">
+                  5
+                </span>
+              </button>
+
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600/80 hover:bg-red-700 rounded-lg transition"
+              >
+                <LogOut size={18} />
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+          {stats.map((stat, i) => (
+            <div
+              key={i}
+              className="bg-slate-800/60 backdrop-blur-sm border border-slate-700 rounded-xl p-6 hover:border-cyan-700/50 transition-all hover:shadow-lg hover:shadow-cyan-900/20"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-400">{stat.title}</p>
+                  <p className="text-2xl font-bold mt-1">{stat.value}</p>
+                </div>
+                <div className={`p-3 rounded-lg bg-${stat.color}-900/40`}>
+                  <stat.icon size={28} className={`text-${stat.color}-400`} />
+                </div>
+              </div>
+            </div>
           ))}
         </div>
-      </section>
 
-      {/* Floating New Customer Button */}
-      <Link
-        to="/createCustomer"
-        className="fixed bottom-8 right-8 z-50 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-full p-6 shadow-2xl shadow-amber-600/50 hover:shadow-amber-700/70 transition-all duration-300 transform hover:scale-110 flex items-center gap-3"
-      >
-        <Users size={28} />
-        <span className="hidden sm:inline font-bold text-lg">New Customer</span>
-      </Link>
+        {/* Quick Actions - Main Billing Features */}
+        <section>
+          <h2 className="text-2xl font-bold mb-6 text-cyan-300">Quick Actions</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {quickActions.map((action, index) => (
+              <Link
+                key={action.to}
+                to={action.to}
+                className={`group bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-6 border border-slate-700 hover:border-${action.color}-600/50 hover:shadow-xl hover:shadow-${action.color}-900/20 transition-all duration-300`}
+              >
+                <div className={`w-14 h-14 rounded-xl bg-${action.color}-900/40 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform`}>
+                  <action.icon size={28} className={`text-${action.color}-400`} />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">{action.title}</h3>
+                <p className="text-slate-400 text-sm">{action.desc}</p>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* Floating Add Customer Button */}
+        <Link
+          to="/createCustomer"
+          className="fixed bottom-8 right-8 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-full p-5 shadow-2xl shadow-cyan-900/40 transition-all hover:scale-110 flex items-center gap-3 z-50"
+        >
+          <Users size={24} />
+          <span className="hidden sm:inline font-medium">New Customer</span>
+        </Link>
+      </main>
     </div>
   );
 };
