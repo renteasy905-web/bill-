@@ -25,7 +25,6 @@ const First = () => {
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  /* ───────── AUTH CHECK ───────── */
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-[#0f172a] text-white flex items-center justify-center">
@@ -34,7 +33,6 @@ const First = () => {
     );
   }
 
-  /* ───────── FETCH PRODUCTS ───────── */
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -42,52 +40,66 @@ const First = () => {
         const list = res.data.products || res.data.data || res.data || [];
         setProducts(Array.isArray(list) ? list : []);
       } catch (err) {
-        console.error("Product fetch failed", err);
+        console.error(err);
       }
     };
     fetchProducts();
   }, []);
 
-  /* ───────── FIXED SEARCH LOGIC ───────── */
   useEffect(() => {
     const term = searchTerm.toLowerCase().trim();
-
-    if (term === "") {
+    if (!term) {
       setFilteredProducts([]);
       return;
     }
-
-    const filtered = products.filter(
-      (p) =>
-        (p.itemName || p.Name || "").toLowerCase().includes(term) ||
-        (p.stockBroughtBy || "").toLowerCase().includes(term)
+    setFilteredProducts(
+      products.filter(
+        (p) =>
+          (p.itemName || p.Name || "").toLowerCase().includes(term) ||
+          (p.stockBroughtBy || "").toLowerCase().includes(term)
+      )
     );
-
-    setFilteredProducts(filtered);
   }, [searchTerm, products]);
 
-  /* ───────── ACTIVE NAV HELPER ───────── */
   const isActive = (path) => location.pathname === path;
+
+  const navItem = (to, Icon, label) => (
+    <Link
+      to={to}
+      className="flex flex-col items-center gap-1 flex-1"
+    >
+      <div
+        className={`flex flex-col items-center transition-all duration-200 ${
+          isActive(to)
+            ? "text-teal-400 scale-105"
+            : "text-slate-400 hover:text-teal-300"
+        }`}
+      >
+        <Icon size={24} />
+        <span className="text-[11px] font-medium">{label}</span>
+      </div>
+
+      {/* subtle active indicator */}
+      {isActive(to) && (
+        <span className="mt-1 h-1 w-5 rounded-full bg-teal-400"></span>
+      )}
+    </Link>
+  );
 
   return (
     <div className="min-h-screen text-white flex flex-col bg-gradient-to-b from-[#0c1b29] via-[#112637] to-[#0d1f2f]">
-      {/* ───────── TOP BAR ───────── */}
+      {/* TOP BAR */}
       <header className="bg-[#112637]/70 backdrop-blur-xl px-4 py-3 flex items-center justify-between border-b border-white/10 sticky top-0 z-20">
-        <button
-          onClick={() => setIsDrawerOpen(true)}
-          className="p-2 rounded-lg hover:bg-white/10"
-        >
+        <button onClick={() => setIsDrawerOpen(true)} className="p-2 rounded-lg hover:bg-white/10">
           <Menu size={28} />
         </button>
 
-        <h1 className="text-xl md:text-2xl font-bold tracking-wide">
-          VISHWAS MEDICAL
-        </h1>
+        <h1 className="text-xl font-bold">VISHWAS MEDICAL</h1>
 
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-4">
           <Link to="/notifications" className="relative p-2">
-            <Bell size={24} />
-            <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-[#112637]" />
+            <Bell size={22} />
+            <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#112637]" />
           </Link>
 
           <button
@@ -97,193 +109,71 @@ const First = () => {
             }}
             className="px-4 py-2 bg-[#ffe7d4] text-[#2b2b2b] font-semibold rounded-xl"
           >
-            Logout →
+            Logout
           </button>
         </div>
       </header>
 
-      {/* ───────── MAIN CONTENT ───────── */}
-      <main className="flex-1 px-4 py-6 pb-32">
-        {/* SEARCH BAR */}
+      {/* MAIN */}
+      <main className="flex-1 px-4 py-6 pb-28">
+        {/* SEARCH */}
         <div className="relative mb-6">
           <input
-            type="text"
-            placeholder="Search products or supplier..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-14 py-4 bg-white/10 border border-white/10 rounded-full text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
+            placeholder="Search products or supplier..."
+            className="w-full pl-12 pr-14 py-4 bg-white/10 border border-white/10 rounded-full text-white placeholder-white/50 focus:ring-2 focus:ring-teal-400/40 outline-none"
           />
-          <Search
-            size={20}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50"
-          />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50" />
           <Link
             to="/createProducts"
-            className="absolute right-3 top-1/2 -translate-y-1/2 bg-gradient-to-r from-[#50d8df] to-[#87e7cb] text-[#0a1c27] p-3 rounded-full shadow-lg hover:scale-105 transition"
+            className="absolute right-3 top-1/2 -translate-y-1/2 bg-teal-400 text-[#0a1c27] p-3 rounded-full"
           >
-            <Plus size={20} />
+            <Plus size={18} />
           </Link>
         </div>
 
-        {/* PRODUCTS RESULT AREA */}
-        <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl p-6 min-h-[50vh] border border-white/10">
-          <h2 className="text-xl font-bold text-[#86e7d0] mb-4">Products</h2>
+        {/* RESULTS */}
+        <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 min-h-[50vh] border border-white/10">
+          <h2 className="text-lg font-semibold text-teal-300 mb-4">Products</h2>
 
-          {/* EMPTY when no search */}
-          {searchTerm === "" && (
-            <div className="text-center text-white/20 text-sm">
-              {/* blank as requested */}
-            </div>
-          )}
-
-          {/* SHOW RESULTS */}
           <div className="space-y-4">
             {filteredProducts.map((p) => (
-              <div
-                key={p._id}
-                className="bg-white/5 border border-white/10 rounded-xl p-4"
-              >
-                <div className="font-bold text-lg">
-                  {p.itemName || p.Name || "Unnamed Product"}
-                </div>
-                <div className="text-sm text-white/70">
-                  Supplier: {p.stockBroughtBy || "—"}
-                </div>
-                <div className="text-sm text-white/70">
-                  Qty: {p.quantity || p.Quantity || 0}
-                </div>
-                <div className="text-sm text-white/70">
-                  Price: ₹{p.salePrice || p.Mrp || "—"}
+              <div key={p._id} className="bg-white/5 rounded-xl p-4 border border-white/10">
+                <div className="font-semibold">{p.itemName}</div>
+                <div className="text-sm text-white/60">{p.stockBroughtBy}</div>
+                <div className="text-sm text-white/60">
+                  Qty: {p.quantity} • ₹{p.salePrice}
                 </div>
               </div>
             ))}
           </div>
-
-          {searchTerm !== "" && filteredProducts.length === 0 && (
-            <div className="text-center text-white/40 mt-10 text-sm">
-              No matching products found
-            </div>
-          )}
         </div>
       </main>
 
-      {/* ───────── PREMIUM BOTTOM NAV ───────── */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#0c1b29]/80 backdrop-blur-2xl border-t border-cyan-400/10 shadow-[0_-10px_30px_rgba(0,0,0,0.4)]">
-        <div className="max-w-md mx-auto px-6 py-4 flex justify-between">
-
-          {/* CREATE BILL */}
-          <Link
-            to="/sales"
-            className={`flex flex-col items-center transition transform ${
-              isActive("/sales")
-                ? "text-cyan-300 scale-110 drop-shadow-[0_0_12px_#5eead4]"
-                : "text-white/60 hover:text-cyan-200 hover:scale-105"
-            }`}
-          >
-            <Receipt size={28} />
-            <span className="text-xs mt-1">Create Bill</span>
-          </Link>
-
-          {/* ADD PRODUCT */}
-          <Link
-            to="/createProducts"
-            className={`flex flex-col items-center transition transform ${
-              isActive("/createProducts")
-                ? "text-cyan-300 scale-110 drop-shadow-[0_0_12px_#5eead4]"
-                : "text-white/60 hover:text-cyan-200 hover:scale-105"
-            }`}
-          >
-            <ShoppingBag size={28} />
-            <span className="text-xs mt-1">Add Product</span>
-          </Link>
-
-          {/* CUSTOMER */}
-          <Link
-            to="/createCustomer"
-            className={`flex flex-col items-center transition transform ${
-              isActive("/createCustomer")
-                ? "text-cyan-300 scale-110 drop-shadow-[0_0_12px_#5eead4]"
-                : "text-white/60 hover:text-cyan-200 hover:scale-105"
-            }`}
-          >
-            <Users size={28} />
-            <span className="text-xs mt-1">Customer</span>
-          </Link>
-
-          {/* SUPPLIER NOTES */}
-          <Link
-            to="/supplier-notes"
-            className={`flex flex-col items-center transition transform ${
-              isActive("/supplier-notes")
-                ? "text-cyan-300 scale-110 drop-shadow-[0_0_12px_#5eead4]"
-                : "text-white/60 hover:text-cyan-200 hover:scale-105"
-            }`}
-          >
-            <FileText size={28} />
-            <span className="text-xs mt-1">Supplier</span>
-          </Link>
-
-          {/* ALL SALES */}
-          <Link
-            to="/allsales"
-            className={`flex flex-col items-center transition transform ${
-              isActive("/allsales")
-                ? "text-cyan-300 scale-110 drop-shadow-[0_0_12px_#5eead4]"
-                : "text-white/60 hover:text-cyan-200 hover:scale-105"
-            }`}
-          >
-            <BarChart2 size={28} />
-            <span className="text-xs mt-1">Sales</span>
-          </Link>
+      {/* SIMPLE + PREMIUM BOTTOM NAV */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#0f1f2e]/90 backdrop-blur-xl border-t border-white/10">
+        <div className="max-w-md mx-auto flex items-center px-2 py-3">
+          {navItem("/sales", Receipt, "Bill")}
+          {navItem("/createProducts", ShoppingBag, "Product")}
+          {navItem("/createCustomer", Users, "Customer")}
+          {navItem("/supplier-notes", FileText, "Supplier")}
+          {navItem("/allsales", BarChart2, "Sales")}
         </div>
       </nav>
 
-      {/* ───────── SIDE DRAWER ───────── */}
+      {/* DRAWER */}
       {isDrawerOpen && (
-        <div
-          className="fixed inset-0 bg-black/70 z-30"
-          onClick={() => setIsDrawerOpen(false)}
-        >
-          <div
-            className="fixed top-0 left-0 h-full w-80 bg-[#0f172a] p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between mb-8">
-              <h2 className="text-2xl font-bold text-[#86e7d0]">Menu</h2>
-              <button onClick={() => setIsDrawerOpen(false)}>
-                <X size={28} />
-              </button>
+        <div className="fixed inset-0 bg-black/70 z-30" onClick={() => setIsDrawerOpen(false)}>
+          <div className="fixed top-0 left-0 h-full w-80 bg-[#0f172a] p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between mb-6">
+              <h2 className="text-xl font-bold text-teal-300">Menu</h2>
+              <X size={26} onClick={() => setIsDrawerOpen(false)} />
             </div>
 
-            <div className="space-y-3">
-              <Link to="/allproducts" className="flex gap-4 p-4 rounded-xl bg-white/5">
-                <Package /> All Products
-              </Link>
-
-              <Link to="/sales" className="flex gap-4 p-4 rounded-xl bg-white/5">
-                <Receipt /> Create Bill
-              </Link>
-
-              <Link to="/createProducts" className="flex gap-4 p-4 rounded-xl bg-white/5">
-                <Plus /> Add Product
-              </Link>
-
-              <Link to="/createCustomer" className="flex gap-4 p-4 rounded-xl bg-white/5">
-                <Users /> Add Customer
-              </Link>
-
-              <Link to="/supplier-notes" className="flex gap-4 p-4 rounded-xl bg-white/5">
-                <FileText /> Supplier Notes
-              </Link>
-
-              <Link to="/allsales" className="flex gap-4 p-4 rounded-xl bg-white/5">
-                <BarChart2 /> All Sales
-              </Link>
-
-              <Link to="/notifications" className="flex gap-4 p-4 rounded-xl bg-white/5">
-                <Bell /> Notifications
-              </Link>
-            </div>
+            <Link to="/allproducts" className="flex items-center gap-3 p-4 rounded-xl bg-white/5">
+              <Package /> All Products
+            </Link>
           </div>
         </div>
       )}
