@@ -33,7 +33,7 @@ const First = () => {
     );
   }
 
-  /* ───────── FETCH PRODUCTS (same as AllProducts) ───────── */
+  /* ───────── FETCH PRODUCTS ───────── */
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -47,14 +47,17 @@ const First = () => {
     fetchProducts();
   }, []);
 
-  /* ───────── SEARCH LOGIC (same as AllProducts) ───────── */
+  /* ───────── FIXED SEARCH LOGIC (100% working) ───────── */
   useEffect(() => {
-    if (!searchTerm.trim()) {
+    const term = searchTerm.toLowerCase().trim();
+
+    // When input empty → show blank
+    if (term === "") {
       setFilteredProducts([]);
       return;
     }
 
-    const term = searchTerm.toLowerCase().trim();
+    // When typing → filter from loaded products
     const filtered = products.filter(
       (p) =>
         (p.itemName || p.Name || "").toLowerCase().includes(term) ||
@@ -114,7 +117,7 @@ const First = () => {
           />
           <Link
             to="/createProducts"
-            className="absolute right-3 top-1/2 -translate-y-1/2 bg-gradient-to-r from-[#50d8df] to-[#87e7cb] text-[#0a1c27] p-3 rounded-full"
+            className="absolute right-3 top-1/2 -translate-y-1/2 bg-gradient-to-r from-[#50d8df] to-[#87e7cb] text-[#0a1c27] p-3 rounded-full shadow-lg hover:scale-105 transition"
           >
             <Plus size={20} />
           </Link>
@@ -125,7 +128,11 @@ const First = () => {
           <h2 className="text-xl font-bold text-[#86e7d0] mb-4">Products</h2>
 
           {/* EMPTY when no search */}
-          {searchTerm && filteredProducts.length === 0 && null}
+          {searchTerm === "" && (
+            <div className="text-center text-white/20 text-sm">
+              {/* blank exactly as you said */}
+            </div>
+          )}
 
           {/* SHOW RESULTS */}
           <div className="space-y-4">
@@ -149,6 +156,12 @@ const First = () => {
               </div>
             ))}
           </div>
+
+          {searchTerm !== "" && filteredProducts.length === 0 && (
+            <div className="text-center text-white/40 mt-10 text-sm">
+              No matching products found
+            </div>
+          )}
         </div>
       </main>
 
@@ -202,6 +215,30 @@ const First = () => {
             <div className="space-y-3">
               <Link to="/allproducts" className="flex gap-4 p-4 rounded-xl bg-white/5">
                 <Package /> All Products
+              </Link>
+
+              <Link to="/sales" className="flex gap-4 p-4 rounded-xl bg-white/5">
+                <Receipt /> Create Bill
+              </Link>
+
+              <Link to="/createProducts" className="flex gap-4 p-4 rounded-xl bg-white/5">
+                <Plus /> Add Product
+              </Link>
+
+              <Link to="/createCustomer" className="flex gap-4 p-4 rounded-xl bg-white/5">
+                <Users /> Add Customer
+              </Link>
+
+              <Link to="/supplier-notes" className="flex gap-4 p-4 rounded-xl bg-white/5">
+                <FileText /> Supplier Notes
+              </Link>
+
+              <Link to="/allsales" className="flex gap-4 p-4 rounded-xl bg-white/5">
+                <BarChart2 /> All Sales
+              </Link>
+
+              <Link to="/notifications" className="flex gap-4 p-4 rounded-xl bg-white/5">
+                <Bell /> Notifications
               </Link>
             </div>
           </div>
