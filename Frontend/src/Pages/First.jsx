@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import api from "../utils/api";
 import {
   Menu,
@@ -17,6 +17,7 @@ import {
 
 const First = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLoggedIn] = useState(localStorage.getItem("isLoggedIn") === "true");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
@@ -47,17 +48,15 @@ const First = () => {
     fetchProducts();
   }, []);
 
-  /* ───────── FIXED SEARCH LOGIC (100% working) ───────── */
+  /* ───────── FIXED SEARCH LOGIC ───────── */
   useEffect(() => {
     const term = searchTerm.toLowerCase().trim();
 
-    // When input empty → show blank
     if (term === "") {
       setFilteredProducts([]);
       return;
     }
 
-    // When typing → filter from loaded products
     const filtered = products.filter(
       (p) =>
         (p.itemName || p.Name || "").toLowerCase().includes(term) ||
@@ -66,6 +65,9 @@ const First = () => {
 
     setFilteredProducts(filtered);
   }, [searchTerm, products]);
+
+  /* ───────── ACTIVE NAV HELPER ───────── */
+  const isActive = (path) => location.pathname === path;
 
   return (
     <div className="min-h-screen text-white flex flex-col bg-gradient-to-b from-[#0c1b29] via-[#112637] to-[#0d1f2f]">
@@ -130,7 +132,7 @@ const First = () => {
           {/* EMPTY when no search */}
           {searchTerm === "" && (
             <div className="text-center text-white/20 text-sm">
-              {/* blank exactly as you said */}
+              {/* blank as requested */}
             </div>
           )}
 
@@ -165,32 +167,73 @@ const First = () => {
         </div>
       </main>
 
-      {/* ───────── BOTTOM NAV ───────── */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#112637]/70 backdrop-blur-xl border-t border-white/10">
-        <div className="max-w-md mx-auto px-2 py-3 flex justify-around">
-          <Link to="/sales" className="flex flex-col items-center text-[#86e7d0]">
-            <Receipt size={26} />
-            <span className="text-xs">Create Bill</span>
+      {/* ───────── PREMIUM BOTTOM NAV ───────── */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#0c1b29]/80 backdrop-blur-2xl border-t border-cyan-400/10 shadow-[0_-10px_30px_rgba(0,0,0,0.4)]">
+        <div className="max-w-md mx-auto px-6 py-4 flex justify-between">
+
+          {/* CREATE BILL */}
+          <Link
+            to="/sales"
+            className={`flex flex-col items-center transition transform ${
+              isActive("/sales")
+                ? "text-cyan-300 scale-110 drop-shadow-[0_0_12px_#5eead4]"
+                : "text-white/60 hover:text-cyan-200 hover:scale-105"
+            }`}
+          >
+            <Receipt size={28} />
+            <span className="text-xs mt-1">Create Bill</span>
           </Link>
 
-          <Link to="/createProducts" className="flex flex-col items-center text-white/60">
-            <ShoppingBag size={26} />
-            <span className="text-xs">Add Product</span>
+          {/* ADD PRODUCT */}
+          <Link
+            to="/createProducts"
+            className={`flex flex-col items-center transition transform ${
+              isActive("/createProducts")
+                ? "text-cyan-300 scale-110 drop-shadow-[0_0_12px_#5eead4]"
+                : "text-white/60 hover:text-cyan-200 hover:scale-105"
+            }`}
+          >
+            <ShoppingBag size={28} />
+            <span className="text-xs mt-1">Add Product</span>
           </Link>
 
-          <Link to="/createCustomer" className="flex flex-col items-center text-white/60">
-            <Users size={26} />
-            <span className="text-xs">Customer</span>
+          {/* CUSTOMER */}
+          <Link
+            to="/createCustomer"
+            className={`flex flex-col items-center transition transform ${
+              isActive("/createCustomer")
+                ? "text-cyan-300 scale-110 drop-shadow-[0_0_12px_#5eead4]"
+                : "text-white/60 hover:text-cyan-200 hover:scale-105"
+            }`}
+          >
+            <Users size={28} />
+            <span className="text-xs mt-1">Customer</span>
           </Link>
 
-          <Link to="/supplier-notes" className="flex flex-col items-center text-white/60">
-            <FileText size={26} />
-            <span className="text-xs">Supplier</span>
+          {/* SUPPLIER NOTES */}
+          <Link
+            to="/supplier-notes"
+            className={`flex flex-col items-center transition transform ${
+              isActive("/supplier-notes")
+                ? "text-cyan-300 scale-110 drop-shadow-[0_0_12px_#5eead4]"
+                : "text-white/60 hover:text-cyan-200 hover:scale-105"
+            }`}
+          >
+            <FileText size={28} />
+            <span className="text-xs mt-1">Supplier</span>
           </Link>
 
-          <Link to="/allsales" className="flex flex-col items-center text-white/60">
-            <BarChart2 size={26} />
-            <span className="text-xs">Sales</span>
+          {/* ALL SALES */}
+          <Link
+            to="/allsales"
+            className={`flex flex-col items-center transition transform ${
+              isActive("/allsales")
+                ? "text-cyan-300 scale-110 drop-shadow-[0_0_12px_#5eead4]"
+                : "text-white/60 hover:text-cyan-200 hover:scale-105"
+            }`}
+          >
+            <BarChart2 size={28} />
+            <span className="text-xs mt-1">Sales</span>
           </Link>
         </div>
       </nav>
