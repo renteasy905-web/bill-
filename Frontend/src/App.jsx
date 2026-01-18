@@ -1,36 +1,34 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-
 import First from './Pages/First';
 import CreateProducts from './Pages/CreateProducts';
 import Cart from './Pages/Cart';
 import CreateCustomer from './Pages/CreateCustomer';
-import Sales from './Pages/Sales';           // FIXED: plural "Sales"
-import AllProducts from './Pages/Allproducts'; // FIXED: lowercase p
+import Sales from './Pages/Sales';
+import AllProducts from './Pages/Allproducts';
 import ListofSales from './Pages/ListofSales';
-import EditSale from './Pages/Editsales';     // FIXED: lowercase s
+import EditSale from './Pages/Editsales';
 import Notifications from './Pages/Notifications';
 import OrderStock from './Pages/OrderStock';
+import SupplierNotes from './Pages/SupplierNotes';   // ← NEW
 
 const App = () => {
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <Routes>
         <Route path="/" element={<First />} />
-
         <Route path="/createProducts" element={<CreateProducts />} />
         <Route path="/allproducts" element={<AllProducts />} />
-
         <Route path="/createCustomer" element={<CreateCustomer />} />
-
         <Route path="/cart" element={<Cart />} />
         <Route path="/sales" element={<Sales />} />
         <Route path="/allsales" element={<ListofSales />} />
         <Route path="/editsales/:id" element={<EditSale />} />
-
         <Route path="/notifications" element={<Notifications />} />
-
         <Route path="/order-stock" element={<OrderStock />} />
+        
+        {/* NEW ROUTE */}
+        <Route path="/supplier-notes" element={<SupplierNotes />} />
 
         <Route
           path="*"
