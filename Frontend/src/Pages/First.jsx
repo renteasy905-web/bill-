@@ -60,42 +60,42 @@ const First = () => {
 
   const quickActions = [
     {
-      title: "New Sale",
+      title: "New Bil ",
       desc: "Create bills instantly",
       icon: Receipt,
       color: "rose",
       to: "/sales",
     },
     {
-      title: "Billing Cart",
+      title: "Edit items",
       desc: "Add items & checkout",
       icon: ShoppingCart,
       color: "sky",
       to: "/cart",
     },
     {
-      title: "All Products",
+      title: " SEE All Products",
       desc: "Manage inventory & stock",
       icon: Package,
       color: "emerald",
       to: "/allproducts",
     },
     {
-      title: "Sales Report",
+      title: "SEE All Bills ",
       desc: "View analytics & trends",
       icon: BarChart3,
       color: "violet",
       to: "/allsales",
     },
     {
-      title: "New Product",
+      title: "ADD Product",
       desc: "Add medicines & details",
       icon: Plus,
       color: "cyan",
       to: "/createProducts",
     },
     {
-      title: "Order Stock",
+      title: "Order items ",
       desc: "Low stock & expired items",
       icon: AlertTriangle,
       color: "orange",
