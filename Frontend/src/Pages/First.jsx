@@ -4,15 +4,14 @@ import {
   Bell,
   Plus,
   Package,
-  ShoppingCart,
   Receipt,
   FileText,
   AlertTriangle,
-  LogIn,
-  Loader2,
   LogOut,
   Pill,
   Users,
+  LogIn,
+  Loader2,
 } from "lucide-react";
 
 const First = () => {
@@ -39,86 +38,42 @@ const First = () => {
       if (username.trim().toUpperCase() === "VMD" && password === "vmd@104") {
         localStorage.setItem("isLoggedIn", "true");
         setIsLoggedIn(true);
-        window.history.replaceState({ loggedIn: true }, "", window.location.pathname);
+        window.history.replaceState(null, "", window.location.pathname);
       } else {
-        setError("Invalid username or password");
+        setError("Wrong username or password");
       }
       setLoading(false);
-    }, 800);
+    }, 700);
   };
 
   const handleLogout = () => {
     localStorage.removeItem("isLoggedIn");
     setIsLoggedIn(false);
-    setUsername("");
-    setPassword("");
-    setError("");
     navigate("/");
   };
 
-  // Simplified & attractive quick actions
-  const quickActions = [
-    {
-      title: "New Sale",
-      desc: "Create new bill",
-      icon: Receipt,
-      color: "blue",
-      to: "/sales",
-    },
-    {
-      title: "Add Medicine",
-      desc: "New product",
-      icon: Plus,
-      color: "green",
-      to: "/createProducts",
-    },
-    {
-      title: "Stock",
-      desc: "All medicines",
-      icon: Package,
-      color: "emerald",
-      to: "/allproducts",
-    },
-    {
-      title: "Bills History",
-      desc: "View all sales",
-      icon: Receipt,
-      color: "indigo",
-      to: "/allsales",
-    },
-    {
-      title: "Suppliers",
-      desc: "Pending & notes",
-      icon: FileText,
-      color: "amber",
-      to: "/supplier-notes",
-    },
-    {
-      title: "Alerts",
-      desc: "Low stock / Expiry",
-      icon: AlertTriangle,
-      color: "orange",
-      to: "/order-stock",
-    },
+  const actions = [
+    { title: "New Bill", icon: Receipt, color: "bg-blue-100 text-blue-700", to: "/sales" },
+    { title: "Add Medicine", icon: Plus, color: "bg-green-100 text-green-700", to: "/createProducts" },
+    { title: "All Medicines", icon: Package, color: "bg-emerald-100 text-emerald-700", to: "/allproducts" },
+    { title: "All Bills", icon: Receipt, color: "bg-indigo-100 text-indigo-700", to: "/allsales" },
+    { title: "Supplier Notes", icon: FileText, color: "bg-amber-100 text-amber-700", to: "/supplier-notes" },
+    { title: "Low Stock", icon: AlertTriangle, color: "bg-orange-100 text-orange-700", to: "/order-stock" },
   ];
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-10">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-5">
+        <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg p-8">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-50 rounded-full mb-4">
               <Pill size={32} className="text-blue-600" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-800">Vishwas Medical</h1>
-            <p className="text-gray-500 mt-1">Billing & Inventory</p>
+            <h1 className="text-2xl font-bold text-gray-800">Vishwas Medical</h1>
+            <p className="text-gray-500 mt-1">Billing & Stock</p>
           </div>
 
-          {error && (
-            <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-6 text-center">
-              {error}
-            </div>
-          )}
+          {error && <p className="text-red-600 text-center mb-6">{error}</p>}
 
           <form onSubmit={handleLogin} className="space-y-5">
             <input
@@ -126,7 +81,7 @@ const First = () => {
               placeholder="Username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-5 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
             <input
@@ -134,18 +89,18 @@ const First = () => {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-5 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3.5 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition disabled:bg-blue-400 flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition disabled:bg-blue-400 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
                   <Loader2 className="animate-spin" size={20} />
-                  Logging in...
+                  Please wait...
                 </>
               ) : (
                 "Login"
@@ -158,68 +113,57 @@ const First = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3">
-              <Pill size={32} className="text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-800">Vishwas Medical</h1>
-            </div>
+    <div className="min-h-screen bg-gray-50 pb-24">
+      {/* Top Bar */}
+      <div className="bg-white shadow-sm sticky top-0 z-10">
+        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Pill size={28} className="text-blue-600" />
+            <h1 className="text-xl font-bold text-gray-800">Vishwas Medical</h1>
+          </div>
 
-            <div className="flex items-center gap-6">
-              <button className="relative p-2 text-gray-600 hover:text-gray-900">
-                <Bell size={22} />
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  3
-                </span>
-              </button>
-
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 hover:bg-red-100 rounded-lg transition"
-              >
-                <LogOut size={18} />
-                Logout
-              </button>
-            </div>
+          <div className="flex items-center gap-5">
+            <button className="relative p-2">
+              <Bell size={22} className="text-gray-600" />
+              <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full" />
+            </button>
+            <button
+              onClick={handleLogout}
+              className="text-red-600 hover:text-red-700 font-medium"
+            >
+              Logout
+            </button>
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <h2 className="text-2xl font-bold text-gray-800 mb-8">Dashboard</h2>
+      {/* Main Content - Very Simple & Phone Friendly */}
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <h2 className="text-2xl font-bold text-gray-800 mb-8 text-center">
+          Quick Actions
+        </h2>
 
-        {/* Quick Actions Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {quickActions.map((action) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
+          {actions.map((item) => (
             <Link
-              key={action.to}
-              to={action.to}
-              className="bg-white rounded-xl shadow hover:shadow-lg transition-all duration-200 border border-gray-200 overflow-hidden group"
+              key={item.to}
+              to={item.to}
+              className={`${item.color} rounded-2xl p-6 flex flex-col items-center justify-center text-center hover:opacity-90 transition-opacity active:scale-95 shadow-sm`}
             >
-              <div className="p-8">
-                <div className={`w-14 h-14 rounded-xl bg-${action.color}-100 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform`}>
-                  <action.icon size={28} className={`text-${action.color}-600`} />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">{action.title}</h3>
-                <p className="text-gray-600">{action.desc}</p>
-              </div>
+              <item.icon size={36} className="mb-4" />
+              <span className="font-medium text-gray-800">{item.title}</span>
             </Link>
           ))}
         </div>
+      </div>
 
-        {/* Floating New Customer Button */}
-        <Link
-          to="/createCustomer"
-          className="fixed bottom-8 right-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-5 shadow-lg transition-transform hover:scale-110 flex items-center gap-3 z-50"
-        >
-          <Users size={24} />
-          <span className="font-medium hidden sm:inline">New Customer</span>
-        </Link>
-      </main>
+      {/* Floating Button - Very common in mobile apps */}
+      <Link
+        to="/createCustomer"
+        className="fixed bottom-6 right-6 bg-blue-600 text-white rounded-full p-5 shadow-lg hover:bg-blue-700 transition-transform active:scale-95 z-50"
+      >
+        <Users size={28} />
+      </Link>
     </div>
   );
 };
