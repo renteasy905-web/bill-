@@ -18,20 +18,10 @@ import {
 const First = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isLoggedIn] = useState(localStorage.getItem("isLoggedIn") === "true");
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-
+  
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-
-  if (!isLoggedIn) {
-    return (
-      <div className="min-h-screen bg-[#0f172a] text-white flex items-center justify-center">
-        Login Required
-      </div>
-    );
-  }
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -49,7 +39,7 @@ const First = () => {
   useEffect(() => {
     const term = searchTerm.toLowerCase().trim();
     if (!term) {
-      setFilteredProducts([]);
+      setFilteredProducts(products); // Show all products when search is empty
       return;
     }
     setFilteredProducts(
@@ -64,10 +54,7 @@ const First = () => {
   const isActive = (path) => location.pathname === path;
 
   const navItem = (to, Icon, label) => (
-    <Link
-      to={to}
-      className="flex flex-col items-center gap-1 flex-1"
-    >
+    <Link to={to} className="flex flex-col items-center gap-1 flex-1">
       <div
         className={`flex flex-col items-center transition-all duration-200 ${
           isActive(to)
@@ -78,8 +65,6 @@ const First = () => {
         <Icon size={24} />
         <span className="text-[11px] font-medium">{label}</span>
       </div>
-
-      {/* subtle active indicator */}
       {isActive(to) && (
         <span className="mt-1 h-1 w-5 rounded-full bg-teal-400"></span>
       )}
@@ -90,27 +75,18 @@ const First = () => {
     <div className="min-h-screen text-white flex flex-col bg-gradient-to-b from-[#0c1b29] via-[#112637] to-[#0d1f2f]">
       {/* TOP BAR */}
       <header className="bg-[#112637]/70 backdrop-blur-xl px-4 py-3 flex items-center justify-between border-b border-white/10 sticky top-0 z-20">
-        <button onClick={() => setIsDrawerOpen(true)} className="p-2 rounded-lg hover:bg-white/10">
+        <button
+          onClick={() => setIsDrawerOpen(true)}
+          className="p-2 rounded-lg hover:bg-white/10"
+        >
           <Menu size={28} />
         </button>
-
         <h1 className="text-xl font-bold">VISHWAS MEDICAL</h1>
-
         <div className="flex items-center gap-4">
           <Link to="/notifications" className="relative p-2">
             <Bell size={22} />
             <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#112637]" />
           </Link>
-
-          <button
-            onClick={() => {
-              localStorage.removeItem("isLoggedIn");
-              navigate("/");
-            }}
-            className="px-4 py-2 bg-[#ffe7d4] text-[#2b2b2b] font-semibold rounded-xl"
-          >
-            Logout
-          </button>
         </div>
       </header>
 
@@ -136,10 +112,12 @@ const First = () => {
         {/* RESULTS */}
         <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 min-h-[50vh] border border-white/10">
           <h2 className="text-lg font-semibold text-teal-300 mb-4">Products</h2>
-
           <div className="space-y-4">
             {filteredProducts.map((p) => (
-              <div key={p._id} className="bg-white/5 rounded-xl p-4 border border-white/10">
+              <div
+                key={p._id}
+                className="bg-white/5 rounded-xl p-4 border border-white/10"
+              >
                 <div className="font-semibold">{p.itemName}</div>
                 <div className="text-sm text-white/60">{p.stockBroughtBy}</div>
                 <div className="text-sm text-white/60">
@@ -151,7 +129,7 @@ const First = () => {
         </div>
       </main>
 
-      {/* SIMPLE + PREMIUM BOTTOM NAV */}
+      {/* BOTTOM NAV */}
       <nav className="fixed bottom-0 left-0 right-0 bg-[#0f1f2e]/90 backdrop-blur-xl border-t border-white/10">
         <div className="max-w-md mx-auto flex items-center px-2 py-3">
           {navItem("/sales", Receipt, "Bill")}
@@ -164,14 +142,22 @@ const First = () => {
 
       {/* DRAWER */}
       {isDrawerOpen && (
-        <div className="fixed inset-0 bg-black/70 z-30" onClick={() => setIsDrawerOpen(false)}>
-          <div className="fixed top-0 left-0 h-full w-80 bg-[#0f172a] p-6" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-black/70 z-30"
+          onClick={() => setIsDrawerOpen(false)}
+        >
+          <div
+            className="fixed top-0 left-0 h-full w-80 bg-[#0f172a] p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between mb-6">
               <h2 className="text-xl font-bold text-teal-300">Menu</h2>
               <X size={26} onClick={() => setIsDrawerOpen(false)} />
             </div>
-
-            <Link to="/allproducts" className="flex items-center gap-3 p-4 rounded-xl bg-white/5">
+            <Link
+              to="/allproducts"
+              className="flex items-center gap-3 p-4 rounded-xl bg-white/5"
+            >
               <Package /> All Products
             </Link>
           </div>
