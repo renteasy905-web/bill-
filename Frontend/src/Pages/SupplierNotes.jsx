@@ -1,173 +1,156 @@
-import React, { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import api from "../utils/api";
-import {
-  Menu,
-  Search,
-  Plus,
-  Receipt,
-  ShoppingBag,
-  FileText,
-  BarChart2,
-  Users,
-  Bell,
-  X,
-  Package,
-} from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../utils/api';
+import { ArrowLeft, DollarSign, Package, Calendar, AlertCircle } from 'lucide-react';
 
-const First = () => {
+const SupplierNotes = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-
-  // ──── This line was missing ────
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-
-  const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [suppliers, setSuppliers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchSupplierSummary = async () => {
       try {
-        const res = await api.get("/products");
-        const list = res.data.products || res.data.data || res.data || [];
-        setProducts(Array.isArray(list) ? list : []);
+        setLoading(true);
+        setError('');
+        const response = await api.get('/suppliers/summary');
+        if (response.data?.success) {
+          setSuppliers(response.data.suppliers || []);
+        } else {
+          setError(response.data?.message || 'Failed to load supplier data');
+        }
       } catch (err) {
-        console.error(err);
+        console.error('Failed to fetch supplier summary:', err);
+        setError(
+          err.response?.data?.message ||
+          'Could not connect to server. Please check if backend is running.'
+        );
+      } finally {
+        setLoading(false);
       }
     };
-    fetchProducts();
+    fetchSupplierSummary();
   }, []);
 
-  useEffect(() => {
-    const term = searchTerm.toLowerCase().trim();
-    if (!term) {
-      setFilteredProducts(products); // Show all when search is empty
-      return;
-    }
-    setFilteredProducts(
-      products.filter(
-        (p) =>
-          (p.itemName || p.Name || "").toLowerCase().includes(term) ||
-          (p.stockBroughtBy || "").toLowerCase().includes(term)
-      )
-    );
-  }, [searchTerm, products]);
-
-  const isActive = (path) => location.pathname === path;
-
-  const navItem = (to, Icon, label) => (
-    <Link to={to} className="flex flex-col items-center gap-1 flex-1">
-      <div
-        className={`flex flex-col items-center transition-all duration-200 ${
-          isActive(to)
-            ? "text-teal-400 scale-105"
-            : "text-slate-400 hover:text-teal-300"
-        }`}
-      >
-        <Icon size={24} />
-        <span className="text-[11px] font-medium">{label}</span>
-      </div>
-      {isActive(to) && (
-        <span className="mt-1 h-1 w-5 rounded-full bg-teal-400"></span>
-      )}
-    </Link>
-  );
+  // Format amount in Indian Rupees style
+  const formatAmount = (amount) => {
+    if (!amount && amount !== 0) return '₹0';
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
 
   return (
-    <div className="min-h-screen text-white flex flex-col bg-gradient-to-b from-[#0c1b29] via-[#112637] to-[#0d1f2f]">
-      {/* TOP BAR */}
-      <header className="bg-[#112637]/70 backdrop-blur-xl px-4 py-3 flex items-center justify-between border-b border-white/10 sticky top-0 z-20">
-        <button
-          onClick={() => setIsDrawerOpen(true)}
-          className="p-2 rounded-lg hover:bg-white/10"
-        >
-          <Menu size={28} />
-        </button>
-        <h1 className="text-xl font-bold">VISHWAS MEDICAL</h1>
-        <div className="flex items-center gap-4">
-          <Link to="/notifications" className="relative p-2">
-            <Bell size={22} />
-            <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#112637]" />
-          </Link>
-        </div>
-      </header>
-
-      {/* MAIN */}
-      <main className="flex-1 px-4 py-6 pb-28">
-        {/* SEARCH */}
-        <div className="relative mb-6">
-          <input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search products or supplier..."
-            className="w-full pl-12 pr-14 py-4 bg-white/10 border border-white/10 rounded-full text-white placeholder-white/50 focus:ring-2 focus:ring-teal-400/40 outline-none"
-          />
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50" />
-          <Link
-            to="/createProducts"
-            className="absolute right-3 top-1/2 -translate-y-1/2 bg-teal-400 text-[#0a1c27] p-3 rounded-full"
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white py-8 px-4 md:px-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center gap-3 px-6 py-3 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors border border-slate-700"
           >
-            <Plus size={18} />
-          </Link>
+            <ArrowLeft size={20} />
+            Back to Dashboard
+          </button>
+          <h1 className="text-3xl md:text-4xl font-bold text-indigo-400">
+            Supplier Notes & Pending
+          </h1>
         </div>
 
-        {/* RESULTS */}
-        <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 min-h-[50vh] border border-white/10">
-          <h2 className="text-lg font-semibold text-teal-300 mb-4">Products</h2>
-          <div className="space-y-4">
-            {filteredProducts.map((p) => (
-              <div
-                key={p._id || Math.random()} // fallback if _id missing
-                className="bg-white/5 rounded-xl p-4 border border-white/10"
-              >
-                <div className="font-semibold">{p.itemName}</div>
-                <div className="text-sm text-white/60">{p.stockBroughtBy}</div>
-                <div className="text-sm text-white/60">
-                  Qty: {p.quantity} • ₹{Number(p.salePrice || 0).toLocaleString("en-IN")}
-                </div>
+        {/* Error */}
+        {error && (
+          <div className="mb-8 p-5 bg-red-950/60 border border-red-800 rounded-xl flex items-center gap-3 text-red-200">
+            <AlertCircle size={24} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Loading */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="w-14 h-14 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-lg text-slate-400">Loading suppliers...</p>
+          </div>
+        )}
+
+        {/* Content */}
+        {!loading && !error && (
+          <>
+            {suppliers.length === 0 ? (
+              <div className="text-center py-16 bg-slate-900/50 rounded-2xl border border-slate-700">
+                <AlertCircle size={48} className="mx-auto mb-4 text-slate-500" />
+                <h3 className="text-2xl font-medium text-slate-300 mb-3">
+                  No suppliers found
+                </h3>
+                <p className="text-slate-500 max-w-md mx-auto">
+                  Add products with supplier name in "Stock Brought By" field to see summary here.
+                </p>
               </div>
-            ))}
-          </div>
-        </div>
-      </main>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {suppliers.map((supplier) => (
+                  <div
+                    key={supplier.supplier}
+                    className="bg-slate-900/70 backdrop-blur-sm rounded-2xl p-6 border border-slate-800 hover:border-indigo-700/50 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-900/20"
+                  >
+                    <h2 className="text-2xl font-bold text-indigo-300 mb-5 truncate">
+                      {supplier.supplier}
+                    </h2>
+                    <div className="space-y-6">
+                      {/* Pending Amount */}
+                      <div className="flex items-center gap-4">
+                        <div className="p-4 bg-indigo-950/60 rounded-xl">
+                          <DollarSign size={28} className="text-indigo-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-400">Total Pending Amount</p>
+                          <p className="text-2xl font-bold">
+                            {formatAmount(supplier.totalPendingAmount)}
+                          </p>
+                        </div>
+                      </div>
 
-      {/* BOTTOM NAV */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#0f1f2e]/90 backdrop-blur-xl border-t border-white/10">
-        <div className="max-w-md mx-auto flex items-center px-2 py-3">
-          {navItem("/sales", Receipt, "Bill")}
-          {navItem("/createProducts", ShoppingBag, "Product")}
-          {navItem("/createCustomer", Users, "Customer")}
-          {navItem("/supplier-notes", FileText, "Supplier")}
-          {navItem("/allsales", BarChart2, "Sales")}
-        </div>
-      </nav>
+                      {/* Product Count */}
+                      <div className="flex items-center gap-4">
+                        <div className="p-4 bg-emerald-950/60 rounded-xl">
+                          <Package size={28} className="text-emerald-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-400">Products in Stock</p>
+                          <p className="text-2xl font-bold">
+                            {supplier.productsCount || 0}
+                          </p>
+                        </div>
+                      </div>
 
-      {/* DRAWER */}
-      {isDrawerOpen && (
-        <div
-          className="fixed inset-0 bg-black/70 z-30"
-          onClick={() => setIsDrawerOpen(false)}
-        >
-          <div
-            className="fixed top-0 left-0 h-full w-80 bg-[#0f172a] p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between mb-6">
-              <h2 className="text-xl font-bold text-teal-300">Menu</h2>
-              <X size={26} onClick={() => setIsDrawerOpen(false)} />
-            </div>
-            <Link
-              to="/allproducts"
-              className="flex items-center gap-3 p-4 rounded-xl bg-white/5"
-            >
-              <Package /> All Products
-            </Link>
-          </div>
-        </div>
-      )}
+                      {/* Last Stock Date */}
+                      {supplier.lastStockDate && (
+                        <div className="flex items-center gap-4">
+                          <div className="p-4 bg-amber-950/60 rounded-xl">
+                            <Calendar size={28} className="text-amber-400" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-400">Last Stock Added</p>
+                            <p className="text-lg">
+                              {new Date(supplier.lastStockDate).toLocaleDateString('en-IN')}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 };
 
-export default First;
+export default SupplierNotes;
