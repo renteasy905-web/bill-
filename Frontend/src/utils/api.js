@@ -3,15 +3,15 @@ import axios from "axios";
 /*
   Priority:
   1. VITE_API_BASE_URL (local dev)
-  2. Render production URL (fallback)
+  2. Render production URL (fallback) - CHANGED to your confirmed backend URL
 */
-
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  "https://bill-inventory-backend.onrender.com";
+  "https://bill-inventory-backend.onrender.com";  // ← CHANGE THIS to your ACTUAL backend URL if different
 
 const api = axios.create({
-  baseURL: `${API_BASE_URL}/api`,
+  baseURL: API_BASE_URL,  // ← REMOVED /api here – add it only if your Express routes use app.use('/api', ...)
+  // If your routes START with /api (e.g. app.use('/api/suppliers/...')) → keep as `${API_BASE_URL}/api`
   timeout: 60000,
   headers: {
     "Content-Type": "application/json",
@@ -40,7 +40,6 @@ api.interceptors.response.use(
         status: error.response.status,
         data: error.response.data,
       });
-
       if (error.response.status === 401) {
         console.warn("Unauthorized → token removed");
         localStorage.removeItem("token");
