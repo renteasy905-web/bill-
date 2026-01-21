@@ -18,19 +18,26 @@ import {
 const First = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
+  // This fixes the "isDrawerOpen is not defined" error
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
+        setLoading(true);
         const res = await api.get("/products");
         const list = res.data.products || res.data.data || res.data || [];
         setProducts(Array.isArray(list) ? list : []);
       } catch (err) {
-        console.error(err);
+        console.error("Failed to fetch products:", err);
+      } finally {
+        setLoading(false);
       }
     };
     fetchProducts();
@@ -39,7 +46,7 @@ const First = () => {
   useEffect(() => {
     const term = searchTerm.toLowerCase().trim();
     if (!term) {
-      setFilteredProducts(products); // Show all products when search is empty
+      setFilteredProducts(products); // Show ALL products when search is empty
       return;
     }
     setFilteredProducts(
@@ -73,7 +80,7 @@ const First = () => {
 
   return (
     <div className="min-h-screen text-white flex flex-col bg-gradient-to-b from-[#0c1b29] via-[#112637] to-[#0d1f2f]">
-      {/* TOP BAR */}
+      {/* TOP BAR / HEADER */}
       <header className="bg-[#112637]/70 backdrop-blur-xl px-4 py-3 flex items-center justify-between border-b border-white/10 sticky top-0 z-20">
         <button
           onClick={() => setIsDrawerOpen(true)}
@@ -90,9 +97,9 @@ const First = () => {
         </div>
       </header>
 
-      {/* MAIN */}
+      {/* MAIN CONTENT */}
       <main className="flex-1 px-4 py-6 pb-28">
-        {/* SEARCH */}
+        {/* SEARCH BAR */}
         <div className="relative mb-6">
           <input
             value={searchTerm}
@@ -100,37 +107,49 @@ const First = () => {
             placeholder="Search products or supplier..."
             className="w-full pl-12 pr-14 py-4 bg-white/10 border border-white/10 rounded-full text-white placeholder-white/50 focus:ring-2 focus:ring-teal-400/40 outline-none"
           />
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50" size={20} />
           <Link
             to="/createProducts"
-            className="absolute right-3 top-1/2 -translate-y-1/2 bg-teal-400 text-[#0a1c27] p-3 rounded-full"
+            className="absolute right-3 top-1/2 -translate-y-1/2 bg-teal-400 text-[#0a1c27] p-3 rounded-full shadow-lg"
           >
             <Plus size={18} />
           </Link>
         </div>
 
-        {/* RESULTS */}
+        {/* PRODUCTS LIST */}
         <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 min-h-[50vh] border border-white/10">
           <h2 className="text-lg font-semibold text-teal-300 mb-4">Products</h2>
-          <div className="space-y-4">
-            {filteredProducts.map((p) => (
-              <div
-                key={p._id}
-                className="bg-white/5 rounded-xl p-4 border border-white/10"
-              >
-                <div className="font-semibold">{p.itemName}</div>
-                <div className="text-sm text-white/60">{p.stockBroughtBy}</div>
-                <div className="text-sm text-white/60">
-                  Qty: {p.quantity} • ₹{p.salePrice}
+
+          {loading ? (
+            <div className="text-center py-10 text-slate-400">Loading products...</div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="text-center py-10 text-slate-500">
+              {searchTerm ? "No matching products found" : "No products added yet"}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredProducts.map((p) => (
+                <div
+                  key={p._id || `${p.itemName}-${Math.random()}`} // safer key
+                  className="bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors"
+                >
+                  <div className="font-semibold text-lg">{p.itemName || "Unnamed Product"}</div>
+                  <div className="text-sm text-white/70 mt-1">
+                    {p.stockBroughtBy ? `By: ${p.stockBroughtBy}` : "No supplier"}
+                  </div>
+                  <div className="text-sm text-white/60 mt-1">
+                    Qty: <span className="font-medium">{p.quantity || 0}</span> • ₹
+                    {Number(p.salePrice || 0).toLocaleString("en-IN")}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
 
-      {/* BOTTOM NAV */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#0f1f2e]/90 backdrop-blur-xl border-t border-white/10">
+      {/* BOTTOM NAVIGATION */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#0f1f2e]/90 backdrop-blur-xl border-t border-white/10 z-20">
         <div className="max-w-md mx-auto flex items-center px-2 py-3">
           {navItem("/sales", Receipt, "Bill")}
           {navItem("/createProducts", ShoppingBag, "Product")}
@@ -140,26 +159,35 @@ const First = () => {
         </div>
       </nav>
 
-      {/* DRAWER */}
+      {/* SIDE DRAWER / MENU */}
       {isDrawerOpen && (
         <div
           className="fixed inset-0 bg-black/70 z-30"
           onClick={() => setIsDrawerOpen(false)}
         >
           <div
-            className="fixed top-0 left-0 h-full w-80 bg-[#0f172a] p-6"
+            className="fixed top-0 left-0 h-full w-80 bg-[#0f172a] p-6 overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between mb-6">
+            <div className="flex justify-between items-center mb-8">
               <h2 className="text-xl font-bold text-teal-300">Menu</h2>
-              <X size={26} onClick={() => setIsDrawerOpen(false)} />
+              <X
+                size={26}
+                className="cursor-pointer hover:text-teal-400"
+                onClick={() => setIsDrawerOpen(false)}
+              />
             </div>
+
             <Link
               to="/allproducts"
-              className="flex items-center gap-3 p-4 rounded-xl bg-white/5"
+              className="flex items-center gap-3 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors mb-3"
+              onClick={() => setIsDrawerOpen(false)}
             >
-              <Package /> All Products
+              <Package size={20} />
+              All Products
             </Link>
+
+            {/* Add more menu items here if needed */}
           </div>
         </div>
       )}
