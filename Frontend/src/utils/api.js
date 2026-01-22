@@ -1,17 +1,34 @@
-/*
-  Priority:
-  1. VITE_API_BASE_URL (local dev)
-  2. Render production URL (fallback)
-*/
+import axios from "axios";
+
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   "https://bill-inventory-backend.onrender.com";
+
 const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
   timeout: 60000,
   headers: {
     "Content-Type": "application/json",
-@@ -40,18 +40,17 @@
+  },
+});
+
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      console.error("API ERROR:", {
+        url: error.config?.url,
         status: error.response.status,
         data: error.response.data,
       });
@@ -27,4 +44,5 @@ const api = axios.create({
     return Promise.reject(error);
   }
 );
-this the orginal and real backend url
+
+export default api;
