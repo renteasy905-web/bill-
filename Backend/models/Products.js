@@ -41,7 +41,7 @@ const productSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
-    // Explicitly include createdAt for supplier lastStockDate aggregation
+    // Explicitly include createdAt (used in supplier summary for lastStockDate)
     createdAt: {
       type: Date,
       default: Date.now,
@@ -51,10 +51,10 @@ const productSchema = new mongoose.Schema(
       default: Date.now,
     },
   },
-  { timestamps: true } // automatically adds createdAt & updatedAt
+  { timestamps: true } // auto adds createdAt & updatedAt
 );
 
-// Auto-update latestUpdated on save and update
+// Auto-update latestUpdated timestamp on save and update
 productSchema.pre('save', function (next) {
   this.latestUpdated = Date.now();
   next();
@@ -65,7 +65,7 @@ productSchema.pre('findOneAndUpdate', function (next) {
   next();
 });
 
-// Optional: Add indexes for faster queries (especially useful for aggregation)
+// Recommended indexes for faster queries (especially aggregation by supplier)
 productSchema.index({ stockBroughtBy: 1 });
 productSchema.index({ createdAt: -1 });
 
