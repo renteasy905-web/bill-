@@ -143,12 +143,12 @@ const Cart = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Toast */}
+      {/* Toast Notification */}
       {toast.show && (
         <div className="fixed top-5 right-5 z-50 animate-fadeIn">
           <div
             className={`px-6 py-4 rounded-xl shadow-2xl text-white flex items-center gap-3 max-w-sm ${
-              toast.type === "success" ? "bg-green-600" : "bg-destructive"
+              toast.type === "success" ? "bg-green-600" : "bg-red-600"
             }`}
           >
             {toast.type === "success" ? <CheckCircle size={24} /> : <AlertCircle size={24} />}
@@ -166,7 +166,7 @@ const Cart = () => {
           <ArrowLeft size={28} className="text-foreground" />
         </button>
 
-        <h1 className="text-2xl font-bold text-primary">Inventory Cart</h1>
+        <h1 className="text-2xl font-bold text-primary">Inventory Management</h1>
 
         <div className="flex items-center gap-4 font-semibold">
           <RefreshCw
@@ -175,7 +175,7 @@ const Cart = () => {
             size={22}
           />
           <IndianRupee className="text-green-600" size={22} />
-          <span>{totalStockValue.toLocaleString("en-IN")}</span>
+          <span className="text-foreground">{totalStockValue.toLocaleString("en-IN")}</span>
         </div>
       </header>
 
@@ -185,10 +185,10 @@ const Cart = () => {
           <div className="text-center py-20 bg-card rounded-2xl shadow-md border border-border">
             <AlertCircle size={64} className="mx-auto text-muted-foreground mb-6" />
             <p className="text-xl font-medium text-foreground">
-              No products in cart/inventory
+              No products in inventory
             </p>
             <p className="text-muted-foreground mt-2">
-              Add products from the dashboard
+              Add new products from the dashboard
             </p>
           </div>
         ) : (
@@ -205,7 +205,7 @@ const Cart = () => {
                     outOfStock
                       ? "border-destructive/50 bg-destructive/5"
                       : lowStock
-                      ? "border-yellow-500/50"
+                      ? "border-yellow-500/50 bg-yellow-500/5"
                       : "border-border hover:border-primary/50 hover:shadow-xl"
                   }`}
                 >
@@ -215,7 +215,7 @@ const Cart = () => {
                       <input
                         value={editedProduct.itemName}
                         onChange={(e) => handleChange("itemName", e.target.value)}
-                        className="text-xl font-bold w-full px-3 py-2 border border-primary/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="text-xl font-bold w-full px-3 py-2 bg-background border border-primary/50 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
                         placeholder="Product Name"
                       />
                     ) : (
@@ -232,6 +232,7 @@ const Cart = () => {
 
                   {/* Body */}
                   <div className="p-6 space-y-5">
+                    {/* Sale Price */}
                     <div>
                       <label className="block text-sm font-medium text-muted-foreground mb-1">
                         Sale Price (₹)
@@ -247,6 +248,7 @@ const Cart = () => {
                       />
                     </div>
 
+                    {/* Quantity */}
                     <div>
                       <label className="block text-sm font-medium text-muted-foreground mb-1">
                         Quantity
@@ -256,7 +258,7 @@ const Cart = () => {
                         disabled={!isEditing}
                         value={isEditing ? editedProduct.quantity : p.quantity}
                         onChange={(e) => handleChange("quantity", e.target.value)}
-                        className={`w-full px-4 py-3 border rounded-lg font-bold text-lg text-center disabled:bg-muted disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary ${
+                        className={`w-full px-4 py-3 border rounded-lg font-bold text-lg text-center disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary ${
                           outOfStock
                             ? "text-destructive border-destructive/50"
                             : lowStock
@@ -276,6 +278,7 @@ const Cart = () => {
                       )}
                     </div>
 
+                    {/* Purchase Price */}
                     <div>
                       <label className="block text-sm font-medium text-muted-foreground mb-1">
                         Purchase Price (₹)
@@ -293,12 +296,12 @@ const Cart = () => {
                   </div>
 
                   {/* Actions */}
-                  <div className="p-5 border-t bg-muted/20 flex justify-end">
+                  <div className="p-5 border-t bg-muted/20 flex justify-end gap-3">
                     {isEditing ? (
                       <>
                         <button
                           onClick={cancelEdit}
-                          className="px-6 py-2.5 mr-3 bg-muted hover:bg-muted/80 text-foreground rounded-lg font-medium transition"
+                          className="px-6 py-2.5 bg-muted hover:bg-muted/80 text-foreground rounded-lg font-medium transition"
                         >
                           Cancel
                         </button>
