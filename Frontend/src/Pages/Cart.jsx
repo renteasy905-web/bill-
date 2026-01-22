@@ -238,12 +238,12 @@ const Cart = () => {
                         value={isEditing ? editedProduct.salePrice : p.salePrice}
                         onChange={(e) => handleChange("salePrice", e.target.value)}
                         className={`w-full px-4 py-3 border rounded-lg bg-gray-900 text-white font-medium text-lg disabled:bg-gray-800 disabled:text-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-teal-400 ${
-                          isEditing ? "border-teal-500" : "border-gray-700"
+                          isEditing ? "border-teal-500 shadow-[0_0_10px_rgba(45,212,191,0.3)]" : "border-gray-700"
                         }`}
                       />
                     </div>
 
-                    {/* Quantity */}
+                    {/* Quantity - Super fixed visibility */}
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">
                         Quantity
@@ -253,12 +253,12 @@ const Cart = () => {
                         disabled={!isEditing}
                         value={isEditing ? editedProduct.quantity : p.quantity}
                         onChange={(e) => handleChange("quantity", e.target.value)}
-                        className={`w-full px-4 py-3 border rounded-lg font-bold text-lg text-center disabled:bg-gray-800 disabled:text-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-teal-400 ${
+                        className={`w-full px-4 py-3 border-2 rounded-lg bg-gray-950 text-white font-bold text-xl text-center disabled:bg-gray-800 disabled:text-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-teal-500 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6),0_0_15px_rgba(45,212,191,0.4)] appearance-none [&::-webkit-inner-spin-button]:appearance-auto [&::-webkit-outer-spin-button]:appearance-auto ${
                           outOfStock
-                            ? "text-red-500 border-red-500/50"
+                            ? "border-red-500 text-red-400"
                             : lowStock
-                            ? "text-yellow-500 border-yellow-500/50"
-                            : "text-white border-gray-700"
+                            ? "border-yellow-500 text-yellow-400"
+                            : "border-gray-700"
                         } ${isEditing ? "border-teal-500" : ""}`}
                       />
                       {outOfStock && (
@@ -284,7 +284,7 @@ const Cart = () => {
                         value={isEditing ? editedProduct.purchasePrice : p.purchasePrice}
                         onChange={(e) => handleChange("purchasePrice", e.target.value)}
                         className={`w-full px-4 py-3 border rounded-lg bg-gray-900 text-white font-medium disabled:bg-gray-800 disabled:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-teal-400 ${
-                          isEditing ? "border-teal-500" : "border-gray-700"
+                          isEditing ? "border-teal-500 shadow-[0_0_10px_rgba(45,212,191,0.3)]" : "border-gray-700"
                         }`}
                       />
                     </div>
