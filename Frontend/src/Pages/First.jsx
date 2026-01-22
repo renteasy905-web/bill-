@@ -13,15 +13,15 @@ import {
   Bell,
   X,
   Package,
+  Edit,
+  ShoppingCart,
 } from "lucide-react";
 
 const First = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // This fixes the "isDrawerOpen is not defined" error
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -82,13 +82,38 @@ const First = () => {
     <div className="min-h-screen text-white flex flex-col bg-gradient-to-b from-[#0c1b29] via-[#112637] to-[#0d1f2f]">
       {/* TOP BAR / HEADER */}
       <header className="bg-[#112637]/70 backdrop-blur-xl px-4 py-3 flex items-center justify-between border-b border-white/10 sticky top-0 z-20">
-        <button
-          onClick={() => setIsDrawerOpen(true)}
-          className="p-2 rounded-lg hover:bg-white/10"
-        >
-          <Menu size={28} />
-        </button>
+        {/* Left side: Menu + New Buttons */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsDrawerOpen(true)}
+            className="p-2 rounded-lg hover:bg-white/10"
+          >
+            <Menu size={28} />
+          </button>
+
+          {/* Edit Items Button */}
+          <Link
+            to="/cart"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors border border-slate-700 text-sm font-medium"
+          >
+            <Edit size={18} />
+            Edit Items
+          </Link>
+
+          {/* Order Tablets Button */}
+          <Link
+            to="/order-stock"
+            className="flex items-center gap-2 px-4 py-2 bg-teal-600/80 hover:bg-teal-600 rounded-xl transition-colors text-sm font-medium shadow-sm"
+          >
+            <ShoppingCart size={18} />
+            Order Tablets
+          </Link>
+        </div>
+
+        {/* Center Title */}
         <h1 className="text-xl font-bold">VISHWAS MEDICAL</h1>
+
+        {/* Right side: Notifications */}
         <div className="flex items-center gap-4">
           <Link to="/notifications" className="relative p-2">
             <Bell size={22} />
@@ -130,7 +155,7 @@ const First = () => {
             <div className="space-y-4">
               {filteredProducts.map((p) => (
                 <div
-                  key={p._id || `${p.itemName}-${Math.random()}`} // safer key
+                  key={p._id || `${p.itemName}-${Math.random()}`}
                   className="bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors"
                 >
                   <div className="font-semibold text-lg">{p.itemName || "Unnamed Product"}</div>
@@ -187,7 +212,7 @@ const First = () => {
               All Products
             </Link>
 
-            {/* Add more menu items here if needed */}
+            {/* You can add more menu items here */}
           </div>
         </div>
       )}
