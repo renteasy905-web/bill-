@@ -1,47 +1,49 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import api from "../utils/api";
 import {
+  Menu,
+  Search,
+  Plus,
+  Receipt,
+  ShoppingBag,
+  FileText,
+  BarChart2,
+  Users,
+  Bell,
+  X,
+  Package,
   Loader2,
-  CheckCircle,
   AlertCircle,
   IndianRupee,
   RefreshCw,
-  ArrowLeft,
-  Pencil,
-  AlertTriangle,
+  Edit,
+  ShoppingCart,
 } from "lucide-react";
-import api from "../utils/api";
 
-const Cart = () => {
+const First = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [products, setProducts] = useState([]);
-  const [editId, setEditId] = useState(null);
-  const [editedProduct, setEditedProduct] = useState({});
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
-  /* ---------------- FETCH ---------------- */
+  // Fetch products
   const fetchProducts = async () => {
     try {
       setLoading(true);
       const res = await api.get("/products");
-
-      const productList = res.data.products || res.data || [];
-      setProducts(
-        productList.map((p) => ({
-          _id: p._id,
-          itemName: p.itemName || "Unnamed Product",
-          salePrice: Number(p.salePrice ?? 0),
-          purchasePrice: Number(p.purchasePrice ?? 0),
-          quantity: Number(p.quantity ?? 0),
-        }))
-      );
+      const list = res.data.products || res.data.data || res.data || [];
+      setProducts(Array.isArray(list) ? list : []);
       setError("");
     } catch (err) {
-      console.error("Fetch products error:", err);
-      setError("Failed to fetch products. Please try again.");
+      console.error("Failed to fetch products:", err);
+      setError("Failed to load products. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -51,104 +53,59 @@ const Cart = () => {
     fetchProducts();
   }, []);
 
-  /* ---------------- TOAST ---------------- */
+  // Search filtering
   useEffect(() => {
-    if (!toast.show) return;
-    const t = setTimeout(() => setToast({ show: false }), 3000);
-    return () => clearTimeout(t);
-  }, [toast.show]);
-
-  const showToast = (message, type = "success") =>
-    setToast({ show: true, message, type });
-
-  /* ---------------- EDIT ---------------- */
-  const startEdit = (p) => {
-    setEditId(p._id);
-    setEditedProduct({
-      itemName: p.itemName,
-      salePrice: p.salePrice ?? 0,
-      purchasePrice: p.purchasePrice ?? 0,
-      quantity: p.quantity ?? 0,
-    });
-  };
-
-  const cancelEdit = () => {
-    setEditId(null);
-    setEditedProduct({});
-  };
-
-  const handleChange = (field, value) => {
-    if ((field === "quantity" || field === "salePrice") && value < 0) return;
-
-    setEditedProduct((prev) => ({ ...prev, [field]: value }));
-  };
-
-  /* ---------------- SAVE ---------------- */
-  const saveEdit = async () => {
-    if (!editedProduct.itemName?.trim()) {
-      showToast("Item name is required", "error");
+    const term = searchTerm.toLowerCase().trim();
+    if (!term) {
+      setFilteredProducts(products);
       return;
     }
+    setFilteredProducts(
+      products.filter(
+        (p) =>
+          (p.itemName || "").toLowerCase().includes(term) ||
+          (p.stockBroughtBy || "").toLowerCase().includes(term)
+      )
+    );
+  }, [searchTerm, products]);
 
-    try {
-      const res = await api.put(`/products/${editId}`, {
-        itemName: editedProduct.itemName.trim(),
-        salePrice: Number(editedProduct.salePrice || 0),
-        purchasePrice: Number(editedProduct.purchasePrice || 0),
-        quantity: Number(editedProduct.quantity || 0),
-      });
+  // Toast auto-hide
+  useEffect(() => {
+    if (!toast.show) return;
+    const timer = setTimeout(() => setToast({ show: false }), 3000);
+    return () => clearTimeout(timer);
+  }, [toast.show]);
 
-      const updated = res.data.product;
-
-      setProducts((prev) =>
-        prev.map((p) => (p._id === editId ? { ...p, ...updated } : p))
-      );
-
-      showToast("Product updated successfully");
-      cancelEdit();
-    } catch (err) {
-      console.error("Update error:", err);
-      showToast(
-        err.response?.data?.message || "Failed to update product",
-        "error"
-      );
-    }
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
   };
 
+  const isActive = (path) => location.pathname === path;
+
+  const navItem = (to, Icon, label) => (
+    <Link to={to} className="flex flex-col items-center gap-1 flex-1">
+      <div
+        className={`flex flex-col items-center transition-all duration-200 ${
+          isActive(to) ? "text-teal-400 scale-105" : "text-slate-400 hover:text-teal-300"
+        }`}
+      >
+        <Icon size={24} />
+        <span className="text-[11px] font-medium">{label}</span>
+      </div>
+      {isActive(to) && <span className="mt-1 h-1 w-5 rounded-full bg-teal-400"></span>}
+    </Link>
+  );
+
   const totalStockValue = products.reduce(
-    (sum, p) => sum + p.purchasePrice * p.quantity,
+    (sum, p) => sum + (Number(p.salePrice || 0) * Number(p.quantity || 0)),
     0
   );
 
-  /* ---------------- UI ---------------- */
-  if (loading) {
-    return (
-      <div className="min-h-screen flex justify-center items-center bg-gray-50">
-        <Loader2 className="animate-spin text-indigo-600" size={48} />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex flex-col justify-center items-center bg-gray-50 text-red-700 text-xl p-6 text-center">
-        <AlertCircle size={64} className="mb-6 text-red-500" />
-        {error}
-        <button
-          onClick={fetchProducts}
-          className="mt-6 px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg"
-        >
-          Try Again
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Toast Notification */}
       {toast.show && (
-        <div className="fixed top-5 right-5 z-50 animate-fade-in">
+        <div className="fixed top-5 right-5 z-50 animate-fadeIn">
           <div
             className={`px-6 py-4 rounded-xl shadow-2xl text-white flex items-center gap-3 max-w-sm ${
               toast.type === "success" ? "bg-green-600" : "bg-red-600"
@@ -165,190 +122,180 @@ const Cart = () => {
       )}
 
       {/* Header */}
-      <header className="bg-white shadow-sm p-5 flex justify-between items-center sticky top-0 z-10">
-        <button
-          onClick={() => navigate("/")}
-          className="p-2 rounded-full hover:bg-gray-100 transition"
-        >
-          <ArrowLeft size={28} className="text-gray-700" />
-        </button>
+      <header className="bg-card shadow-sm p-5 flex justify-between items-center sticky top-0 z-10 border-b border-border">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setIsDrawerOpen(true)}
+            className="p-2 rounded-full hover:bg-muted transition"
+          >
+            <Menu size={28} className="text-foreground" />
+          </button>
 
-        <div className="flex items-center gap-4 font-semibold text-lg">
-          <RefreshCw
-            onClick={fetchProducts}
-            className="cursor-pointer hover:text-indigo-600 transition"
-            size={22}
-          />
-          <IndianRupee className="text-green-600" />
-          <span className="text-gray-800">
-            {totalStockValue.toLocaleString("en-IN")}
-          </span>
+          {/* Edit Items */}
+          <Link
+            to="/cart"
+            className="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 rounded-xl transition-colors text-sm font-medium"
+          >
+            <Edit size={18} />
+            Edit Items
+          </Link>
+
+          {/* Order Tablets */}
+          <Link
+            to="/order-stock"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl transition-colors text-sm font-medium shadow-sm"
+          >
+            <ShoppingCart size={18} />
+            Order Tablets
+          </Link>
+        </div>
+
+        <h1 className="text-2xl font-bold text-primary">VISHWAS MEDICAL</h1>
+
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2 font-semibold">
+            <RefreshCw
+              onClick={fetchProducts}
+              className="cursor-pointer hover:text-primary transition"
+              size={20}
+            />
+            <IndianRupee className="text-green-600" size={20} />
+            <span>{totalStockValue.toLocaleString("en-IN")}</span>
+          </div>
+
+          <Link to="/notifications" className="relative p-2">
+            <Bell size={22} />
+            <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-destructive rounded-full border-2 border-card"></span>
+          </Link>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="p-5 md:p-8 max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-800 mb-8 flex items-center gap-3">
-          <IndianRupee className="text-indigo-600" size={32} />
-          Inventory Management
-        </h1>
+        {/* Search Bar */}
+        <div className="relative mb-8">
+          <input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search products or supplier..."
+            className="w-full pl-12 pr-14 py-4 bg-card border border-border rounded-full text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-primary/40 outline-none shadow-sm"
+          />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
+          <Link
+            to="/createProducts"
+            className="absolute right-3 top-1/2 -translate-y-1/2 bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:bg-primary/90 transition"
+          >
+            <Plus size={18} />
+          </Link>
+        </div>
 
-        {products.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-2xl shadow-md border border-gray-200">
-            <AlertCircle size={64} className="mx-auto text-gray-400 mb-6" />
-            <p className="text-xl text-gray-600 font-medium">
-              No products found in inventory
-            </p>
-            <p className="text-gray-500 mt-2">
-              Add new products from the "New Product" section
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {products.map((p) => {
-              const isEditing = editId === p._id;
-              const lowStock = p.quantity < 5;
-              const outOfStock = p.quantity === 0;
+        {/* Products Section */}
+        <div className="bg-card rounded-2xl p-6 shadow-md border border-border min-h-[50vh]">
+          <h2 className="text-2xl font-bold text-primary mb-6 flex items-center gap-3">
+            <Package size={24} />
+            Products
+          </h2>
 
-              return (
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Loader2 className="animate-spin text-primary" size={48} />
+              <p className="mt-4 text-muted-foreground">Loading products...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-20 text-destructive">
+              <AlertCircle size={64} className="mx-auto mb-6" />
+              <p className="text-xl font-medium">{error}</p>
+              <button
+                onClick={fetchProducts}
+                className="mt-6 px-8 py-3 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition"
+              >
+                Try Again
+              </button>
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="text-center py-20 text-muted-foreground">
+              <AlertCircle size={64} className="mx-auto mb-6 opacity-50" />
+              <p className="text-xl font-medium">
+                {searchTerm ? "No matching products found" : "No products added yet"}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredProducts.map((p) => (
                 <div
-                  key={p._id}
-                  className={`bg-white rounded-2xl shadow-lg overflow-hidden border transition-all duration-200 ${
-                    outOfStock
-                      ? "border-red-400 bg-red-50/30"
-                      : lowStock
-                      ? "border-yellow-400"
-                      : "border-gray-200 hover:border-indigo-300 hover:shadow-xl"
-                  }`}
+                  key={p._id || Math.random()}
+                  className="bg-card rounded-2xl shadow border border-border hover:border-primary/50 hover:shadow-xl transition-all duration-200 overflow-hidden"
                 >
-                  {/* Header */}
-                  <div className="p-5 border-b bg-gradient-to-r from-gray-50 to-white flex justify-between items-center">
-                    {isEditing ? (
-                      <input
-                        value={editedProduct.itemName}
-                        onChange={(e) => handleChange("itemName", e.target.value)}
-                        className="text-xl font-bold w-full px-3 py-2 border border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        placeholder="Product Name"
-                      />
-                    ) : (
-                      <h3 className="text-xl font-bold text-gray-900 truncate max-w-[70%]">
-                        {p.itemName}
-                      </h3>
-                    )}
-
-                    <div className="flex items-center gap-2">
-                      {lowStock && (
-                        <AlertTriangle className="text-yellow-600" size={22} />
-                      )}
-                      {outOfStock && (
-                        <AlertTriangle className="text-red-600" size={22} />
-                      )}
-                    </div>
+                  <div className="p-5 border-b bg-muted/30">
+                    <h3 className="text-lg font-bold text-foreground truncate">
+                      {p.itemName || "Unnamed Product"}
+                    </h3>
                   </div>
-
-                  {/* Body */}
-                  <div className="p-6 space-y-5">
-                    {/* Sale Price */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">
-                        Sale Price (₹)
-                      </label>
-                      <input
-                        type="number"
-                        disabled={!isEditing}
-                        value={isEditing ? editedProduct.salePrice : p.salePrice}
-                        onChange={(e) => handleChange("salePrice", e.target.value)}
-                        className={`w-full px-4 py-3 border rounded-lg bg-white text-gray-900 font-medium text-lg disabled:bg-gray-100 disabled:text-gray-700 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                          isEditing ? "border-indigo-400" : "border-gray-300"
-                        }`}
-                      />
+                  <div className="p-5 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Supplier:</span>
+                      <span className="font-medium">
+                        {p.stockBroughtBy || "Not specified"}
+                      </span>
                     </div>
-
-                    {/* Quantity */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">
-                        Stock Quantity
-                      </label>
-                      <input
-                        type="number"
-                        disabled={!isEditing}
-                        value={isEditing ? editedProduct.quantity : p.quantity}
-                        onChange={(e) => handleChange("quantity", e.target.value)}
-                        className={`w-full px-4 py-3 border rounded-lg font-bold text-lg text-center disabled:bg-gray-100 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                          outOfStock
-                            ? "text-red-600 border-red-400"
-                            : lowStock
-                            ? "text-yellow-700 border-yellow-400"
-                            : "text-gray-900 border-gray-300"
-                        } ${isEditing ? "border-indigo-400" : ""}`}
-                      />
-                      {outOfStock && (
-                        <p className="text-red-600 text-sm mt-1 font-medium">
-                          Out of stock
-                        </p>
-                      )}
-                      {lowStock && !outOfStock && (
-                        <p className="text-yellow-700 text-sm mt-1 font-medium">
-                          Low stock – reorder soon
-                        </p>
-                      )}
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Quantity:</span>
+                      <span className={`font-bold ${p.quantity === 0 ? "text-destructive" : ""}`}>
+                        {p.quantity || 0}
+                      </span>
                     </div>
-
-                    {/* Purchase Price */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">
-                        Purchase Price (₹)
-                      </label>
-                      <input
-                        type="number"
-                        disabled={!isEditing}
-                        value={
-                          isEditing ? editedProduct.purchasePrice : p.purchasePrice
-                        }
-                        onChange={(e) => handleChange("purchasePrice", e.target.value)}
-                        className={`w-full px-4 py-3 border rounded-lg bg-white text-gray-900 font-medium disabled:bg-gray-100 disabled:text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                          isEditing ? "border-indigo-400" : "border-gray-300"
-                        }`}
-                      />
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Sale Price:</span>
+                      <span className="font-bold text-primary">
+                        ₹{Number(p.salePrice || 0).toLocaleString("en-IN")}
+                      </span>
                     </div>
-                  </div>
-
-                  {/* Actions - DELETE BUTTON REMOVED */}
-                  <div className="p-5 border-t bg-gray-50 flex justify-end">
-                    {isEditing ? (
-                      <>
-                        <button
-                          onClick={cancelEdit}
-                          className="px-6 py-2.5 mr-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium transition"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={saveEdit}
-                          className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition flex items-center gap-2 shadow-sm"
-                        >
-                          <CheckCircle size={18} />
-                          Save
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => startEdit(p)}
-                        className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition flex items-center gap-2 shadow-sm"
-                      >
-                        <Pencil size={18} />
-                        Edit
-                      </button>
-                    )}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </main>
+
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-card/90 backdrop-blur-xl border-t border-border z-20">
+        <div className="max-w-md mx-auto flex items-center px-2 py-3">
+          {navItem("/sales", Receipt, "Bill")}
+          {navItem("/createProducts", ShoppingBag, "Product")}
+          {navItem("/createCustomer", Users, "Customer")}
+          {navItem("/supplier-notes", FileText, "Supplier")}
+          {navItem("/allsales", BarChart2, "Sales")}
+        </div>
+      </nav>
+
+      {/* Drawer */}
+      {isDrawerOpen && (
+        <div
+          className="fixed inset-0 bg-black/70 z-30"
+          onClick={() => setIsDrawerOpen(false)}
+        >
+          <div
+            className="fixed top-0 left-0 h-full w-80 bg-card p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between mb-8">
+              <h2 className="text-xl font-bold text-primary">Menu</h2>
+              <X size={26} className="cursor-pointer hover:text-primary" onClick={() => setIsDrawerOpen(false)} />
+            </div>
+            <Link
+              to="/allproducts"
+              className="flex items-center gap-3 p-4 rounded-xl bg-muted hover:bg-muted/80 transition mb-3"
+              onClick={() => setIsDrawerOpen(false)}
+            >
+              <Package size={20} />
+              All Products
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default Cart;
+export default First;
