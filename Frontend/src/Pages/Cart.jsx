@@ -1,221 +1,333 @@
-import React, { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import api from "../utils/api";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  Menu,
-  Search,
-  Plus,
-  Receipt,
-  ShoppingBag,
-  FileText,
-  BarChart2,
-  Users,
-  Bell,
-  X,
-  Package,
-  Edit,
-  ShoppingCart,
+  Loader2,
+  CheckCircle,
+  AlertCircle,
+  IndianRupee,
+  RefreshCw,
+  ArrowLeft,
+  Pencil,
+  AlertTriangle,
 } from "lucide-react";
+import api from "../utils/api";
 
-const First = () => {
+const Cart = () => {
   const navigate = useNavigate();
-  const location = useLocation();
 
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [editId, setEditId] = useState(null);
+  const [editedProduct, setEditedProduct] = useState({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+
+  // Fetch products
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get("/products");
+      const productList = res.data.products || res.data || [];
+      setProducts(
+        productList.map((p) => ({
+          _id: p._id,
+          itemName: p.itemName || "Unnamed Product",
+          salePrice: Number(p.salePrice ?? 0),
+          purchasePrice: Number(p.purchasePrice ?? 0),
+          quantity: Number(p.quantity ?? 0),
+        }))
+      );
+      setError("");
+    } catch (err) {
+      console.error("Fetch products error:", err);
+      setError("Failed to fetch products. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        const res = await api.get("/products");
-        const list = res.data.products || res.data.data || res.data || [];
-        setProducts(Array.isArray(list) ? list : []);
-      } catch (err) {
-        console.error("Failed to fetch products:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchProducts();
   }, []);
 
+  // Toast auto-hide
   useEffect(() => {
-    const term = searchTerm.toLowerCase().trim();
-    if (!term) {
-      setFilteredProducts(products); // Show ALL products when search is empty
+    if (!toast.show) return;
+    const timer = setTimeout(() => setToast({ show: false }), 3000);
+    return () => clearTimeout(timer);
+  }, [toast.show]);
+
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
+  };
+
+  // Edit handlers
+  const startEdit = (p) => {
+    setEditId(p._id);
+    setEditedProduct({
+      itemName: p.itemName,
+      salePrice: p.salePrice ?? 0,
+      purchasePrice: p.purchasePrice ?? 0,
+      quantity: p.quantity ?? 0,
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditId(null);
+    setEditedProduct({});
+  };
+
+  const handleChange = (field, value) => {
+    if ((field === "quantity" || field === "salePrice" || field === "purchasePrice") && value < 0) {
       return;
     }
-    setFilteredProducts(
-      products.filter(
-        (p) =>
-          (p.itemName || p.Name || "").toLowerCase().includes(term) ||
-          (p.stockBroughtBy || "").toLowerCase().includes(term)
-      )
-    );
-  }, [searchTerm, products]);
+    setEditedProduct((prev) => ({ ...prev, [field]: value }));
+  };
 
-  const isActive = (path) => location.pathname === path;
+  // Save edited product
+  const saveEdit = async () => {
+    if (!editedProduct.itemName?.trim()) {
+      showToast("Item name is required", "error");
+      return;
+    }
 
-  const navItem = (to, Icon, label) => (
-    <Link to={to} className="flex flex-col items-center gap-1 flex-1">
-      <div
-        className={`flex flex-col items-center transition-all duration-200 ${
-          isActive(to)
-            ? "text-teal-400 scale-105"
-            : "text-slate-400 hover:text-teal-300"
-        }`}
-      >
-        <Icon size={24} />
-        <span className="text-[11px] font-medium">{label}</span>
-      </div>
-      {isActive(to) && (
-        <span className="mt-1 h-1 w-5 rounded-full bg-teal-400"></span>
-      )}
-    </Link>
+    try {
+      const res = await api.put(`/products/${editId}`, {
+        itemName: editedProduct.itemName.trim(),
+        salePrice: Number(editedProduct.salePrice || 0),
+        purchasePrice: Number(editedProduct.purchasePrice || 0),
+        quantity: Number(editedProduct.quantity || 0),
+      });
+
+      const updated = res.data.product || res.data;
+      setProducts((prev) =>
+        prev.map((p) => (p._id === editId ? { ...p, ...updated } : p))
+      );
+
+      showToast("Product updated successfully");
+      cancelEdit();
+    } catch (err) {
+      console.error("Update error:", err);
+      showToast(err.response?.data?.message || "Failed to update product", "error");
+    }
+  };
+
+  // Total stock value (purchase price × quantity)
+  const totalStockValue = products.reduce(
+    (sum, p) => sum + (p.purchasePrice * p.quantity),
+    0
   );
 
-  return (
-    <div className="min-h-screen text-white flex flex-col bg-gradient-to-b from-[#0c1b29] via-[#112637] to-[#0d1f2f]">
-      {/* TOP BAR / HEADER */}
-      <header className="bg-[#112637]/70 backdrop-blur-xl px-4 py-3 flex items-center justify-between border-b border-white/10 sticky top-0 z-20">
-        {/* Left side: Menu + New Buttons */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsDrawerOpen(true)}
-            className="p-2 rounded-lg hover:bg-white/10"
-          >
-            <Menu size={28} />
-          </button>
+  if (loading) {
+    return (
+      <div className="min-h-screen flex justify-center items-center bg-background">
+        <Loader2 className="animate-spin text-primary" size={48} />
+      </div>
+    );
+  }
 
-          {/* Edit Items Button */}
-          <Link
-            to="/cart"
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors border border-slate-700 text-sm font-medium"
-          >
-            <Edit size={18} />
-            Edit Items
-          </Link>
-
-          {/* Order Tablets Button */}
-          <Link
-            to="/order-stock"
-            className="flex items-center gap-2 px-4 py-2 bg-teal-600/80 hover:bg-teal-600 rounded-xl transition-colors text-sm font-medium shadow-sm"
-          >
-            <ShoppingCart size={18} />
-            Order Tablets
-          </Link>
-        </div>
-
-        <h1 className="text-xl font-bold">VISHWAS MEDICAL</h1>
-
-        <div className="flex items-center gap-4">
-          <Link to="/notifications" className="relative p-2">
-            <Bell size={22} />
-            <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#112637]" />
-          </Link>
-        </div>
-      </header>
-
-      {/* The rest of the page remains exactly the same */}
-      <main className="flex-1 px-4 py-6 pb-28">
-        {/* SEARCH BAR */}
-        <div className="relative mb-6">
-          <input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search products or supplier..."
-            className="w-full pl-12 pr-14 py-4 bg-white/10 border border-white/10 rounded-full text-white placeholder-white/50 focus:ring-2 focus:ring-teal-400/40 outline-none"
-          />
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50" size={20} />
-          <Link
-            to="/createProducts"
-            className="absolute right-3 top-1/2 -translate-y-1/2 bg-teal-400 text-[#0a1c27] p-3 rounded-full shadow-lg"
-          >
-            <Plus size={18} />
-          </Link>
-        </div>
-
-        {/* PRODUCTS LIST */}
-        <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 min-h-[50vh] border border-white/10">
-          <h2 className="text-lg font-semibold text-teal-300 mb-4">Products</h2>
-
-          {loading ? (
-            <div className="text-center py-10 text-slate-400">Loading products...</div>
-          ) : filteredProducts.length === 0 ? (
-            <div className="text-center py-10 text-slate-500">
-              {searchTerm ? "No matching products found" : "No products added yet"}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredProducts.map((p) => (
-                <div
-                  key={p._id || `${p.itemName}-${Math.random()}`}
-                  className="bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors"
-                >
-                  <div className="font-semibold text-lg">{p.itemName || "Unnamed Product"}</div>
-                  <div className="text-sm text-white/70 mt-1">
-                    {p.stockBroughtBy ? `By: ${p.stockBroughtBy}` : "No supplier"}
-                  </div>
-                  <div className="text-sm text-white/60 mt-1">
-                    Qty: <span className="font-medium">{p.quantity || 0}</span> • ₹
-                    {Number(p.salePrice || 0).toLocaleString("en-IN")}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </main>
-
-      {/* BOTTOM NAVIGATION */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#0f1f2e]/90 backdrop-blur-xl border-t border-white/10 z-20">
-        <div className="max-w-md mx-auto flex items-center px-2 py-3">
-          {navItem("/sales", Receipt, "Bill")}
-          {navItem("/createProducts", ShoppingBag, "Product")}
-          {navItem("/createCustomer", Users, "Customer")}
-          {navItem("/supplier-notes", FileText, "Supplier")}
-          {navItem("/allsales", BarChart2, "Sales")}
-        </div>
-      </nav>
-
-      {/* SIDE DRAWER / MENU */}
-      {isDrawerOpen && (
-        <div
-          className="fixed inset-0 bg-black/70 z-30"
-          onClick={() => setIsDrawerOpen(false)}
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col justify-center items-center bg-background text-destructive text-xl p-6 text-center">
+        <AlertCircle size={64} className="mb-6 text-destructive" />
+        {error}
+        <button
+          onClick={fetchProducts}
+          className="mt-6 px-8 py-4 bg-primary text-primary-foreground rounded-xl font-bold shadow-lg hover:bg-primary/90 transition"
         >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      {/* Toast */}
+      {toast.show && (
+        <div className="fixed top-5 right-5 z-50 animate-fadeIn">
           <div
-            className="fixed top-0 left-0 h-full w-80 bg-[#0f172a] p-6 overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
+            className={`px-6 py-4 rounded-xl shadow-2xl text-white flex items-center gap-3 max-w-sm ${
+              toast.type === "success" ? "bg-green-600" : "bg-destructive"
+            }`}
           >
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-xl font-bold text-teal-300">Menu</h2>
-              <X
-                size={26}
-                className="cursor-pointer hover:text-teal-400"
-                onClick={() => setIsDrawerOpen(false)}
-              />
-            </div>
-
-            <Link
-              to="/allproducts"
-              className="flex items-center gap-3 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors mb-3"
-              onClick={() => setIsDrawerOpen(false)}
-            >
-              <Package size={20} />
-              All Products
-            </Link>
-
-            {/* Add more menu items here if needed */}
+            {toast.type === "success" ? <CheckCircle size={24} /> : <AlertCircle size={24} />}
+            <span className="font-medium">{toast.message}</span>
           </div>
         </div>
       )}
+
+      {/* Header */}
+      <header className="bg-card shadow-sm p-5 flex justify-between items-center sticky top-0 z-10 border-b border-border">
+        <button
+          onClick={() => navigate("/")}
+          className="p-2 rounded-full hover:bg-muted transition"
+        >
+          <ArrowLeft size={28} className="text-foreground" />
+        </button>
+
+        <h1 className="text-2xl font-bold text-primary">Inventory Cart</h1>
+
+        <div className="flex items-center gap-4 font-semibold">
+          <RefreshCw
+            onClick={fetchProducts}
+            className="cursor-pointer hover:text-primary transition"
+            size={22}
+          />
+          <IndianRupee className="text-green-600" size={22} />
+          <span>{totalStockValue.toLocaleString("en-IN")}</span>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="p-5 md:p-8 max-w-7xl mx-auto">
+        {products.length === 0 ? (
+          <div className="text-center py-20 bg-card rounded-2xl shadow-md border border-border">
+            <AlertCircle size={64} className="mx-auto text-muted-foreground mb-6" />
+            <p className="text-xl font-medium text-foreground">
+              No products in cart/inventory
+            </p>
+            <p className="text-muted-foreground mt-2">
+              Add products from the dashboard
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {products.map((p) => {
+              const isEditing = editId === p._id;
+              const lowStock = p.quantity < 5 && p.quantity > 0;
+              const outOfStock = p.quantity === 0;
+
+              return (
+                <div
+                  key={p._id}
+                  className={`bg-card rounded-2xl shadow-lg overflow-hidden border transition-all duration-200 ${
+                    outOfStock
+                      ? "border-destructive/50 bg-destructive/5"
+                      : lowStock
+                      ? "border-yellow-500/50"
+                      : "border-border hover:border-primary/50 hover:shadow-xl"
+                  }`}
+                >
+                  {/* Header */}
+                  <div className="p-5 border-b bg-muted/30 flex justify-between items-center">
+                    {isEditing ? (
+                      <input
+                        value={editedProduct.itemName}
+                        onChange={(e) => handleChange("itemName", e.target.value)}
+                        className="text-xl font-bold w-full px-3 py-2 border border-primary/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="Product Name"
+                      />
+                    ) : (
+                      <h3 className="text-xl font-bold text-foreground truncate max-w-[70%]">
+                        {p.itemName}
+                      </h3>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                      {lowStock && <AlertTriangle className="text-yellow-500" size={22} />}
+                      {outOfStock && <AlertTriangle className="text-destructive" size={22} />}
+                    </div>
+                  </div>
+
+                  {/* Body */}
+                  <div className="p-6 space-y-5">
+                    <div>
+                      <label className="block text-sm font-medium text-muted-foreground mb-1">
+                        Sale Price (₹)
+                      </label>
+                      <input
+                        type="number"
+                        disabled={!isEditing}
+                        value={isEditing ? editedProduct.salePrice : p.salePrice}
+                        onChange={(e) => handleChange("salePrice", e.target.value)}
+                        className={`w-full px-4 py-3 border rounded-lg bg-background text-foreground font-medium text-lg disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary ${
+                          isEditing ? "border-primary" : "border-border"
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-muted-foreground mb-1">
+                        Quantity
+                      </label>
+                      <input
+                        type="number"
+                        disabled={!isEditing}
+                        value={isEditing ? editedProduct.quantity : p.quantity}
+                        onChange={(e) => handleChange("quantity", e.target.value)}
+                        className={`w-full px-4 py-3 border rounded-lg font-bold text-lg text-center disabled:bg-muted disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary ${
+                          outOfStock
+                            ? "text-destructive border-destructive/50"
+                            : lowStock
+                            ? "text-yellow-600 border-yellow-500/50"
+                            : "text-foreground border-border"
+                        } ${isEditing ? "border-primary" : ""}`}
+                      />
+                      {outOfStock && (
+                        <p className="text-destructive text-sm mt-1 font-medium">
+                          Out of stock
+                        </p>
+                      )}
+                      {lowStock && !outOfStock && (
+                        <p className="text-yellow-600 text-sm mt-1 font-medium">
+                          Low stock – reorder soon
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-muted-foreground mb-1">
+                        Purchase Price (₹)
+                      </label>
+                      <input
+                        type="number"
+                        disabled={!isEditing}
+                        value={isEditing ? editedProduct.purchasePrice : p.purchasePrice}
+                        onChange={(e) => handleChange("purchasePrice", e.target.value)}
+                        className={`w-full px-4 py-3 border rounded-lg bg-background text-foreground font-medium disabled:bg-muted disabled:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary ${
+                          isEditing ? "border-primary" : "border-border"
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="p-5 border-t bg-muted/20 flex justify-end">
+                    {isEditing ? (
+                      <>
+                        <button
+                          onClick={cancelEdit}
+                          className="px-6 py-2.5 mr-3 bg-muted hover:bg-muted/80 text-foreground rounded-lg font-medium transition"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={saveEdit}
+                          className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition flex items-center gap-2 shadow-sm"
+                        >
+                          <CheckCircle size={18} />
+                          Save
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => startEdit(p)}
+                        className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition flex items-center gap-2 shadow-sm"
+                      >
+                        <Pencil size={18} />
+                        Edit
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </main>
     </div>
   );
 };
 
-export default First;
+export default Cart;
