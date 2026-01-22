@@ -22,7 +22,6 @@ const Cart = () => {
   const [error, setError] = useState("");
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
-  // Fetch products
   const fetchProducts = async () => {
     try {
       setLoading(true);
@@ -50,7 +49,6 @@ const Cart = () => {
     fetchProducts();
   }, []);
 
-  // Toast auto-hide
   useEffect(() => {
     if (!toast.show) return;
     const timer = setTimeout(() => setToast({ show: false }), 3000);
@@ -61,7 +59,6 @@ const Cart = () => {
     setToast({ show: true, message, type });
   };
 
-  // Edit handlers
   const startEdit = (p) => {
     setEditId(p._id);
     setEditedProduct({
@@ -84,7 +81,6 @@ const Cart = () => {
     setEditedProduct((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Save edited product
   const saveEdit = async () => {
     if (!editedProduct.itemName?.trim()) {
       showToast("Item name is required", "error");
@@ -112,7 +108,6 @@ const Cart = () => {
     }
   };
 
-  // Total stock value (purchase price × quantity)
   const totalStockValue = products.reduce(
     (sum, p) => sum + (p.purchasePrice * p.quantity),
     0
@@ -143,7 +138,7 @@ const Cart = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Toast Notification */}
+      {/* Toast */}
       {toast.show && (
         <div className="fixed top-5 right-5 z-50 animate-fadeIn">
           <div
@@ -179,7 +174,7 @@ const Cart = () => {
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main */}
       <main className="p-5 md:p-8 max-w-7xl mx-auto">
         {products.length === 0 ? (
           <div className="text-center py-20 bg-card rounded-2xl shadow-md border border-border">
@@ -215,18 +210,18 @@ const Cart = () => {
                       <input
                         value={editedProduct.itemName}
                         onChange={(e) => handleChange("itemName", e.target.value)}
-                        className="text-xl font-bold w-full px-3 py-2 bg-background border border-primary/50 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted-foreground"
+                        className="text-xl font-bold w-full px-3 py-2 bg-background border border-primary rounded-lg text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                         placeholder="Product Name"
                       />
                     ) : (
-                      <h3 className="text-xl font-bold text-foreground truncate max-w-[70%]">
+                      <h3 className="text-xl font-bold text-white truncate max-w-[70%]">
                         {p.itemName}
                       </h3>
                     )}
 
                     <div className="flex items-center gap-2">
                       {lowStock && <AlertTriangle className="text-yellow-500" size={22} />}
-                      {outOfStock && <AlertTriangle className="text-destructive" size={22} />}
+                      {outOfStock && <AlertTriangle className="text-red-500" size={22} />}
                     </div>
                   </div>
 
@@ -234,7 +229,7 @@ const Cart = () => {
                   <div className="p-6 space-y-5">
                     {/* Sale Price */}
                     <div>
-                      <label className="block text-sm font-medium text-muted-foreground mb-1">
+                      <label className="block text-sm font-medium text-gray-400 mb-1">
                         Sale Price (₹)
                       </label>
                       <input
@@ -242,15 +237,15 @@ const Cart = () => {
                         disabled={!isEditing}
                         value={isEditing ? editedProduct.salePrice : p.salePrice}
                         onChange={(e) => handleChange("salePrice", e.target.value)}
-                        className={`w-full px-4 py-3 border rounded-lg bg-background text-foreground font-medium text-lg disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary ${
-                          isEditing ? "border-primary" : "border-border"
+                        className={`w-full px-4 py-3 border rounded-lg bg-background text-white font-medium text-lg disabled:bg-gray-800 disabled:text-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary ${
+                          isEditing ? "border-primary" : "border-gray-700"
                         }`}
                       />
                     </div>
 
                     {/* Quantity */}
                     <div>
-                      <label className="block text-sm font-medium text-muted-foreground mb-1">
+                      <label className="block text-sm font-medium text-gray-400 mb-1">
                         Quantity
                       </label>
                       <input
@@ -258,21 +253,21 @@ const Cart = () => {
                         disabled={!isEditing}
                         value={isEditing ? editedProduct.quantity : p.quantity}
                         onChange={(e) => handleChange("quantity", e.target.value)}
-                        className={`w-full px-4 py-3 border rounded-lg font-bold text-lg text-center disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary ${
+                        className={`w-full px-4 py-3 border rounded-lg font-bold text-lg text-center disabled:bg-gray-800 disabled:text-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary ${
                           outOfStock
-                            ? "text-destructive border-destructive/50"
+                            ? "text-red-500 border-red-500/50"
                             : lowStock
-                            ? "text-yellow-600 border-yellow-500/50"
-                            : "text-foreground border-border"
+                            ? "text-yellow-500 border-yellow-500/50"
+                            : "text-white border-gray-700"
                         } ${isEditing ? "border-primary" : ""}`}
                       />
                       {outOfStock && (
-                        <p className="text-destructive text-sm mt-1 font-medium">
+                        <p className="text-red-500 text-sm mt-1 font-medium">
                           Out of stock
                         </p>
                       )}
                       {lowStock && !outOfStock && (
-                        <p className="text-yellow-600 text-sm mt-1 font-medium">
+                        <p className="text-yellow-500 text-sm mt-1 font-medium">
                           Low stock – reorder soon
                         </p>
                       )}
@@ -280,7 +275,7 @@ const Cart = () => {
 
                     {/* Purchase Price */}
                     <div>
-                      <label className="block text-sm font-medium text-muted-foreground mb-1">
+                      <label className="block text-sm font-medium text-gray-400 mb-1">
                         Purchase Price (₹)
                       </label>
                       <input
@@ -288,8 +283,8 @@ const Cart = () => {
                         disabled={!isEditing}
                         value={isEditing ? editedProduct.purchasePrice : p.purchasePrice}
                         onChange={(e) => handleChange("purchasePrice", e.target.value)}
-                        className={`w-full px-4 py-3 border rounded-lg bg-background text-foreground font-medium disabled:bg-muted disabled:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary ${
-                          isEditing ? "border-primary" : "border-border"
+                        className={`w-full px-4 py-3 border rounded-lg bg-background text-white font-medium disabled:bg-gray-800 disabled:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary ${
+                          isEditing ? "border-primary" : "border-gray-700"
                         }`}
                       />
                     </div>
@@ -301,13 +296,13 @@ const Cart = () => {
                       <>
                         <button
                           onClick={cancelEdit}
-                          className="px-6 py-2.5 bg-muted hover:bg-muted/80 text-foreground rounded-lg font-medium transition"
+                          className="px-6 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition"
                         >
                           Cancel
                         </button>
                         <button
                           onClick={saveEdit}
-                          className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition flex items-center gap-2 shadow-sm"
+                          className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium transition flex items-center gap-2 shadow-sm"
                         >
                           <CheckCircle size={18} />
                           Save
@@ -316,7 +311,7 @@ const Cart = () => {
                     ) : (
                       <button
                         onClick={() => startEdit(p)}
-                        className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition flex items-center gap-2 shadow-sm"
+                        className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium transition flex items-center gap-2 shadow-sm"
                       >
                         <Pencil size={18} />
                         Edit
