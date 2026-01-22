@@ -1,42 +1,17 @@
-import axios from "axios";
-
 /*
   Priority:
   1. VITE_API_BASE_URL (local dev)
-  2. Render production URL (fallback) - CHANGED to your confirmed backend URL
+  2. Render production URL (fallback)
 */
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  "https://bill-inventory-backend.onrender.com";  // ← CHANGE THIS to your ACTUAL backend URL if different
-
+  "https://bill-inventory-backend.onrender.com";
 const api = axios.create({
-  baseURL: API_BASE_URL,  // ← REMOVED /api here – add it only if your Express routes use app.use('/api', ...)
-  // If your routes START with /api (e.g. app.use('/api/suppliers/...')) → keep as `${API_BASE_URL}/api`
+  baseURL: `${API_BASE_URL}/api`,
   timeout: 60000,
   headers: {
     "Content-Type": "application/json",
-  },
-});
-
-/* ---------------- REQUEST INTERCEPTOR ---------------- */
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-/* ---------------- RESPONSE INTERCEPTOR ---------------- */
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response) {
-      console.error("API ERROR:", {
-        url: error.config?.url,
+@@ -40,18 +40,17 @@
         status: error.response.status,
         data: error.response.data,
       });
@@ -52,5 +27,4 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
-export default api;
+this the orginal and real backend url
