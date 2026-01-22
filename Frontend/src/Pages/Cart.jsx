@@ -128,7 +128,7 @@ const Cart = () => {
         {error}
         <button
           onClick={fetchProducts}
-          className="mt-6 px-8 py-4 bg-primary text-primary-foreground rounded-xl font-bold shadow-lg hover:bg-primary/90 transition"
+          className="mt-6 px-8 py-4 bg-primary text-white rounded-xl font-bold shadow-lg hover:bg-primary/90 transition"
         >
           Try Again
         </button>
@@ -198,10 +198,10 @@ const Cart = () => {
                   key={p._id}
                   className={`bg-card rounded-2xl shadow-lg overflow-hidden border transition-all duration-200 ${
                     outOfStock
-                      ? "border-destructive/50 bg-destructive/5"
+                      ? "border-red-500/50 bg-red-500/5"
                       : lowStock
                       ? "border-yellow-500/50 bg-yellow-500/5"
-                      : "border-border hover:border-primary/50 hover:shadow-xl"
+                      : "border-border hover:border-teal-500/50 hover:shadow-xl"
                   }`}
                 >
                   {/* Header */}
@@ -210,7 +210,7 @@ const Cart = () => {
                       <input
                         value={editedProduct.itemName}
                         onChange={(e) => handleChange("itemName", e.target.value)}
-                        className="text-xl font-bold w-full px-3 py-2 bg-background border border-primary rounded-lg text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                        className="text-xl font-bold w-full px-4 py-3 bg-gray-900 border-2 border-teal-500 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-teal-400 shadow-[0_0_15px_rgba(45,212,191,0.4)]"
                         placeholder="Product Name"
                       />
                     ) : (
@@ -226,10 +226,10 @@ const Cart = () => {
                   </div>
 
                   {/* Body */}
-                  <div className="p-6 space-y-5">
+                  <div className="p-6 space-y-6">
                     {/* Sale Price */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-1">
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
                         Sale Price (₹)
                       </label>
                       <input
@@ -237,15 +237,15 @@ const Cart = () => {
                         disabled={!isEditing}
                         value={isEditing ? editedProduct.salePrice : p.salePrice}
                         onChange={(e) => handleChange("salePrice", e.target.value)}
-                        className={`w-full px-4 py-3 border rounded-lg bg-background text-white font-medium text-lg disabled:bg-gray-800 disabled:text-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary ${
-                          isEditing ? "border-primary" : "border-gray-700"
+                        className={`w-full px-4 py-3 border rounded-lg bg-gray-900 text-white font-medium text-lg disabled:bg-gray-800 disabled:text-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-teal-400 ${
+                          isEditing ? "border-teal-500" : "border-gray-700"
                         }`}
                       />
                     </div>
 
                     {/* Quantity */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-1">
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
                         Quantity
                       </label>
                       <input
@@ -253,21 +253,21 @@ const Cart = () => {
                         disabled={!isEditing}
                         value={isEditing ? editedProduct.quantity : p.quantity}
                         onChange={(e) => handleChange("quantity", e.target.value)}
-                        className={`w-full px-4 py-3 border rounded-lg font-bold text-lg text-center disabled:bg-gray-800 disabled:text-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary ${
+                        className={`w-full px-4 py-3 border rounded-lg font-bold text-lg text-center disabled:bg-gray-800 disabled:text-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-teal-400 ${
                           outOfStock
                             ? "text-red-500 border-red-500/50"
                             : lowStock
                             ? "text-yellow-500 border-yellow-500/50"
                             : "text-white border-gray-700"
-                        } ${isEditing ? "border-primary" : ""}`}
+                        } ${isEditing ? "border-teal-500" : ""}`}
                       />
                       {outOfStock && (
-                        <p className="text-red-500 text-sm mt-1 font-medium">
+                        <p className="text-red-500 text-sm mt-2 font-medium">
                           Out of stock
                         </p>
                       )}
                       {lowStock && !outOfStock && (
-                        <p className="text-yellow-500 text-sm mt-1 font-medium">
+                        <p className="text-yellow-500 text-sm mt-2 font-medium">
                           Low stock – reorder soon
                         </p>
                       )}
@@ -275,7 +275,7 @@ const Cart = () => {
 
                     {/* Purchase Price */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-1">
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
                         Purchase Price (₹)
                       </label>
                       <input
@@ -283,26 +283,26 @@ const Cart = () => {
                         disabled={!isEditing}
                         value={isEditing ? editedProduct.purchasePrice : p.purchasePrice}
                         onChange={(e) => handleChange("purchasePrice", e.target.value)}
-                        className={`w-full px-4 py-3 border rounded-lg bg-background text-white font-medium disabled:bg-gray-800 disabled:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary ${
-                          isEditing ? "border-primary" : "border-gray-700"
+                        className={`w-full px-4 py-3 border rounded-lg bg-gray-900 text-white font-medium disabled:bg-gray-800 disabled:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-teal-400 ${
+                          isEditing ? "border-teal-500" : "border-gray-700"
                         }`}
                       />
                     </div>
                   </div>
 
                   {/* Actions */}
-                  <div className="p-5 border-t bg-muted/20 flex justify-end gap-3">
+                  <div className="p-5 border-t bg-muted/20 flex justify-end gap-4">
                     {isEditing ? (
                       <>
                         <button
                           onClick={cancelEdit}
-                          className="px-6 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition"
+                          className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition"
                         >
                           Cancel
                         </button>
                         <button
                           onClick={saveEdit}
-                          className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium transition flex items-center gap-2 shadow-sm"
+                          className="px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium transition flex items-center gap-2 shadow-md"
                         >
                           <CheckCircle size={18} />
                           Save
@@ -311,7 +311,7 @@ const Cart = () => {
                     ) : (
                       <button
                         onClick={() => startEdit(p)}
-                        className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium transition flex items-center gap-2 shadow-sm"
+                        className="px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium transition flex items-center gap-2 shadow-md"
                       >
                         <Pencil size={18} />
                         Edit
